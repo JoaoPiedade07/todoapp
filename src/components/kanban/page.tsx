@@ -3,17 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Interface para o usuário
-interface User {
-  id: string;
-  username: string;
-  name: string;
-  type: 'manager' | 'programmer';
-  department: string;
-}
-
 export default function KanbanPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,27 +29,19 @@ export default function KanbanPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Kanban App</h1>
+              <h1 className="text-2xl font-bold text-gray-900">TodoApp</h1>
               <p className="text-gray-600">Bem-vindo, {user.name}</p>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                user.type === 'manager' 
-                  ? 'bg-purple-100 text-purple-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {user.type === 'manager' ? 'Gestor' : 'Programador'}
-              </span>
             </div>
             <button
               onClick={() => {
                 localStorage.removeItem('user');
                 router.push('/login');
               }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
             >
               Sair
             </button>
@@ -66,19 +49,17 @@ export default function KanbanPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
           <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
         </div>
 
-        {/* Kanban Columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* To Do Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-red-50 border-b border-red-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-red-900 flex justify-between items-center">
+          {/* Coluna To Do */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="bg-red-500 text-white p-4 rounded-t-lg">
+              <h2 className="font-semibold flex justify-between items-center">
                 A Fazer
                 <span className="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs">
                   2
@@ -98,10 +79,10 @@ export default function KanbanPage() {
             </div>
           </div>
 
-          {/* Doing Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-yellow-50 border-b border-yellow-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-yellow-900 flex justify-between items-center">
+          {/* Coluna Doing */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="bg-yellow-500 text-white p-4 rounded-t-lg">
+              <h2 className="font-semibold flex justify-between items-center">
                 Em Progresso
                 <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs">
                   1
@@ -111,7 +92,7 @@ export default function KanbanPage() {
             <div className="p-4 space-y-4 min-h-[400px]">
               <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-medium text-gray-900">Design do BD</h3>
-                <p className="text-sm text-gray-600 mt-1">Modelar estrutura do banco</p>
+                <p className="text-sm text-gray-600 mt-1">Modelar estrutura</p>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                     Ordem: 2
@@ -121,10 +102,10 @@ export default function KanbanPage() {
             </div>
           </div>
 
-          {/* Done Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-green-50 border-b border-green-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-green-900 flex justify-between items-center">
+          {/* Coluna Done */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="bg-green-500 text-white p-4 rounded-t-lg">
+              <h2 className="font-semibold flex justify-between items-center">
                 Concluído
                 <span className="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs">
                   0
