@@ -7,5 +7,4 @@ const server = createServer((req, res) => {
 
 server.listen(3000, () => {
   console.log('Servidor rodando em http://localhost:3000');
-  console.log('Agora vamos focar em resolver o Next.js...');
 }); 
