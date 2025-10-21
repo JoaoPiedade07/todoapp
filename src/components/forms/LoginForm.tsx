@@ -43,6 +43,10 @@ export const LoginForm: React.FC = () => {
     }
   };
 
+  const handleRegisterRedirect = () => {
+    router.push('/register');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-md mx-4">
@@ -87,9 +91,26 @@ export const LoginForm: React.FC = () => {
               {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
-          <h2 className="text-sm text-blue-600 text-center mb-2 paddingtop-19px">Ainda não tem conta?</h2>
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+
+          {/* Link para registro */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Ainda não tem conta?{' '}
+              <button
+                type="button"
+                onClick={handleRegisterRedirect}
+                className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer"
+              >
+                Registe-se aqui
+              </button>
+            </p>
+          </div>
+
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600 text-center mb-2">Credenciais de teste:</p>
             <div className="text-xs text-gray-500 space-y-1">
+              <p><strong>Gestor:</strong> gestor / qualquer password</p>
+              <p><strong>Programador:</strong> programador / qualquer password</p>
             </div>
           </div>
         </CardContent>
