@@ -6,14 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
-export const LoginForm: React.FC = () => {
+export const RegisterForm: React.FC = () => {
   const [username, setUsername] = useState('');
+  const [email, setEamil] = useState('')
   const [password, setPassword] = useState('');
+  const [confirmpassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -22,22 +24,27 @@ export const LoginForm: React.FC = () => {
       // Simulação de autenticação - será substituída pela real
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (username && password) {
-        const user = {
-          id: '1',
-          username,
-          name: username === 'gestor' ? 'Gestor Principal' : 'Programador',
-          type: username === 'gestor' ? 'manager' : 'programmer',
-          department: 'IT'
-        };
+      if (email && username && password && confirmpassword) {
+        if(password === confirmpassword)
+        {
+            const user = {
+                id: '1',
+                email,
+                username,
+                name: username === 'gestor' ? 'Gestor Principal' : 'Programador',
+                type: username === 'gestor' ? 'manager' : 'programmer',
+                department: 'IT'
+              };
+        }
         
-        localStorage.setItem('user', JSON.stringify(user));
+        
+        localStorage.setItem('user', JSON.stringify(username));
         router.push('/kanban');
       } else {
         setError('Por favor, preencha todos os campos');
       }
     } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.');
+      setError('Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +59,7 @@ export const LoginForm: React.FC = () => {
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -67,6 +74,15 @@ export const LoginForm: React.FC = () => {
               onChange={(e) => setUsername(e.target.value)}
               required
             />
+
+            <Input
+              label="Email"
+              type="email"
+              placeholder="Digite seu endereçom de email"
+              value={email}
+              onChange={(e) => setEamil(e.target.value)}
+              required
+            />
             
             <Input
               label="Password"
@@ -76,6 +92,15 @@ export const LoginForm: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
+            <Input
+              label="ConfirmPasswaord"
+              type="confirmpassword"
+              placeholder="Repita sua password"
+              value={confirmpassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />  
             
             <Button
               type="submit"
