@@ -51,4 +51,27 @@ export function initDatabase() {
         `)
 }
 
+initDatabase();
+
+export const taskTypeQueries = {
+    getAll: () => {
+        const stmt = db.prepare('SELECT * FROM task_types ORDER BY created_at DESC');
+        return stmt.all();
+    },
+
+    getById: (id: string) => {
+        const stmt = db.prepare('SELECT * FROM task_types WHERE id = ?');
+        return stmt.get(id);
+    },
+
+    create: (taskType: { id: string, name: string, description: string}) => {
+        const stmt = db.prepare(`
+            INSERT INTO users (id, name, description)
+            VALUES (?,?,?)
+            `);
+            return stmt.run(taskType.id, taskType.name, taskType.description );
+        }
+
+};
+
 export default db;
