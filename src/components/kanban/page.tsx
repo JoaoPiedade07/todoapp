@@ -36,15 +36,7 @@ export default function KanbanPage() {
               <h1 className="text-2xl font-bold text-gray-900">TodoApp</h1>
               <p className="text-gray-600">Bem-vindo, {user.name}</p>
             </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('user');
-                router.push('/login');
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Sair
-            </button>
+            
           </div>
         </div>
       </header>

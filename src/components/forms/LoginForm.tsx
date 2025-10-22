@@ -52,7 +52,7 @@ export const LoginForm: React.FC = () => {
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">TodoApp</h1>
-          <p className="text-gray-600 mt-2">Sistema de Gestão de Tarefas</p>
+          <p className="text-gray-600 mt-2">Sistema de Gestão de Tarefas 4</p>
         </CardHeader>
         
         <CardContent>
