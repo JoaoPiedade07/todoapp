@@ -11,6 +11,7 @@ export const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userType, setUserType] = useState<'programmer' | 'manager'>('programmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -45,8 +46,8 @@ export const RegisterForm: React.FC = () => {
         id: Date.now().toString(),
         email,
         username,
-        name: username, // Usando o username como nome por enquanto
-        type: 'programmer', // Por padrão, novo usuário é programador
+        name: username,
+        type: userType,
         department: 'IT',
         createdAt: new Date().toISOString()
       };
@@ -83,6 +84,47 @@ export const RegisterForm: React.FC = () => {
                 {error}
               </div>
             )}
+
+            {/* Botão Switch com animação suave */}
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Tipo de Conta
+              </label>
+              <div className="relative inline-flex bg-gray-100 rounded-lg p-1">
+                {/* Indicador de seleção com animação */}
+                <div 
+                  className={`absolute top-1 bottom-1 rounded-md bg-blue-600 shadow-sm transition-all duration-300 ease-in-out ${
+                    userType === 'programmer' 
+                      ? 'left-1 right-1/2' 
+                      : 'left-1/2 right-1'
+                  }`}
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => setUserType('programmer')}
+                  className={`relative flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ease-in-out z-10 ${
+                    userType === 'programmer'
+                      ? 'text-white'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Programador
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setUserType('manager')}
+                  className={`relative flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ease-in-out z-10 ${
+                    userType === 'manager'
+                      ? 'text-white'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Gestor
+                </button>
+              </div>
+            </div>
             
             <Input
               label="Username"
@@ -138,7 +180,7 @@ export const RegisterForm: React.FC = () => {
               <button
                 type="button"
                 onClick={handleLoginRedirect}
-                className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer"
+                className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer transition-colors duration-200"
               >
                 Faça login aqui
               </button>
@@ -149,8 +191,9 @@ export const RegisterForm: React.FC = () => {
             <p className="text-sm text-gray-600 text-center mb-2">Notas:</p>
             <div className="text-xs text-gray-500 space-y-1">
               <p>• Password deve ter pelo menos 6 caracteres</p>
-              <p>• Novos utilizadores são criados como Programadores</p>
-              <p>• Apenas Gestores podem criar outros Gestores</p>
+              <p>• <strong>Programadores</strong> podem mover suas tarefas no Kanban</p>
+              <p>• <strong>Gestores</strong> podem criar tarefas e gerir utilizadores</p>
+              <p className="text-orange-600">• Em produção, apenas Gestores poderiam criar outros Gestores</p>
             </div>
           </div>
         </CardContent>
