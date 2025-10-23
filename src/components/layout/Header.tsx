@@ -44,7 +44,12 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               <p className="text-sm font-medium text-gray-900">{user.name}</p>
               <p className="text-xs text-gray-500">{user.department}</p>
             </div>
-            
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Sair
+            </button>
             
           </div>
         </div>
