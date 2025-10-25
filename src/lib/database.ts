@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from 'path';
 
 const dbPath = path.join(process.cwd(), 'database.sqlite3');
-const db = new Database(dbPath);
+export const db = new Database(dbPath);
 
 // Habilitar foreign keys
 db.pragma('foreign_keys = ON');
@@ -15,9 +15,12 @@ export function initDatabase() {
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
           name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
           type TEXT CHECK(type IN ('gestor', 'programador')) NOT NULL,
           department TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         `)
     
