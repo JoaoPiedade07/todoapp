@@ -1,9 +1,11 @@
+import { Department } from '@/constants/enums';
+
 export interface User {
     id: string;
     username: string;
     name: string;
     type: 'manager' | 'programmer';
-    department: string;
+    department: Department;
     created_at?: string;
   }
 

@@ -1,4 +1,5 @@
 import { db } from '../lib/database';
+import { Department } from '@/constants/enums';
 
 export interface User {
   id: number;
@@ -7,7 +8,7 @@ export interface User {
   email: string;
   password_hash: string;
   type: 'gestor' | 'programador';
-  department: string;
+  department: Department;
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +19,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   type: 'gestor' | 'programador';
-  department: string;
+  department: Department;
 }
 
 export class UserModel {
@@ -46,7 +47,7 @@ export class UserModel {
     const { username, name, email, password, type, department } = userData;
     
     const stmt = db.prepare(`
-      INSERT INTO users (username, name, email, password, type, department) 
+      INSERT INTO users (username, name, email, password_hash, type, department) 
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 

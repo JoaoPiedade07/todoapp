@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Department } from '@/constants/enums';
 
 export const RegisterForm: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -39,27 +40,39 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulação de registro - será substituída pela real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const user = {
-        id: Date.now().toString(),
-        email,
-        username,
-        name: username,
-        type: userType,
-        department: 'IT',
-        createdAt: new Date().toISOString()
-      };
+      const response = await fetch('http://localhost:3001/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          name: username,
+          email,
+          password,
+          type: userType === 'programmer' ? 'programador' : 'gestor',
+          department: Department.IT
+        }),
+      });
+
+      if(!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error);
+      }
+
+      const data = await response.json();
+
+
       
       // Salva o usuário no localStorage
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
       // Redireciona para o kanban
       router.push('/kanban');
       
-    } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
