@@ -2,7 +2,7 @@ import { db } from '../lib/database';
 import { Department } from '@/constants/enums';
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   name: string;
   email: string;
@@ -28,7 +28,7 @@ export class UserModel {
     return stmt.get(email) as User | undefined;
   }
 
-  static findById(id: number): User | undefined {
+  static findById(id: string): User | undefined {
     const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
     return stmt.get(id) as User | undefined;
   }
@@ -45,18 +45,19 @@ export class UserModel {
 
   static create(userData: CreateUserData): User {
     const { username, name, email, password, type, department } = userData;
+    const id = Date.now().toString(); // Gerar ID único
     
     const stmt = db.prepare(`
-      INSERT INTO users (username, name, email, password_hash, type, department) 
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, name, email, password_hash, type, department) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(username, name, email, password, type, department);
+    const result = stmt.run(id, username, name, email, password, type, department);
     
-    return this.findById(result.lastInsertRowid as number)!;
+    return this.findById(id)!;
   }
 
-  static updatePassword(userId: number, newPasswordHash: string): void {
+  static updatePassword(userId: string, newPasswordHash: string): void {
     const stmt = db.prepare(`
       UPDATE users 
       SET password_hash = ?, updated_at = CURRENT_TIMESTAMP 

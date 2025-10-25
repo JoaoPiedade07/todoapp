@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-super-secreto';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 interface JWTPayload {
-    userId: number;
+    userId: string;
 }
 
 export class AuthService {
@@ -19,7 +19,7 @@ export class AuthService {
     return await bcrypt.compare(password, hash);
   }
 
-  static generateToken(userId: number): string {
+  static generateToken(userId: string): string {
     const payload: JWTPayload = { userId };
     
     return jwt.sign(
@@ -32,9 +32,9 @@ export class AuthService {
     );
   }
 
-  static verifyToken(token: string): { userId: number } {
+  static verifyToken(token: string): { userId: string } {
     try {
-      return jwt.verify(token, JWT_SECRET) as { userId: number };
+      return jwt.verify(token, JWT_SECRET) as { userId: string };
     } catch (error) {
       throw new Error('Token inválido ou expirado');
     }
@@ -73,7 +73,7 @@ export class AuthService {
     return { user: { ...user, password_hash: '' }, token };
   }
 
-  static async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+  static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
     const user = UserModel.findById(userId);
     if (!user) {
       throw new Error('Usuário não encontrado');
