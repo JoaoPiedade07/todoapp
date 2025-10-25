@@ -11,7 +11,7 @@ db.pragma('foreign_keys = ON');
 export function initDatabase() {
     //Tabela de utilizadores
     db.exec(`
-        CREATE TABLE IF NOT EXITS users (
+        CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
           name TEXT NOT NULL,
@@ -19,20 +19,20 @@ export function initDatabase() {
           password_hash TEXT NOT NULL,
           type TEXT CHECK(type IN ('gestor', 'programador')) NOT NULL,
           department TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-        `)
+    `)
     
     //Tabela de tipos de tarefas
     db.exec(`
-        CREATE TABLE IF NOT EXITS task_types (
+        CREATE TABLE IF NOT EXISTS task_types (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           description TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-        `)
+    `)
 
     //Tabela de tarefas
     db.exec(`
@@ -40,18 +40,17 @@ export function initDatabase() {
           id TEXT PRIMARY KEY,
           title TEXT NOT NULL,
           description TEXT,
-          status_task TEXT CHECK(status IN ('todo', 'inprogress', 'done)) NOT NULL DEFAULT 'todo'.
+          status TEXT CHECK(status IN ('todo', 'inprogress', 'done')) NOT NULL DEFAULT 'todo',
           \`order\` INTEGER NOT NULL DEFAULT 0,
           story_points INTEGER,
-          assigned_to INTEGER,
+          assigned_to TEXT,
           task_type_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
           FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
-
         )
-        `)
+    `)
 }
 
 initDatabase();
@@ -68,15 +67,15 @@ export const userQueries = {
         return stmt.get(id);
     },
     
-    create: (user: { id: string; username: string; name: string; type: 'gestor' | 'programador'; department: string }) => {
+    create: (user: { id: string; username: string; name: string; email: string; password_hash: string; type: 'gestor' | 'programador'; department: string }) => {
         const stmt = db.prepare(`
-        INSERT INTO users (id, username, name, type, department)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO users (id, username, name, email, password_hash, type, department)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-        return stmt.run(user.id, user.username, user.name, user.type, user.department);
+        return stmt.run(user.id, user.username, user.name, user.email, user.password_hash, user.type, user.department);
     },
     
-    update: (id: string, user: Partial<{ username: string; name: string; type: 'gestor' | 'programador'; department: string }>) => {
+    update: (id: string, user: Partial<{ username: string; name: string; email: string; type: 'gestor' | 'programador'; department: string }>) => {
         const fields = Object.keys(user).map(key => `${key} = ?`).join(', ');
         const values = Object.values(user);
         const stmt = db.prepare(`UPDATE users SET ${fields} WHERE id = ?`);
@@ -103,17 +102,17 @@ export const taskTypeQueries = {
 
     create: (taskType: { id: string, name: string, description: string}) => {
         const stmt = db.prepare(`
-            INSERT INTO users (id, name, description)
+            INSERT INTO task_types (id, name, description)
             VALUES (?,?,?)
-            `);
-            return stmt.run(taskType.id, taskType.name, taskType.description );
+        `);
+        return stmt.run(taskType.id, taskType.name, taskType.description);
     },
     
     update: (id: string, taskType: Partial<{ name: string, description: string}>) => {
         const fields = Object.keys(taskType).map(key => `${key} = ?`).join(', ');
         const values = Object.values(taskType);
         const stmt = db.prepare(`UPDATE task_types SET ${fields} WHERE id = ?`);
-        return stmt.run(...values, id)
+        return stmt.run(...values, id);
     },
 
     delete: (id: string) => {
@@ -129,10 +128,10 @@ export const taskQueries = {
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
-            LEFT JOIN task_types tt ON t.task_type = tt.id
-            WHERE t.id = ? 
-            `);
-            return stmt.all();
+            LEFT JOIN task_types tt ON t.task_type_id = tt.id
+            ORDER BY t.\`order\` ASC, t.created_at DESC
+        `);
+        return stmt.all();
     },
 
     getById: (id: string) => {
@@ -140,11 +139,10 @@ export const taskQueries = {
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
-            LEFT JOIN task_types tt ON t.task_type = tt.id
+            LEFT JOIN task_types tt ON t.task_type_id = tt.id
             WHERE t.id = ?
-            
-            `);
-            return stmt.all(id);
+        `);
+        return stmt.get(id);
     },
 
     getByStatus: (status: 'todo' | 'inprogress' | 'done') => {
@@ -152,10 +150,10 @@ export const taskQueries = {
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
-            LEFT JOIN task_types tt ON t.task_type = tt.id
+            LEFT JOIN task_types tt ON t.task_type_id = tt.id
             WHERE t.status = ?
             ORDER BY t.\`order\` ASC, t.created_at DESC
-            `);
+        `);
         return stmt.all(status);
     },
 
@@ -172,23 +170,23 @@ export const taskQueries = {
         const stmt = db.prepare(`
             INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id)
             VALUES(?,?,?,?,?,?,?,?)
-            `);
-            return stmt.run(
-                task.id,
-                task.title,
-                task.description || null,
-                task.status || 'todo',
-                task.order || 0,
-                task.storyPoints || null,
-                task.assignedTo || null,
-                task.taskTypeId || null
-            );
+        `);
+        return stmt.run(
+            task.id,
+            task.title,
+            task.description || null,
+            task.status || 'todo',
+            task.order || 0,
+            task.storyPoints || null,
+            task.assignedTo || null,
+            task.taskTypeId || null
+        );
     },
 
     update: (id: string, task: Partial<{
         title: string,
         description: string;
-        status: 'todo' | 'doing' | 'done';
+        status: 'todo' | 'inprogress' | 'done';
         order: number;
         storyPoints: number;
         assignedTo: string;
@@ -208,20 +206,19 @@ export const taskQueries = {
     },
 
     delete: (id: string) => {
-        const stmt = db.prepare(`DELETE FROM task WHERE id = ?`)
+        const stmt = db.prepare(`DELETE FROM tasks WHERE id = ?`);
         return stmt.run(id);
     },
 
-    updateOrder: (tasks: { id: string; order: number; status: 'todo' | 'doing' | 'done' }[]) => {
+    updateOrder: (tasks: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
         const stmt = db.prepare('UPDATE tasks SET `order` = ?, status = ? WHERE id = ?');
         const updateMany = db.transaction((tasks) => {
-        for (const task of tasks) {
-            stmt.run(task.order, task.status, task.id);
-        }
+            for (const task of tasks) {
+                stmt.run(task.order, task.status, task.id);
+            }
         });
         return updateMany(tasks);
-  }
-
+    }
 }
 
 export default db;
