@@ -1,0 +1,90 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { UserModel, User, CreateUserData } from '../lib/user';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-super-secreto';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+interface JWTPayload {
+    userId: number;
+}
+
+export class AuthService {
+  static async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  static async comparePassword(password: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(password, hash);
+  }
+
+  static generateToken(userId: number): string {
+    const payload: JWTPayload = { userId };
+    
+    return jwt.sign(
+      payload, 
+      JWT_SECRET, 
+      { 
+        expiresIn: JWT_EXPIRES_IN,
+        algorithm: 'HS256' // Especifica o algoritmo explicitamente
+      } as jwt.SignOptions // Cast para resolver o erro de tipos
+    );
+  }
+
+  static verifyToken(token: string): { userId: number } {
+    try {
+      return jwt.verify(token, JWT_SECRET) as { userId: number };
+    } catch (error) {
+      throw new Error('Token inválido ou expirado');
+    }
+  }
+
+  static async register(userData: CreateUserData): Promise<{ user: User; token: string }> {
+    const existingUser = UserModel.findByEmail(userData.email);
+    if (existingUser) {
+      throw new Error('Email já está em uso');
+    }
+
+    const passwordHash = await this.hashPassword(userData.password);
+    const user = UserModel.create({
+      ...userData,
+      password: passwordHash
+    });
+
+    const token = this.generateToken(user.id);
+
+    return { user, token };
+  }
+
+  static async login(email: string, password: string): Promise<{ user: User; token: string }> {
+    const user = UserModel.findByEmail(email);
+    if (!user) {
+      throw new Error('Credenciais inválidas');
+    }
+
+    const isPasswordValid = await this.comparePassword(password, user.password_hash);
+    if (!isPasswordValid) {
+      throw new Error('Credenciais inválidas');
+    }
+
+    const token = this.generateToken(user.id);
+
+    return { user: { ...user, password_hash: '' }, token };
+  }
+
+  static async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    const user = UserModel.findById(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const isCurrentPasswordValid = await this.comparePassword(currentPassword, user.password_hash);
+    if (!isCurrentPasswordValid) {
+      throw new Error('Senha atual incorreta');
+    }
+
+    const newPasswordHash = await this.hashPassword(newPassword);
+    UserModel.updatePassword(userId, newPasswordHash);
+  }
+}
