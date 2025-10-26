@@ -18,24 +18,34 @@ export const LoginForm: React.FC = () => {
     setError('');
     setIsLoading(true);
 
+    if(!username || !password) {
+      setError('Por favor, preencha todos os campos');
+      return;
+    }
+
     try {
-      // Simulação de autenticação - será substituída pela real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (username && password) {
-        const user = {
-          id: '1',
-          username,
-          name: username === 'gestor' ? 'Gestor Principal' : 'Programador',
-          type: username === 'gestor' ? 'manager' : 'programmer',
-          department: 'IT'
-        };
-        
-        localStorage.setItem('user', JSON.stringify(user));
-        router.push('/kanban');
-      } else {
-        setError('Por favor, preencha todos os campos');
+      const response = await fetch('http://localhost:3001/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: username, // O backend espera 'email', não 'username'
+          password
+        }),
+      });
+
+      if(!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error);
       }
+
+      const data = await response.json();
+        
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      router.push('/kanban');
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
