@@ -12,24 +12,30 @@ export const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [userType, setUserType] = useState<'programmer' | 'manager'>('programmer');
+  const [userType, setUserType] = useState<'programador' | 'gestor'>('programador');
   const [managerId, setManagerId] = useState('');
   const [availableManagers, setAvailableManagers] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  //Carregar gestores quando quanto type for programadores
+  // Detectar automaticamente a URL do servidor baseada no browser
+  const API_BASE_URL = typeof window !== 'undefined' 
+    ? `http://${window.location.hostname}:3001`
+    : 'http://localhost:3001';
+
+  // Carregar gestores quando o tipo for programador
   useEffect(() => {
-    if(userType === 'programmer') {
-      fetch('http://10.0.97.104:3001/users/managers')
+    if(userType === 'programador') {
+      fetch(`${API_BASE_URL}/users/managers`)
       .then(res => res.json())
       .then(data => setAvailableManagers(data))
       .catch(err => console.error('Erro ao carregar gestores: ', err));
     } else {
       setAvailableManagers([]);
+      setManagerId(''); // Limpar seleção ao mudar para gestor
     }
-  }, [userType]);
+  }, [userType, API_BASE_URL]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,15 +57,15 @@ export const RegisterForm: React.FC = () => {
       return;
     }
 
-    if(userType === 'programmer' && !managerId) {
-      setError('Porfavor selecione um gestor responsavel');
+    if(userType === 'programador' && !managerId) {
+      setError('Por favor, selecione um gestor responsável');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/auth/register',  {
+      const response = await fetch(`${API_BASE_URL}/auth/register`,  {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,9 +75,9 @@ export const RegisterForm: React.FC = () => {
           name: username,
           email,
           password,
-          type: userType === 'programmer' ? 'programador' : 'gestor',
+          type: userType === 'programador' ? 'programador' : 'gestor',
           department: Department.IT,
-          manager_id: userType === 'programmer' ? managerId: undefined
+          manager_id: userType === 'programador' ? managerId: undefined
         }),
       });
 
@@ -127,7 +133,7 @@ export const RegisterForm: React.FC = () => {
                 {/* Indicador de seleção com animação */}
                 <div 
                   className={`absolute top-1 bottom-1 rounded-md bg-blue-600 shadow-sm transition-all duration-300 ease-in-out ${
-                    userType === 'programmer' 
+                    userType === 'programador' 
                       ? 'left-1 right-1/2' 
                       : 'left-1/2 right-1'
                   }`}
@@ -135,9 +141,9 @@ export const RegisterForm: React.FC = () => {
                 
                 <button
                   type="button"
-                  onClick={() => setUserType('programmer')}
+                  onClick={() => setUserType('programador')}
                   className={`relative flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ease-in-out z-10 ${
-                    userType === 'programmer'
+                    userType === 'programador'
                       ? 'text-white'
                       : 'text-gray-600 hover:text-gray-800'
                   }`}
@@ -147,9 +153,9 @@ export const RegisterForm: React.FC = () => {
                 
                 <button
                   type="button"
-                  onClick={() => setUserType('manager')}
+                  onClick={() => setUserType('gestor')}
                   className={`relative flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ease-in-out z-10 ${
-                    userType === 'manager'
+                    userType === 'gestor'
                       ? 'text-white'
                       : 'text-gray-600 hover:text-gray-800'
                   }`}
@@ -160,7 +166,7 @@ export const RegisterForm: React.FC = () => {
             </div>
 
             {/* ⬅️ Seleção de gestor (apenas para programadores) */}
-                {userType === 'programmer' && (
+                {userType === 'programador' && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">
                       Gestor Responsável *

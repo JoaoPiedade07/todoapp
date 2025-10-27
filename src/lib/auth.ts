@@ -58,7 +58,7 @@ export class AuthService {
     }
 
     // Se for gestor, não pode ter manager_id
-    if (userData.type === 'gestor' && !userData.manager_id) {
+    if (userData.type === 'gestor' && userData.manager_id) {
       throw new Error('Gestores não podem ter gestor responsável');
     }
 
@@ -71,6 +71,10 @@ export class AuthService {
       if (manager.type !== 'gestor') {
         throw new Error('O gestor responsável deve ser do tipo gestor');
       }
+    }
+
+    if(userData.type === 'gestor') {
+      userData.manager_id = null;
     }
 
     const passwordHash = await this.hashPassword(userData.password);

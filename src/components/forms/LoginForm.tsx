@@ -7,30 +7,34 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 export const LoginForm: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const API_BASE_URL = typeof window !== 'undefined' 
+    ? `http://${window.location.hostname}:3001`
+    : 'http://localhost:3001';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    if(!username || !password) {
+    if(!email || !password) {
       setError('Por favor, preencha todos os campos');
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: username, // O backend espera 'email', não 'username'
+          email: email,
           password
         }),
       });
@@ -41,13 +45,24 @@ export const LoginForm: React.FC = () => {
       }
 
       const data = await response.json();
+      
+      // DEBUG: Ver o que está a vir do backend
+      console.log('Dados do login:', data.user);
+      
+      // CORREÇÃO: Garantir que o type está nos formatos corretos
+      const userData = {
+        ...data.user,
+        type: data.user.type === 'gestor' || data.user.type === 'programador' 
+          ? data.user.type 
+          : data.user.type === 'manager' ? 'gestor' : 'programador'
+      };
         
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(userData)); // Usar userData corrigido
       
       router.push('/kanban');
-    } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +89,11 @@ export const LoginForm: React.FC = () => {
             )}
             
             <Input
-              label="Username"
-              type="text"
-              placeholder="Digite seu username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Email" // MUDAR: de "Username" para "Email"
+              type="email" // MUDAR: para type="email"
+              placeholder="Digite seu email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
             
@@ -119,8 +134,8 @@ export const LoginForm: React.FC = () => {
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 text-center mb-2">Credenciais de teste:</p>
             <div className="text-xs text-gray-500 space-y-1">
-              <p><strong>Gestor:</strong> gestor / qualquer password</p>
-              <p><strong>Programador:</strong> programador / qualquer password</p>
+              <p><strong>Gestor:</strong> email_gestor@exemplo.com / password</p>
+              <p><strong>Programador:</strong> email_programador@exemplo.com / password</p>
             </div>
           </div>
         </CardContent>
