@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
+import userRoute from './src/lib/userRoute';
 
 dotenv.config();
 
@@ -14,11 +15,7 @@ const PORT = process.env.PORT || 3001;
 initDatabase();
 
 server.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://192.168.1.118:3000'
-  ],
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://10.0.97.104:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -26,6 +23,7 @@ server.use(cors({
 server.use(express.json());
 
 server.use('/auth', authRoutes);
+server.use('/users', userRoute);
 
 // Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {

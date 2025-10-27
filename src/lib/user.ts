@@ -53,13 +53,13 @@ export class UserModel {
 
   //Obter apenas programadores
   static findProgrammers(): User[] {
-    const stmt = db.prepare('SELECT * FROM useres WHERE type = "programadores" ORDER BY name');
+    const stmt = db.prepare("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
     return stmt.all() as User[];
   }
 
   //Obter apenas gestores
   static findManagers(): User[] {
-    const stmt = db.prepare('SELECT * FROM useres WHERE type = "gestor" ORDER BY name');
+    const stmt = db.prepare("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
     return stmt.all() as User[];
   }
 
