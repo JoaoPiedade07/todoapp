@@ -8,6 +8,7 @@ export interface User {
   email: string;
   password_hash: string;
   type: 'gestor' | 'programador';
+  manager_id?: string;
   department: Department;
   created_at: string;
   updated_at: string;
@@ -20,6 +21,7 @@ export interface CreateUserData {
   password: string;
   type: 'gestor' | 'programador';
   department: Department;
+  manager_id?: string;
 }
 
 export class UserModel {
@@ -43,16 +45,34 @@ export class UserModel {
     return stmt.get(name) as User | undefined;
   }
 
+  //Obter todos os programadores de um gestor especifico
+  static findByManagerId(managerId: string): User[] {
+    const stmt = db.prepare('SELECT * FROM users WHERE manager_id = ?');
+    return stmt.all(managerId) as User[];
+  }
+
+  //Obter apenas programadores
+  static findProgrammers(): User[] {
+    const stmt = db.prepare('SELECT * FROM useres WHERE type = "programadores" ORDER BY name');
+    return stmt.all() as User[];
+  }
+
+  //Obter apenas gestores
+  static findManagers(): User[] {
+    const stmt = db.prepare('SELECT * FROM useres WHERE type = "gestor" ORDER BY name');
+    return stmt.all() as User[];
+  }
+
   static create(userData: CreateUserData): User {
-    const { username, name, email, password, type, department } = userData;
+    const { username, name, email, password, type, department, manager_id } = userData;
     const id = Date.now().toString(); // Gerar ID único
     
     const stmt = db.prepare(`
-      INSERT INTO users (id, username, name, email, password_hash, type, department) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(id, username, name, email, password, type, department);
+    const result = stmt.run(id, username, name, email, password, type, department, manager_id || null);
     
     return this.findById(id)!;
   }

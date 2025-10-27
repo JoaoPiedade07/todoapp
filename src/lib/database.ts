@@ -19,8 +19,10 @@ export function initDatabase() {
           password_hash TEXT NOT NULL,
           type TEXT CHECK(type IN ('gestor', 'programador')) NOT NULL,
           department TEXT NOT NULL,
+          manager_id TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          FOREIGN_KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
         )
     `)
     
@@ -66,16 +68,30 @@ export const userQueries = {
         const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
         return stmt.get(id);
     },
-    
-    create: (user: { id: string; username: string; name: string; email: string; password_hash: string; type: 'gestor' | 'programador'; department: string }) => {
-        const stmt = db.prepare(`
-        INSERT INTO users (id, username, name, email, password_hash, type, department)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-        return stmt.run(user.id, user.username, user.name, user.email, user.password_hash, user.type, user.department);
+
+    getProgrammers: () => {
+        const stmt = db.prepare('SELECT * FROM users WHERE type = "programadores" ORDER BY name')
+        return stmt.all();
+    },
+
+    getManagers: () => {
+        const stmt = db.prepare('SELECT * FROM users WHERE type = "gestor" ORDER BY name')
+        return stmt.all();
+    },
+
+    getByManagerId: (managerId: string) => {
+
     },
     
-    update: (id: string, user: Partial<{ username: string; name: string; email: string; type: 'gestor' | 'programador'; department: string }>) => {
+    create: (user: { id: string; username: string; name: string; email: string; password_hash: string; type: 'gestor' | 'programador'; department: string; manager_id?: string }) => {
+        const stmt = db.prepare(`
+        INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        return stmt.run(user.id, user.username, user.name, user.email, user.password_hash, user.type, user.department, user.manager_id || null);
+    },
+    
+    update: (id: string, user: Partial<{ username: string; name: string; email: string; type: 'gestor' | 'programador'; department: string; manager_id?: string }>) => {
         const fields = Object.keys(user).map(key => `${key} = ?`).join(', ');
         const values = Object.values(user);
         const stmt = db.prepare(`UPDATE users SET ${fields} WHERE id = ?`);

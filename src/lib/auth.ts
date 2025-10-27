@@ -41,9 +41,15 @@ export class AuthService {
   }
 
   static async register(userData: CreateUserData): Promise<{ user: User; token: string }> {
-    const existingUser = UserModel.findByEmail(userData.email);
-    if (existingUser) {
+
+    const existingUserByEmail = UserModel.findByEmail(userData.email);
+    if (existingUserByEmail) {
       throw new Error('Email já está em uso');
+    }
+
+    const existingUserByUsername = UserModel.findByUsername(userData.username);
+    if (existingUserByUsername) {
+      throw new Error('Username já está em uso')
     }
 
     const passwordHash = await this.hashPassword(userData.password);
