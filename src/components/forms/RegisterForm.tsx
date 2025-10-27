@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,23 @@ export const RegisterForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [userType, setUserType] = useState<'programmer' | 'manager'>('programmer');
+  const [managerId, setManagerId] = useState('');
+  const [availableManagers, setAvailableManagers] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  //Carregar gestores quando quanto type for programadores
+  useEffect(() => {
+    if(userType === 'programmer') {
+      fetch('http://10.0.97.104:3001/users/managers')
+      .then(res => res.json())
+      .then(data => setAvailableManagers(data))
+      .catch(err => console.error('Erro ao carregar gestores: ', err));
+    } else {
+      setAvailableManagers([]);
+    }
+  }, [userType]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +51,15 @@ export const RegisterForm: React.FC = () => {
       return;
     }
 
+    if(userType === 'programmer' && !managerId) {
+      setError('Porfavor selecione um gestor responsavel');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/auth/register', {
+      const response = await fetch('http://localhost:3001/auth/register',  {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +70,8 @@ export const RegisterForm: React.FC = () => {
           email,
           password,
           type: userType === 'programmer' ? 'programador' : 'gestor',
-          department: Department.IT
+          department: Department.IT,
+          manager_id: userType === 'programmer' ? managerId: undefined
         }),
       });
 
@@ -138,6 +158,33 @@ export const RegisterForm: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* ⬅️ Seleção de gestor (apenas para programadores) */}
+                {userType === 'programmer' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Gestor Responsável *
+                    </label>
+                    <select
+                      value={managerId}
+                      onChange={(e) => setManagerId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Selecione um gestor</option>
+                      {availableManagers.map((manager: any) => (
+                        <option key={manager.id} value={manager.id}>
+                          {manager.name} ({manager.username})
+                        </option>
+                      ))}
+                    </select>
+                    {availableManagers.length === 0 && (
+                      <p className="text-xs text-gray-500">
+                        Não há gestores disponíveis. Crie uma conta de gestor primeiro.
+                      </p>
+                    )}
+                  </div>
+                )}
             
             <Input
               label="Username"

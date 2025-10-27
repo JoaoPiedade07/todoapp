@@ -6,13 +6,17 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, name, email, password, type, department } = req.body;
+    const { username, name, email, password, type, department, manager_id } = req.body;
 
     if (!username || !name || !email || !password || !type || !department) {
       return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
     }
 
-    const result = await AuthService.register({ username, name, email, password, type, department });
+    if(type === 'programador' && !manager_id) {
+      return res.status(400).json({ error: 'Programadores devem ter um gestor responsavel' });
+    }
+
+    const result = await AuthService.register({ username, name, email, password, type, department, manager_id });
     
     res.status(201).json({
       message: 'Usuário criado com sucesso',

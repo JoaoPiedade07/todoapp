@@ -21,8 +21,8 @@ export function initDatabase() {
           department TEXT NOT NULL,
           manager_id TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          FOREIGN_KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
         )
     `)
     
@@ -70,17 +70,18 @@ export const userQueries = {
     },
 
     getProgrammers: () => {
-        const stmt = db.prepare('SELECT * FROM users WHERE type = "programadores" ORDER BY name')
+        const stmt = db.prepare("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
         return stmt.all();
     },
 
     getManagers: () => {
-        const stmt = db.prepare('SELECT * FROM users WHERE type = "gestor" ORDER BY name')
+        const stmt = db.prepare("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
         return stmt.all();
     },
 
     getByManagerId: (managerId: string) => {
-
+        const stmt = db.prepare("SELECT * FROM users WHERE manager_id = ? ORDER BY name");
+        return stmt.all(managerId);
     },
     
     create: (user: { id: string; username: string; name: string; email: string; password_hash: string; type: 'gestor' | 'programador'; department: string; manager_id?: string }) => {

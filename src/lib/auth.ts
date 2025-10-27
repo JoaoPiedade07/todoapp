@@ -51,6 +51,27 @@ export class AuthService {
     if (existingUserByUsername) {
       throw new Error('Username já está em uso')
     }
+    
+    // Validar que programador tem um gestor
+    if (userData.type === 'programador' && !userData.manager_id) {
+      throw new Error('Programadores devem ter um gestor responsável');
+    }
+
+    // Se for gestor, não pode ter manager_id
+    if (userData.type === 'gestor' && !userData.manager_id) {
+      throw new Error('Gestores não podem ter gestor responsável');
+    }
+
+    // Validar que o gestor existe e é do type correto
+    if (userData.type === 'programador' && userData.manager_id) {
+      const manager = UserModel.findById(userData.manager_id);
+      if (!manager) {
+        throw new Error('Gestor responsável não encontrado');
+      }
+      if (manager.type !== 'gestor') {
+        throw new Error('O gestor responsável deve ser do tipo gestor');
+      }
+    }
 
     const passwordHash = await this.hashPassword(userData.password);
     const user = UserModel.create({
