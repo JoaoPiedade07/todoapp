@@ -16,7 +16,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Programadores devem ter um gestor responsavel' });
     }
 
-    const result = await AuthService.register({ username, name, email, password, type, department, manager_id });
+    const result = await AuthService.register({ username, name, email, password, type, department, manager_id});
     
     res.status(201).json({
       message: 'Usuário criado com sucesso',

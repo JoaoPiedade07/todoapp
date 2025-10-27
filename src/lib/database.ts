@@ -1,11 +1,24 @@
 import Database from "better-sqlite3";
 import path from 'path';
+import fs from 'fs';
 
 const dbPath = path.join(process.cwd(), 'database.sqlite3');
 export const db = new Database(dbPath);
 
 // Habilitar foreign keys
 db.pragma('foreign_keys = ON');
+
+//Função para loggin
+function log(message: string, data?: any) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}${data ? ' - ' + JSON.stringify(data) : ''}\n`; 
+
+    console.log(logMessage);
+
+    // Log para ficheiro
+    const logPath = path.join(process.cwd(), 'database.log');
+    fs.appendFileSync(logPath, logMessage);
+}
 
 //Criar tabelas se não existirem
 export function initDatabase() {

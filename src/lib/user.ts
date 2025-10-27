@@ -8,7 +8,7 @@ export interface User {
   email: string;
   password_hash: string;
   type: 'gestor' | 'programador';
-  manager_id?: string;
+  manager_id?: string | null;
   department: Department;
   created_at: string;
   updated_at: string;
@@ -21,7 +21,7 @@ export interface CreateUserData {
   password: string;
   type: 'gestor' | 'programador';
   department: Department;
-  manager_id?: string;
+  manager_id?: string | null;
 }
 
 export class UserModel {

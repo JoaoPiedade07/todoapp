@@ -10,7 +10,7 @@ import userRoute from './src/lib/userRoute';
 dotenv.config();
 
 const server = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 initDatabase();
 
@@ -33,6 +33,8 @@ server.get('/protected', authenticateToken, (req: any, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`URL Local: http://localhost:${PORT}`);
+  console.log(`URL Rede: http://10.0.97.104:${PORT}`);
 });
