@@ -18,7 +18,7 @@ export default function KanbanPage() {
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isManager = user.type === 'gestor';
+  const isManager = user?.type === 'gestor';
 
   const API_BASE_URL = typeof window !== 'undefined' 
     ? `http://${window.location.hostname}:3001`
@@ -286,7 +286,7 @@ export default function KanbanPage() {
         onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
       />
 
-      {/* 🔥 BOTÃO FLUTUANTE - Teste temporário: mostrar sempre */}
+      {/* 🔥 BOTÃO FLUTUANTE - MOSTRAR SEMPRE (PARA TESTE) */}
       <button
         onClick={() => setShowCreateModal(true)}
         className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"

@@ -33,6 +33,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  console.log('🔍 CreateTaskModal - availableUsers:', availableUsers);
+  console.log('🔍 CreateTaskModal - userType:', userType);
+  console.log('🔍 CreateTaskModal - formData:', formData);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,6 +63,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       assigned_to: formData.assigned_to || null
     };
 
+    console.log('🎯 Submitting task data:', taskData);
+    console.log('🎯 Selected user:', availableUsers.find(u => u.id === formData.assigned_to));
+    
     onCreateTask(taskData);
     handleClose();
   };
@@ -218,7 +225,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
                 <select
                   value={formData.assigned_to}
-                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                  onChange={(e) => {
+                    console.log('👤 Selected user ID:', e.target.value);
+                    setFormData({ ...formData, assigned_to: e.target.value });
+                  }}
                   className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.assigned_to ? 'border-red-500' : ''
                   }`}
@@ -233,6 +243,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 {errors.assigned_to && (
                   <p className="mt-1 text-sm text-red-600">{errors.assigned_to}</p>
                 )}
+                <div className="mt-1 text-xs text-gray-500">
+                  {availableUsers.length === 0 ? '❌ Nenhum programador disponível' : `✅ ${availableUsers.length} programador(es) disponível(is)`}
+                </div>
               </div>
             )}
 
