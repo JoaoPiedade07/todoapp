@@ -2,28 +2,158 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-// Interface para o usuário
-interface User {
-  id: string;
-  username: string;
-  name: string;
-  type: 'manager' | 'programmer';
-  department: string;
-}
+import { Task } from '@/types';
+import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import { TaskDetails } from '@/components/kanban/TaskDetails';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { TaskStatus, UserType } from '@/constants/enums';
 
 export default function KanbanPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
-      return;
+  const API_BASE_URL = typeof window !== 'undefined' 
+    ? `http://${window.location.hostname}:3001`
+    : 'http://localhost:3001';
+
+    useEffect(() => {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
+      
+      const userObj = JSON.parse(userData);
+      console.log('User from localStorage:', userObj);
+      console.log('User type:', userObj.type);
+      console.log('Should be draggable:', userObj.type === 'programador');
+      
+      setUser(userObj);
+      fetchTasks();
+    }, [router]);
+
+  const fetchTasks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const tasksData = await response.json();
+        setTasks(tasksData);
+      } else {
+        console.error('Erro ao buscar tarefas');
+        // Carregar dados mock para demonstração
+        loadMockTasks();
+      }
+    } catch (error) {
+      console.error('Erro ao conectar com API:', error);
+      loadMockTasks();
+    } finally {
+      setLoading(false);
     }
-    setUser(JSON.parse(userData));
-  }, [router]);
+  };
+
+  const loadMockTasks = () => {
+    // Dados mock para demonstração enquanto a API não está disponível
+    const mockTasks: Task[] = [
+      {
+        id: '1',
+        title: 'Implementar sistema de login',
+        description: 'Criar sistema de autenticação com JWT e proteção de rotas',
+        status: TaskStatus.TODO,
+        order: 1,
+        story_points: 5,
+        assigned_user_name: 'João Silva',
+        task_type_name: 'Desenvolvimento',
+        created_at: '2024-10-25T10:00:00Z',
+        updated_at: '2024-10-28T08:30:00Z',
+      },
+      {
+        id: '2',
+        title: 'Design do banco de dados',
+        description: 'Modelar a estrutura do banco de dados SQLite',
+        status: TaskStatus.DOING,
+        order: 2,
+        story_points: 3,
+        assigned_user_name: 'Maria Santos',
+        task_type_name: 'Design',
+        created_at: '2024-10-24T14:20:00Z',
+        updated_at: '2024-10-28T09:15:00Z',
+      },
+      {
+        id: '3',
+        title: 'Configurar ambiente DevOps',
+        description: 'Configurar CI/CD e ambiente de produção',
+        status: TaskStatus.TODO,
+        order: 3,
+        story_points: 8,
+        assigned_user_name: 'Pedro Costa',
+        task_type_name: 'DevOps',
+        created_at: '2024-10-26T11:45:00Z',
+        updated_at: '2024-10-27T16:20:00Z',
+      },
+    ];
+    setTasks(mockTasks);
+  };
+
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    if (user?.type !== UserType.PROGRAMMER) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          // Adicionar datas reais quando mudar de estado
+          ...(newStatus === TaskStatus.DOING && { real_start_date: new Date().toISOString() }),
+          ...(newStatus === TaskStatus.DONE && { real_end_date: new Date().toISOString() }),
+        }),
+      });
+
+      if (response.ok) {
+        // Atualizar estado local
+        setTasks(prevTasks =>
+          prevTasks.map(task =>
+            task.id === taskId ? { ...task, status: newStatus } : task
+          )
+        );
+      } else {
+        console.error('Erro ao mover tarefa');
+      }
+    } catch (error) {
+      console.error('Erro ao mover tarefa:', error);
+    }
+  };
+
+  const handleViewDetails = (task: Task) => {
+    console.log('Task clicked:', task);
+    setSelectedTask(task);
+    setShowTaskDetails(true);
+  };
+
+  const handleCloseDetails = () => {
+    setShowTaskDetails(false);
+    setSelectedTask(null);
+  };
+
+  const handleEditTask = (task: Task) => {
+    // Navegar para página de edição (a implementar no Sprint 3)
+    console.log('Editar tarefa:', task);
+    // router.push(`/tasks/edit/${task.id}`);
+  };
 
   if (!user) {
     return (
@@ -37,108 +167,55 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Kanban App</h1>
-              <p className="text-gray-600">Bem-vindo, {user.name}</p>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                user.type === 'manager' 
-                  ? 'bg-purple-100 text-purple-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {user.type === 'manager' ? 'Gestor' : 'Programador'}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem('user');
-                router.push('/login');
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-            >
-              Sair
-            </button>
+    <MainLayout user={user}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
+        <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
+        
+        {/* Estatísticas Rápidas */}
+        <div className="flex gap-4 mt-4 text-sm">
+          <div className="bg-blue-50 px-3 py-2 rounded-lg">
+            <span className="font-semibold text-blue-800">Total: </span>
+            <span className="text-blue-600">{tasks.length} tarefas</span>
+          </div>
+          <div className="bg-red-50 px-3 py-2 rounded-lg">
+            <span className="font-semibold text-red-800">A Fazer: </span>
+            <span className="text-red-600">{tasks.filter(t => t.status === TaskStatus.TODO).length}</span>
+          </div>
+          <div className="bg-yellow-50 px-3 py-2 rounded-lg">
+            <span className="font-semibold text-yellow-800">Em Progresso: </span>
+            <span className="text-yellow-600">{tasks.filter(t => t.status === TaskStatus.DOING).length}</span>
+          </div>
+          <div className="bg-green-50 px-3 py-2 rounded-lg">
+            <span className="font-semibold text-green-800">Concluído: </span>
+            <span className="text-green-600">{tasks.filter(t => t.status === TaskStatus.DONE).length}</span>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
-          <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
-        </div>
-
-        {/* Kanban Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* To Do Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-red-50 border-b border-red-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-red-900 flex justify-between items-center">
-                A Fazer
-                <span className="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs">
-                  2
-                </span>
-              </h2>
-            </div>
-            <div className="p-4 space-y-4 min-h-[400px]">
-              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h3 className="font-medium text-gray-900">Implementar login</h3>
-                <p className="text-sm text-gray-600 mt-1">Sistema de autenticação</p>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Ordem: 1
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Doing Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-yellow-50 border-b border-yellow-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-yellow-900 flex justify-between items-center">
-                Em Progresso
-                <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                  1
-                </span>
-              </h2>
-            </div>
-            <div className="p-4 space-y-4 min-h-[400px]">
-              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h3 className="font-medium text-gray-900">Design do BD</h3>
-                <p className="text-sm text-gray-600 mt-1">Modelar estrutura do banco</p>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Ordem: 2
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Done Column */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="bg-green-50 border-b border-green-200 p-4 rounded-t-lg">
-              <h2 className="font-semibold text-green-900 flex justify-between items-center">
-                Concluído
-                <span className="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs">
-                  0
-                </span>
-              </h2>
-            </div>
-            <div className="p-4 space-y-4 min-h-[400px]">
-              <p className="text-center text-gray-500 text-sm py-8">
-                Nenhuma tarefa concluída
-              </p>
-            </div>
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Carregando tarefas...</p>
           </div>
         </div>
-      </main>
-    </div>
+      ) : (
+        <KanbanBoard
+          tasks={tasks}
+          onTaskMove={handleTaskMove}
+          onViewDetails={handleViewDetails}
+          userType={user.type}
+        />
+      )}
+
+      <TaskDetails
+        task={selectedTask}
+        isOpen={showTaskDetails}
+        onClose={handleCloseDetails}
+        userType={user.type}
+        onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
+      />
+    </MainLayout>
   );
 }
