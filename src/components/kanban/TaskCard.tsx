@@ -2,30 +2,31 @@
 
 import { Task } from '@/types';
 import { useState } from 'react';
+import { UserType, TaskStatus } from '@/constants/enums';
 
 interface TaskCardProps {
   task: Task;
   onViewDetails: (task: Task) => void;
-  userType: 'manager' | 'programmer';
+  userType: UserType;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userType }) => {
   const [isDragging, setIsDragging] = useState(false);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TaskStatus) => {
     switch (status) {
-      case 'todo': return 'bg-red-100 text-red-800 border-red-200';
-      case 'doing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'done': return 'bg-green-100 text-green-800 border-green-200';
+      case TaskStatus.TODO: return 'bg-red-100 text-red-800 border-red-200';
+      case TaskStatus.DOING: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case TaskStatus.DONE: return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: TaskStatus) => {
     switch (status) {
-      case 'todo': return 'A Fazer';
-      case 'doing': return 'Em Progresso';
-      case 'done': return 'Concluído';
+      case TaskStatus.TODO: return 'A Fazer';
+      case TaskStatus.DOING: return 'Em Progresso';
+      case TaskStatus.DONE: return 'Concluído';
       default: return status;
     }
   };
@@ -35,7 +36,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
       className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 cursor-pointer hover:shadow-md transition-all ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
-      draggable={userType === 'programmer' && task.status !== 'done'}
+      draggable={userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE}
       onDragStart={(e) => {
         setIsDragging(true);
         e.dataTransfer.setData('taskId', task.id);
@@ -61,10 +62,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
             <span className="font-medium">Ordem:</span>
             <span>#{task.order}</span>
           </div>
-          {task.storyPoints && (
+          {task.story_points && (
             <div className="flex items-center gap-1">
               <span className="font-medium">SP:</span>
-              <span>{task.storyPoints}</span>
+              <span>{task.story_points}</span>
             </div>
           )}
         </div>

@@ -79,7 +79,7 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">Story Points</h3>
               <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border">
-                {task.storyPoints || 'Não definido'}
+                {task.story_points || 'Não definido'}
               </p>
             </div>
           </div>

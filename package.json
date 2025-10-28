@@ -1,4 +1,4 @@
-  {
+{
   "name": "todoapp",
   "version": "1.0.0",
   "scripts": {
@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "server": "ts-node --project tsconfig.server.json start.ts"
+    "server": "npx ts-node --project tsconfig.server.json start.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -25,13 +25,13 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "20.0.0",
+    "@types/node": "^20.0.0",
     "@types/react": "18.3.1",
     "@types/react-dom": "18.3.1",
     "autoprefixer": "^10.0.1",
     "postcss": "^8.0.0",
     "tailwindcss": "^3.3.0",
-    "ts-node": "^10.9.2",
+    "npx ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
 }

@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { Column } from './Column';
+import { TaskStatus, UserType } from '@/constants/enums';
 
 interface KanbanBoardProps {
   tasks: Task[];
-  onTaskMove: (taskId: string, newStatus: 'todo' | 'doing' | 'done') => void;
+  onTaskMove: (taskId: string, newStatus: TaskStatus) => void; // MUDAR PARA TaskStatus
   onViewDetails: (task: Task) => void;
-  userType: 'manager' | 'programmer';
+  userType: UserType; // MUDAR PARA UserType
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -22,25 +23,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [doneTasks, setDoneTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    setTodoTasks(tasks.filter(task => task.status === 'todo'));
-    setDoingTasks(tasks.filter(task => task.status === 'doing'));
-    setDoneTasks(tasks.filter(task => task.status === 'done'));
+    setTodoTasks(tasks.filter(task => task.status === TaskStatus.TODO));
+    setDoingTasks(tasks.filter(task => task.status === TaskStatus.DOING));
+    setDoneTasks(tasks.filter(task => task.status === TaskStatus.DONE));
   }, [tasks]);
 
   const columns = [
     {
       title: 'A Fazer',
-      status: 'todo' as const,
+      status: TaskStatus.TODO,
       tasks: todoTasks
     },
     {
-      title: 'Em Progresso',
-      status: 'doing' as const,
+      title: 'Em Progresso', 
+      status: TaskStatus.DOING,
       tasks: doingTasks
     },
     {
       title: 'Concluído',
-      status: 'done' as const,
+      status: TaskStatus.DONE,
       tasks: doneTasks
     }
   ];

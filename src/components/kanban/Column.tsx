@@ -2,14 +2,15 @@
 
 import { Task } from '@/types';
 import { TaskCard } from './TaskCard';
+import { TaskStatus, UserType } from '@/constants/enums';
 
 interface ColumnProps {
   title: string;
-  status: 'todo' | 'doing' | 'done';
+  status: TaskStatus;
   tasks: Task[];
-  onTaskMove: (taskId: string, newStatus: 'todo' | 'doing' | 'done') => void;
+  onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
-  userType: 'manager' | 'programmer';
+  userType: UserType;
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -22,18 +23,18 @@ export const Column: React.FC<ColumnProps> = ({
 }) => {
   const getColumnColor = () => {
     switch (status) {
-      case 'todo': return 'bg-red-50 border-red-200 text-red-900';
-      case 'doing': return 'bg-yellow-50 border-yellow-200 text-yellow-900';
-      case 'done': return 'bg-green-50 border-green-200 text-green-900';
+      case TaskStatus.TODO: return 'bg-red-50 border-red-200 text-red-900';
+      case TaskStatus.DOING: return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+      case TaskStatus.DONE: return 'bg-green-50 border-green-200 text-green-900';
       default: return 'bg-gray-50 border-gray-200 text-gray-900';
     }
   };
 
   const getBadgeColor = () => {
     switch (status) {
-      case 'todo': return 'bg-red-200 text-red-800';
-      case 'doing': return 'bg-yellow-200 text-yellow-800';
-      case 'done': return 'bg-green-200 text-green-800';
+      case TaskStatus.TODO: return 'bg-red-200 text-red-800';
+      case TaskStatus.DOING: return 'bg-yellow-200 text-yellow-800';
+      case TaskStatus.DONE: return 'bg-green-200 text-green-800';
       default: return 'bg-gray-200 text-gray-800';
     }
   };
@@ -45,18 +46,18 @@ export const Column: React.FC<ColumnProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
-    const currentStatus = e.dataTransfer.getData('currentStatus') as 'todo' | 'doing' | 'done';
+    const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
     
     // Não permitir mover tarefas concluídas
-    if (currentStatus === 'done') return;
+    if (currentStatus === TaskStatus.DONE) return;
     
     // Só programadores podem mover tarefas
-    if (userType !== 'programmer') return;
+    if (userType !== UserType.PROGRAMMER) return;
     
     // Só permitir movimentos válidos
     if (
-      (currentStatus === 'todo' && status === 'doing') ||
-      (currentStatus === 'doing' && (status === 'todo' || status === 'done'))
+      (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
+      (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
     ) {
       onTaskMove(taskId, status);
     }
