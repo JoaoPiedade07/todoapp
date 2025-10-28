@@ -20,37 +20,56 @@ export default function KanbanPage() {
     ? `http://${window.location.hostname}:3001`
     : 'http://localhost:3001';
 
-    useEffect(() => {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        router.push('/login');
-        return;
-      }
-      
-      const userObj = JSON.parse(userData);
-      console.log('User from localStorage:', userObj);
-      console.log('User type:', userObj.type);
-      console.log('Should be draggable:', userObj.type === 'programador');
-      
-      setUser(userObj);
-      fetchTasks();
-    }, [router]);
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    
+    const userObj = JSON.parse(userData);
+    console.log('User from localStorage:', userObj);
+    
+    // 🔥 CORREÇÃO CRÍTICA: Converter tipos do backend para frontend
+    const convertedUser = {
+      ...userObj,
+      type: userObj.type === 'gestor' ? UserType.MANAGER : UserType.PROGRAMMER
+    };
+    
+    console.log('Converted user:', convertedUser);
+    console.log('Should be draggable:', convertedUser.type === UserType.PROGRAMMER);
+    
+    setUser(convertedUser);
+    fetchTasks();
+  }, [router]);
 
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching tasks from:', `${API_BASE_URL}/tasks`);
+      
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const tasksData = await response.json();
-        setTasks(tasksData);
+        console.log('Tasks from API:', tasksData);
+        
+        // Se a API não retornar tarefas, usa mock
+        if (tasksData && tasksData.length > 0) {
+          setTasks(tasksData);
+        } else {
+          console.log('API retornou array vazio, usando dados mock');
+          loadMockTasks();
+        }
       } else {
-        console.error('Erro ao buscar tarefas');
-        // Carregar dados mock para demonstração
+        console.error('Erro ao buscar tarefas:', response.statusText);
         loadMockTasks();
       }
     } catch (error) {
@@ -62,7 +81,7 @@ export default function KanbanPage() {
   };
 
   const loadMockTasks = () => {
-    // Dados mock para demonstração enquanto a API não está disponível
+    console.log('Carregando dados mock...');
     const mockTasks: Task[] = [
       {
         id: '1',
@@ -105,7 +124,13 @@ export default function KanbanPage() {
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-    if (user?.type !== UserType.PROGRAMMER) return;
+    console.log('Moving task:', taskId, 'to:', newStatus);
+    console.log('User type:', user?.type, 'Should move:', user?.type === UserType.PROGRAMMER);
+
+    if (user?.type !== UserType.PROGRAMMER) {
+      console.log('❌ Apenas programadores podem mover tarefas');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -117,13 +142,11 @@ export default function KanbanPage() {
         },
         body: JSON.stringify({
           status: newStatus,
-          // Adicionar datas reais quando mudar de estado
-          ...(newStatus === TaskStatus.DOING && { real_start_date: new Date().toISOString() }),
-          ...(newStatus === TaskStatus.DONE && { real_end_date: new Date().toISOString() }),
         }),
       });
 
       if (response.ok) {
+        console.log('✅ Task moved successfully');
         // Atualizar estado local
         setTasks(prevTasks =>
           prevTasks.map(task =>
@@ -131,10 +154,10 @@ export default function KanbanPage() {
           )
         );
       } else {
-        console.error('Erro ao mover tarefa');
+        console.error('❌ Erro ao mover tarefa:', response.statusText);
       }
     } catch (error) {
-      console.error('Erro ao mover tarefa:', error);
+      console.error('❌ Erro ao mover tarefa:', error);
     }
   };
 
@@ -150,9 +173,7 @@ export default function KanbanPage() {
   };
 
   const handleEditTask = (task: Task) => {
-    // Navegar para página de edição (a implementar no Sprint 3)
     console.log('Editar tarefa:', task);
-    // router.push(`/tasks/edit/${task.id}`);
   };
 
   if (!user) {
@@ -190,6 +211,12 @@ export default function KanbanPage() {
             <span className="font-semibold text-green-800">Concluído: </span>
             <span className="text-green-600">{tasks.filter(t => t.status === TaskStatus.DONE).length}</span>
           </div>
+        </div>
+
+        {/* 🔥 DEBUG INFO - Remove depois de testar */}
+        <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+          <strong>Debug Info:</strong> User: {user.name} | Type: {user.type} | 
+          Draggable: {user.type === UserType.PROGRAMMER ? '✅ YES' : '❌ NO'}
         </div>
       </div>
 
