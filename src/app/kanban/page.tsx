@@ -18,6 +18,7 @@ export default function KanbanPage() {
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const isManager = user.type === 'gestor';
 
   const API_BASE_URL = typeof window !== 'undefined' 
     ? `http://${window.location.hostname}:3001`
