@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Task } from '@/types';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { TaskDetails } from '@/components/kanban/TaskDetails';
+import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
 
@@ -13,6 +14,8 @@ export default function KanbanPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -28,26 +31,34 @@ export default function KanbanPage() {
     }
     
     const userObj = JSON.parse(userData);
-    console.log('User from localStorage:', userObj);
+    console.log('👤 User from localStorage:', userObj);
     
-    // 🔥 CORREÇÃO CRÍTICA: Converter tipos do backend para frontend
+    // Converter tipos do backend para frontend
     const convertedUser = {
       ...userObj,
       type: userObj.type === 'gestor' ? UserType.MANAGER : UserType.PROGRAMMER
     };
     
-    console.log('Converted user:', convertedUser);
-    console.log('Should be draggable:', convertedUser.type === UserType.PROGRAMMER);
+    console.log('🔄 Converted user:', convertedUser);
+    console.log('🎯 User type after conversion:', convertedUser.type);
+    console.log('👑 Is manager?', convertedUser.type === UserType.MANAGER);
+    console.log('💻 Is programmer?', convertedUser.type === UserType.PROGRAMMER);
+    console.log('🔤 UserType.MANAGER value:', UserType.MANAGER);
+    console.log('🔤 UserType.PROGRAMMER value:', UserType.PROGRAMMER);
     
     setUser(convertedUser);
     fetchTasks();
+
+    // Carregar utilizadores se for gestor
+    if (convertedUser.type === UserType.MANAGER) {
+      console.log('📥 Loading available users for manager');
+      fetchAvailableUsers();
+    }
   }, [router]);
 
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching tasks from:', `${API_BASE_URL}/tasks`);
-      
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -55,21 +66,11 @@ export default function KanbanPage() {
         },
       });
 
-      console.log('Response status:', response.status);
-      
       if (response.ok) {
         const tasksData = await response.json();
-        console.log('Tasks from API:', tasksData);
-        
-        // Se a API não retornar tarefas, usa mock
-        if (tasksData && tasksData.length > 0) {
-          setTasks(tasksData);
-        } else {
-          console.log('API retornou array vazio, usando dados mock');
-          loadMockTasks();
-        }
+        setTasks(tasksData);
       } else {
-        console.error('Erro ao buscar tarefas:', response.statusText);
+        console.error('Erro ao buscar tarefas');
         loadMockTasks();
       }
     } catch (error) {
@@ -80,8 +81,35 @@ export default function KanbanPage() {
     }
   };
 
+  const fetchAvailableUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/programmers`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const usersData = await response.json();
+        setAvailableUsers(usersData);
+      } else {
+        // Dados mock para demonstração
+        setAvailableUsers([
+          { id: '2', name: 'João Silva', username: 'joao.silva' },
+          { id: '3', name: 'Maria Santos', username: 'maria.santos' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar programadores:', error);
+      setAvailableUsers([
+        { id: '2', name: 'João Silva', username: 'joao.silva' },
+        { id: '3', name: 'Maria Santos', username: 'maria.santos' },
+      ]);
+    }
+  };
+
   const loadMockTasks = () => {
-    console.log('Carregando dados mock...');
     const mockTasks: Task[] = [
       {
         id: '1',
@@ -107,37 +135,19 @@ export default function KanbanPage() {
         created_at: '2024-10-24T14:20:00Z',
         updated_at: '2024-10-28T09:15:00Z',
       },
-      {
-        id: '3',
-        title: 'Configurar ambiente DevOps',
-        description: 'Configurar CI/CD e ambiente de produção',
-        status: TaskStatus.TODO,
-        order: 3,
-        story_points: 8,
-        assigned_user_name: 'Pedro Costa',
-        task_type_name: 'DevOps',
-        created_at: '2024-10-26T11:45:00Z',
-        updated_at: '2024-10-27T16:20:00Z',
-      },
     ];
     setTasks(mockTasks);
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-    console.log('Moving task:', taskId, 'to:', newStatus);
-  
-    if (user?.type !== UserType.PROGRAMMER) {
-      console.log('❌ Apenas programadores podem mover tarefas');
-      return;
-    }
-  
-    // ✅ ATUALIZAÇÃO IMEDIATA DO ESTADO LOCAL (feedback visual)
+    if (user?.type !== UserType.PROGRAMMER) return;
+
     setTasks(prevTasks =>
       prevTasks.map(task =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
-  
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
@@ -146,25 +156,57 @@ export default function KanbanPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
+        body: JSON.stringify({ status: newStatus }),
       });
-  
+
       if (response.ok) {
-        console.log('✅ Task moved successfully in backend');
-      } else {
-        console.error('❌ Erro ao mover tarefa no backend:', response.statusText);
-        // Mantém a atualização visual mesmo com erro no backend
+        console.log('✅ Task moved successfully');
       }
     } catch (error) {
-      console.error('❌ Erro ao conectar com API:', error);
-      // Mantém a atualização visual mesmo com erro de conexão
+      console.error('❌ Erro ao mover tarefa:', error);
+    }
+  };
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...taskData,
+          id: Date.now().toString(),
+        }),
+      });
+
+      if (response.ok) {
+        const newTask = await response.json();
+        setTasks(prev => [...prev, newTask]);
+      } else {
+        // Adiciona localmente em caso de erro
+        const mockTask = {
+          id: Date.now().toString(),
+          title: taskData.title,
+          description: taskData.description,
+          status: taskData.status,
+          order: taskData.order,
+          story_points: taskData.story_points,
+          assigned_user_name: availableUsers.find(u => u.id === taskData.assigned_to)?.name || 'Não atribuído',
+          task_type_name: taskData.task_type,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setTasks(prev => [...prev, mockTask]);
+      }
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error);
     }
   };
 
   const handleViewDetails = (task: Task) => {
-    console.log('Task clicked:', task);
     setSelectedTask(task);
     setShowTaskDetails(true);
   };
@@ -189,13 +231,20 @@ export default function KanbanPage() {
     );
   }
 
+  // 🔍 DEBUG ANTES DO RENDER
+  console.log('🎨 RENDERING - User:', user);
+  console.log('🎨 RENDERING - User type:', user?.type);
+  console.log('🎨 RENDERING - UserType.MANAGER:', UserType.MANAGER);
+  console.log('🎨 RENDERING - UserType.PROGRAMMER:', UserType.PROGRAMMER);
+  console.log('🎨 RENDERING - Should show button?', user?.type === UserType.MANAGER);
+  console.log('🎨 RENDERING - Should show button (strict)?', user?.type === 'manager');
+
   return (
     <MainLayout user={user}>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
         <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
         
-        {/* Estatísticas Rápidas */}
         <div className="flex gap-4 mt-4 text-sm">
           <div className="bg-blue-50 px-3 py-2 rounded-lg">
             <span className="font-semibold text-blue-800">Total: </span>
@@ -209,16 +258,6 @@ export default function KanbanPage() {
             <span className="font-semibold text-yellow-800">Em Progresso: </span>
             <span className="text-yellow-600">{tasks.filter(t => t.status === TaskStatus.DOING).length}</span>
           </div>
-          <div className="bg-green-50 px-3 py-2 rounded-lg">
-            <span className="font-semibold text-green-800">Concluído: </span>
-            <span className="text-green-600">{tasks.filter(t => t.status === TaskStatus.DONE).length}</span>
-          </div>
-        </div>
-
-        {/* 🔥 DEBUG INFO - Remove depois de testar */}
-        <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-          <strong>Debug Info:</strong> User: {user.name} | Type: {user.type} | 
-          Draggable: {user.type === UserType.PROGRAMMER ? '✅ YES' : '❌ NO'}
         </div>
       </div>
 
@@ -244,6 +283,24 @@ export default function KanbanPage() {
         onClose={handleCloseDetails}
         userType={user.type}
         onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
+      />
+
+      {/* 🔥 BOTÃO FLUTUANTE - Teste temporário: mostrar sempre */}
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"
+        title="Criar Nova Tarefa (TESTE)"
+      >
+        +
+      </button>
+
+      {/* Modal (sempre disponível para teste) */}
+      <CreateTaskModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreateTask={handleCreateTask}
+        userType={user.type}
+        availableUsers={availableUsers}
       />
     </MainLayout>
   );
