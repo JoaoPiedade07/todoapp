@@ -41,25 +41,72 @@ export const Column: React.FC<ColumnProps> = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    console.log('🔄 DRAG OVER coluna:', title);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('bg-blue-50', 'border-blue-300', 'border-2');
+    console.log('🚪 DRAG ENTER coluna:', title);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
+    console.log('🚪 DRAG LEAVE coluna:', title);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
+    
     const taskId = e.dataTransfer.getData('taskId');
     const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
     
+    console.log('🎯 DROP EVENT na coluna:', title);
+    console.log('📦 Dados transferidos:', { taskId, currentStatus });
+    console.log('🎯 Estado destino:', status);
+    console.log('👤 Tipo de usuário:', userType);
+    
+    if (!taskId) {
+      console.log('❌ taskId não encontrado no dataTransfer');
+      return;
+    }
+
     // Não permitir mover tarefas concluídas
-    if (currentStatus === TaskStatus.DONE) return;
+    if (currentStatus === TaskStatus.DONE) {
+      console.log('❌ Não pode mover tarefas concluídas');
+      return;
+    }
     
     // Só programadores podem mover tarefas
-    if (userType !== UserType.PROGRAMMER) return;
+    if (userType !== UserType.PROGRAMMER) {
+      console.log('❌ Apenas programadores podem mover tarefas');
+      return;
+    }
+    
+    // Não permitir mover para o mesmo estado
+    if (currentStatus === status) {
+      console.log('❌ Já está nesta coluna');
+      return;
+    }
     
     // Só permitir movimentos válidos
-    if (
+    const isValidMove = (
       (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
       (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
-    ) {
+    );
+    
+    if (isValidMove) {
+      console.log('✅ Movimento válido!');
+      console.log('📞 Chamando onTaskMove...');
       onTaskMove(taskId, status);
+    } else {
+      console.log('❌ Movimento inválido:', { 
+        de: currentStatus, 
+        para: status 
+      });
     }
   };
 
@@ -75,14 +122,22 @@ export const Column: React.FC<ColumnProps> = ({
       </div>
       
       <div 
-        className="flex-1 p-4 space-y-3 min-h-[500px] max-h-[600px] overflow-y-auto"
+        className="flex-1 p-4 space-y-3 min-h-[500px] max-h-[600px] overflow-y-auto transition-all duration-200"
         onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        style={{ minHeight: '400px' }} // Garantir altura mínima
       >
         {tasks.length === 0 ? (
-          <div className="text-center text-gray-500 text-sm py-8">
-            <p>Nenhuma tarefa</p>
-            <p className="text-xs mt-1">Arraste tarefas para aqui</p>
+          <div 
+            className="text-center text-gray-500 text-sm py-16 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 transition-colors"
+            style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div>
+              <p>🔄 Arraste tarefas para aqui</p>
+              <p className="text-xs mt-1">Solte para mover</p>
+            </div>
           </div>
         ) : (
           tasks.map((task) => (

@@ -31,19 +31,56 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    
+    // 🔥 ADICIONAR ESTES LOGS CRÍTICOS
+    console.log('🧲 DRAG START - Task:', task.id);
+    console.log('📋 Task status:', task.status);
+    console.log('👤 User type:', userType);
+    console.log('🎯 Draggable:', userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE);
+    
+    // Definir os dados para transferência
+    e.dataTransfer.setData('taskId', task.id);
+    e.dataTransfer.setData('currentStatus', task.status);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // 🔥 VERIFICAR SE OS DADOS FORAM DEFINIDOS CORRETAMENTE
+    console.log('📦 Dados no dataTransfer:', {
+      taskId: e.dataTransfer.getData('taskId'),
+      currentStatus: e.dataTransfer.getData('currentStatus')
+    });
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    console.log('🏁 DRAG END - Task:', task.id);
+  };
+
+  const handleClick = () => {
+    console.log('🖱️ CLICK - Task:', task.id);
+    onViewDetails(task);
+  };
+
+  const isDraggable = userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE;
+  
+  console.log(`🔄 TaskCard ${task.id} render - Draggable: ${isDraggable}, User: ${userType}, Status: ${task.status}`);
+
+  // 🔥 CORREÇÃO: Verificar se updated_at existe antes de criar Date
+  const formatUpdatedAt = () => {
+    if (!task.updated_at) return 'Não disponível';
+    return new Date(task.updated_at).toLocaleDateString('pt-PT');
+  };
+
   return (
     <div
       className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 cursor-pointer hover:shadow-md transition-all ${
-        isDragging ? 'opacity-50 shadow-lg' : ''
-      }`}
-      draggable={userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE}
-      onDragStart={(e) => {
-        setIsDragging(true);
-        e.dataTransfer.setData('taskId', task.id);
-        e.dataTransfer.setData('currentStatus', task.status);
-      }}
-      onDragEnd={() => setIsDragging(false)}
-      onClick={() => onViewDetails(task)}
+        isDragging ? 'opacity-50 shadow-lg scale-95' : ''
+      } ${isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+      draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
     >
       <div className="flex justify-between items-start mb-2">
         <h3 className="font-semibold text-gray-900 text-sm">{task.title}</h3>
@@ -78,11 +115,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
         )}
       </div>
 
-      {task.updated_at && (
-        <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-400">
-          Atualizado: {new Date(task.updated_at).toLocaleDateString('pt-PT')}
+      {/* 🔥 DEBUG INFO - Remove depois de testar */}
+      <div className="mt-2 pt-2 border-t border-gray-100 text-xs">
+        <div className="flex justify-between text-gray-400">
+          <span>Atualizado: {formatUpdatedAt()}</span>
+          {isDraggable && (
+            <span className="text-blue-500 font-medium">🔄 Arrastável</span>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

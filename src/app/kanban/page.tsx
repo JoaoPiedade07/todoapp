@@ -125,13 +125,19 @@ export default function KanbanPage() {
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     console.log('Moving task:', taskId, 'to:', newStatus);
-    console.log('User type:', user?.type, 'Should move:', user?.type === UserType.PROGRAMMER);
-
+  
     if (user?.type !== UserType.PROGRAMMER) {
       console.log('❌ Apenas programadores podem mover tarefas');
       return;
     }
-
+  
+    // ✅ ATUALIZAÇÃO IMEDIATA DO ESTADO LOCAL (feedback visual)
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+  
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
@@ -144,20 +150,16 @@ export default function KanbanPage() {
           status: newStatus,
         }),
       });
-
+  
       if (response.ok) {
-        console.log('✅ Task moved successfully');
-        // Atualizar estado local
-        setTasks(prevTasks =>
-          prevTasks.map(task =>
-            task.id === taskId ? { ...task, status: newStatus } : task
-          )
-        );
+        console.log('✅ Task moved successfully in backend');
       } else {
-        console.error('❌ Erro ao mover tarefa:', response.statusText);
+        console.error('❌ Erro ao mover tarefa no backend:', response.statusText);
+        // Mantém a atualização visual mesmo com erro no backend
       }
     } catch (error) {
-      console.error('❌ Erro ao mover tarefa:', error);
+      console.error('❌ Erro ao conectar com API:', error);
+      // Mantém a atualização visual mesmo com erro de conexão
     }
   };
 
