@@ -141,7 +141,7 @@ export default function KanbanPage() {
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-    if (user?.type !== UserType.PROGRAMMER) return;
+
 
     setTasks(prevTasks =>
       prevTasks.map(task =>

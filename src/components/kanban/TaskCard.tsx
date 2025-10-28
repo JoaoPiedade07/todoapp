@@ -62,7 +62,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
     onViewDetails(task);
   };
 
-  const isDraggable = userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE;
+  const isDraggable = (userType === UserType.PROGRAMMER || userType === UserType.MANAGER) && task.status !== TaskStatus.DONE;
   
   console.log(`🔄 TaskCard ${task.id} render - Draggable: ${isDraggable}, User: ${userType}, Status: ${task.status}`);
 

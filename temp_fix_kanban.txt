@@ -1,0 +1,70 @@
+// Substitua a função handleTaskMove atual por esta versão:
+
+const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+  console.log('🔄 Movendo tarefa:', { taskId, newStatus, userType: user?.type });
+
+  // Encontrar a tarefa atual para verificar o status anterior
+  const currentTask = tasks.find(task => task.id === taskId);
+  if (!currentTask) {
+    console.log('❌ Tarefa não encontrada');
+    return;
+  }
+
+  // Não permitir mover tarefas concluídas (regra #15)
+  if (currentTask.status === TaskStatus.DONE) {
+    console.log('❌ Não pode mover tarefas concluídas');
+    return;
+  }
+
+  // Atualizar estado local imediatamente
+  setTasks(prevTasks =>
+    prevTasks.map(task =>
+      task.id === taskId ? { ...task, status: newStatus } : task
+    )
+  );
+
+  try {
+    const token = localStorage.getItem('token');
+    
+    // Preparar dados para atualização
+    const updateData: any = { status: newStatus };
+    
+    // Atualizar datas reais conforme regras (#19)
+    if (newStatus === TaskStatus.DOING && !currentTask.real_start_date) {
+      updateData.real_start_date = new Date().toISOString();
+    }
+    
+    if (newStatus === TaskStatus.DONE && !currentTask.real_end_date) {
+      updateData.real_end_date = new Date().toISOString();
+    }
+
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (response.ok) {
+      console.log('✅ Task moved successfully');
+    } else {
+      console.error('❌ Erro ao mover tarefa na API');
+      // Reverter estado local em caso de erro
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId ? { ...task, status: currentTask.status } : task
+        )
+      );
+    }
+  } catch (error) {
+    console.error('❌ Erro ao mover tarefa:', error);
+    // Reverter estado local em caso de erro
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: currentTask.status } : task
+      )
+    );
+  }
+};

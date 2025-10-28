@@ -1,0 +1,57 @@
+// Substitua a função handleDrop atual por esta versão:
+
+const handleDrop = (e: React.DragEvent) => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
+  
+  const taskId = e.dataTransfer.getData('taskId');
+  const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
+  
+  console.log('🎯 DROP EVENT na coluna:', title);
+  console.log('📦 Dados transferidos:', { taskId, currentStatus });
+  console.log('🎯 Estado destino:', status);
+  console.log('👤 Tipo de usuário:', userType);
+  
+  if (!taskId) {
+    console.log('❌ taskId não encontrado no dataTransfer');
+    return;
+  }
+
+  // Não permitir mover tarefas concluídas (regra #15)
+  if (currentStatus === TaskStatus.DONE) {
+    console.log('❌ Não pode mover tarefas concluídas');
+    return;
+  }
+  
+  // Permitir que tanto programadores quanto gestores movam tarefas
+  if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
+    console.log('❌ Apenas programadores e gestores podem mover tarefas');
+    return;
+  }
+  
+  // Não permitir mover para o mesmo estado
+  if (currentStatus === status) {
+    console.log('❌ Já está nesta coluna');
+    return;
+  }
+  
+  // Só permitir movimentos válidos
+  const isValidMove = (
+    (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
+    (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE)) ||
+    // Gestores podem mover entre qualquer estado (exceto DONE como origem)
+    (userType === UserType.MANAGER && currentStatus !== TaskStatus.DONE)
+  );
+  
+  if (isValidMove) {
+    console.log('✅ Movimento válido!');
+    console.log('📞 Chamando onTaskMove...');
+    onTaskMove(taskId, status);
+  } else {
+    console.log('❌ Movimento inválido:', { 
+      de: currentStatus, 
+      para: status,
+      userType: userType
+    });
+  }
+};

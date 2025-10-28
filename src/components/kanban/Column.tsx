@@ -73,16 +73,16 @@ export const Column: React.FC<ColumnProps> = ({
       console.log('❌ taskId não encontrado no dataTransfer');
       return;
     }
-
-    // Não permitir mover tarefas concluídas
+  
+    // Não permitir mover tarefas concluídas (regra #15)
     if (currentStatus === TaskStatus.DONE) {
       console.log('❌ Não pode mover tarefas concluídas');
       return;
     }
     
-    // Só programadores podem mover tarefas
-    if (userType !== UserType.PROGRAMMER) {
-      console.log('❌ Apenas programadores podem mover tarefas');
+    // Permitir que tanto programadores quanto gestores movam tarefas
+    if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
+      console.log('❌ Apenas programadores e gestores podem mover tarefas');
       return;
     }
     
@@ -92,11 +92,25 @@ export const Column: React.FC<ColumnProps> = ({
       return;
     }
     
-    // Só permitir movimentos válidos
-    const isValidMove = (
-      (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
-      (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
-    );
+    // REGRAS DE MOVIMENTAÇÃO:
+    // - Programadores: só podem mover TODO→DOING e DOING→TODO/DONE
+    // - Gestores: podem mover entre qualquer estado (exceto DONE como origem)
+    
+    let isValidMove = false;
+    
+    if (userType === UserType.PROGRAMMER) {
+      // Regras para programadores
+      isValidMove = (
+        (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
+        (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
+      );
+    } else if (userType === UserType.MANAGER) {
+      // Regras para gestores - mais flexíveis
+      isValidMove = (
+        (currentStatus === TaskStatus.TODO && (status === TaskStatus.DOING || status === TaskStatus.DONE)) ||
+        (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
+      );
+    }
     
     if (isValidMove) {
       console.log('✅ Movimento válido!');
@@ -105,7 +119,8 @@ export const Column: React.FC<ColumnProps> = ({
     } else {
       console.log('❌ Movimento inválido:', { 
         de: currentStatus, 
-        para: status 
+        para: status,
+        userType: userType
       });
     }
   };
