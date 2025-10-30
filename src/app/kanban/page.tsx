@@ -8,6 +8,7 @@ import { TaskDetails } from '@/components/kanban/TaskDetails';
 import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
+import router from '@/lib/userRoute';
 
 export default function KanbanPage() {
   const [user, setUser] = useState<any>(null);
@@ -51,7 +52,7 @@ export default function KanbanPage() {
     fetchTasks();
 
     // Carregar utilizadores se for gestor
-    if (convertedUser.type === UserType.MANAGER) {
+    if (convertedUser.type === UserType.PROGRAMMER) {
       console.log('📥 Loading available users for manager');
       fetchAvailableUsers();
     }
@@ -85,7 +86,7 @@ export default function KanbanPage() {
   const fetchAvailableUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/users/programmers`, {
+      const response = await fetch(`${API_BASE_URL}/user/programmers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

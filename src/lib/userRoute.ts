@@ -3,6 +3,15 @@ import { userQueries } from '../lib/database';
 
 const router = express.Router();
 
+router.get('/', async (req, res) => {
+  try {
+    const users = userQueries.getAll();
+    res.json(users);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+})
+
 // Obter todos os gestores
 router.get('/managers', async (req, res) => {
   try {
