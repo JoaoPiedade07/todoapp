@@ -13,6 +13,7 @@ import router from '@/lib/userRoute';
 export default function KanbanPage() {
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -288,13 +289,15 @@ export default function KanbanPage() {
       />
 
       {/* 🔥 BOTÃO FLUTUANTE - MOSTRAR SEMPRE (PARA TESTE) */}
-      <button
-        onClick={() => setShowCreateModal(true)}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"
-        title="Criar Nova Tarefa (TESTE)"
-      >
-        +
-      </button>
+      {user.type === UserType.MANAGER && (
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"
+          title="Criar Nova Tarefa (TESTE)"
+        >
+          +
+        </button>
+      )}
 
       {/* Modal (sempre disponível para teste) */}
       <CreateTaskModal

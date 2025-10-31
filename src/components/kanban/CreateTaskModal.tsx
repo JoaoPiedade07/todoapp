@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TaskStatus, UserType } from '@/constants/enums';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { response } from 'express';
+import { useRouter } from 'next/navigation';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -18,8 +20,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
   onCreateTask,
-  userType,
-  availableUsers
+  availableUsers,
+  userType
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -30,6 +32,47 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     assigned_to: '',
     task_type: ''
   });
+
+  const [availableProgrammers, setAvailableProgrammers] = useState<any[]>([]);
+  const [programmerId, setProgrammerId] = useState('');
+  const [user, setUser] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const API_BASE_URL = typeof window !== 'undefined' 
+    ? `http://${window.location.hostname}:3001`
+    : 'http://localhost:3001';
+
+  useEffect(() => {
+    ;
+  }, [router]);
+
+  useEffect(() => {
+    if(userType === UserType.MANAGER) {
+      fetch(`${API_BASE_URL}/users/programmers`)
+      .then(res => res.json())
+      .then(data => setAvailableProgrammers(data))
+      .catch(err => console.error('Erro ao carregar programadores: ', err));
+    } else {
+      setAvailableProgrammers([]);
+      setProgrammerId(''); // Limpar seleção ao mudar para gestor
+    }
+
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    
+    const userObj = JSON.parse(userData);
+    if (userObj.type !== 'gestor') {
+      router.push('/kanban');
+      return;
+    }
+    
+    setUser(userObj);
+  }, [userType, API_BASE_URL, router]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -234,7 +277,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   }`}
                 >
                   <option value="">Selecione um programador</option>
-                  {availableUsers.map((user) => (
+                  {availableProgrammers.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.username})
                     </option>
@@ -244,7 +287,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   <p className="mt-1 text-sm text-red-600">{errors.assigned_to}</p>
                 )}
                 <div className="mt-1 text-xs text-gray-500">
-                  {availableUsers.length === 0 ? '❌ Nenhum programador disponível' : `✅ ${availableUsers.length} programador(es) disponível(is)`}
+                  {availableProgrammers.length === 0 ? '❌ Nenhum programador disponível' : `✅ ${availableUsers.length} programador(es) disponível(is)`}
                 </div>
               </div>
             )}
