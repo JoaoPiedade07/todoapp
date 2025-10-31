@@ -14,7 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     {
       name: '📋 Kanban Board',
       path: '/kanban',
-      accessible: true // Todos podem acessar
+      accessible: true
     },
     {
       name: '👥 Gestão de Utilizadores',

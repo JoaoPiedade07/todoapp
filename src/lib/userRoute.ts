@@ -3,6 +3,8 @@ import { userQueries } from '../lib/database';
 
 const router = express.Router();
 
+
+// Obter todos os utilizadores
 router.get('/', async (req, res) => {
   try {
     const users = userQueries.getAll();

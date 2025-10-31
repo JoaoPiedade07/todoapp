@@ -66,6 +66,10 @@ export function initDatabase() {
           FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
         )
     `)
+    db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
+        ON tasks(assigned_to, status, \`order\`)
+    `)
 }
 
 initDatabase();
@@ -197,6 +201,22 @@ export const taskQueries = {
         assignedTo?: string, 
         taskTypeId?: string
     }) => {
+        const resolvedStatus = task.status || 'todo';
+        let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
+
+        if (task.assignedTo) {
+            const getMaxStmt = db.prepare(`
+                SELECT COALESCE(MAX(\`order\`), -1) as maxOrder
+                FROM tasks
+                WHERE assigned_to = ? AND status = ?
+            `);
+            const row = getMaxStmt.get(task.assignedTo, resolvedStatus) as { maxOrder: number };
+            const nextOrder = (row?.maxOrder ?? -1) + 1;
+            if (typeof task.order !== 'number') {
+                resolvedOrder = nextOrder;
+            }
+        }
+
         const stmt = db.prepare(`
             INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id)
             VALUES(?,?,?,?,?,?,?,?)
@@ -205,8 +225,8 @@ export const taskQueries = {
             task.id,
             task.title,
             task.description || null,
-            task.status || 'todo',
-            task.order || 0,
+            resolvedStatus,
+            resolvedOrder,
             task.storyPoints || null,
             task.assignedTo || null,
             task.taskTypeId || null
@@ -241,13 +261,33 @@ export const taskQueries = {
     },
 
     updateOrder: (tasks: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
-        const stmt = db.prepare('UPDATE tasks SET `order` = ?, status = ? WHERE id = ?');
-        const updateMany = db.transaction((tasks) => {
-            for (const task of tasks) {
-                stmt.run(task.order, task.status, task.id);
-            }
+        const getInfoStmt = db.prepare('SELECT assigned_to FROM tasks WHERE id = ?');
+
+        type Item = { id: string; order: number; status: 'todo' | 'inprogress' | 'done'; assigned_to: string | null };
+        const withAssignee: Item[] = tasks.map(t => {
+            const row = getInfoStmt.get(t.id) as { assigned_to: string | null } | undefined;
+            return { ...t, assigned_to: row ? row.assigned_to : null };
         });
-        return updateMany(tasks);
+
+        const groups = new Map<string, Item[]>();
+        for (const t of withAssignee) {
+            const key = `${t.assigned_to ?? 'UNASSIGNED'}::${t.status}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key)!.push(t);
+        }
+
+        const normalized: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[] = [];
+        groups.forEach((list) => {
+            list.sort((a: Item, b: Item) => a.order - b.order);
+            list.forEach((t: Item, idx: number) => normalized.push({ id: t.id, order: idx, status: t.status }));
+        });
+
+        const stmt = db.prepare('UPDATE tasks SET `order` = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        const tx = db.transaction((arr: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
+            for (const t of arr) stmt.run(t.order, t.status, t.id);
+        });
+
+        return tx(normalized);
     }
 }
 
