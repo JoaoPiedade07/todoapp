@@ -293,7 +293,7 @@ export default function KanbanPage() {
         <button
           onClick={() => setShowCreateModal(true)}
           className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"
-          title="Criar Nova Tarefa (TESTE)"
+          title="Criar Nova Tarefa"
         >
           +
         </button>
