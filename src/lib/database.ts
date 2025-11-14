@@ -70,6 +70,10 @@ export function initDatabase() {
         CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
         ON tasks(assigned_to, status, \`order\`)
     `)
+    db.exec(`
+        assigned_at DATETIME,
+        completed_at DATETIME,
+    `)
 }
 
 initDatabase();
@@ -204,6 +208,9 @@ export const taskQueries = {
         const resolvedStatus = task.status || 'todo';
         let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
 
+        const assignedAt = task.assignedTo && resolvedStatus === 'inprogress' ? "datetime('now')" : "NULL";
+        if(task)
+
         if (task.assignedTo) {
             const getMaxStmt = db.prepare(`
                 SELECT COALESCE(MAX(\`order\`), -1) as maxOrder
@@ -289,6 +296,28 @@ export const taskQueries = {
 
         return tx(normalized);
     }
+}
+
+export const timeCalculationQueries = {
+    getTimeSinceAssignment: (taskId: string) => {
+        const stmt = db.prepare(`
+            SELECT
+                assigned_at,
+                completed_at,
+                CASE
+                    WHEN assinged_at IS NULL THEN 'Nao atribuido'
+                    WHEN completed_at IS NOT NULL THEN 
+                        'Concluido em ' || ROUND((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 * 60 * 2) || 'minutos'
+                    ELSE
+                        'Em andamento há ' || ROUND((JULIANDAY(now) - JULIANDAY(assigned_at)) * 24 * 60 * 2) || 'minutos'
+                    END as time_info
+                    FROM tasks
+                    WHERE id = ?
+            `);
+            return stmt.get(taskId);
+    },
+
+
 }
 
 export default db;
