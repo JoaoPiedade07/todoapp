@@ -74,6 +74,11 @@ export function initDatabase() {
         assigned_at DATETIME,
         completed_at DATETIME,
     `)
+    db.exec(`
+        estimated_hours DECIMAL(10,2),
+        actual_hours DECIMAL(10,2),
+        confidence-level DECIMAL(3,2)    
+    `)
 }
 
 initDatabase();
@@ -362,7 +367,41 @@ export const timeCalculationQueries = {
             return stmt.get(taskId);
     },
 
+}
 
+export const predictionQueries = {
+    calculateTeamVelocity: (userId?: string, weeks: number = 8) => {
+        let query = `
+            SELECT 
+                ${userId ? 'u.id as user_id, u.name as user_name,': ''}
+                COUNT (t.id) as completed_at;
+                SUM(t.story_points) as total_story_points;
+                ROUND(SUM(t.story_points) * 1.0 / ?, 2) as velocity_per_week,
+                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDY(t.assigned_at)) * 24), 2) as avg_hours_per_task,
+                ROUND(AVG(t.story_points), 2) as avg_story_points;
+                FROM tasks t
+                ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
+                WHERE t.completed_at IS NOT NULL
+                AND t.assigned_at IS NOT NULL
+                AND t.story_points IS NOT NULL
+                AND t.story_points > 0
+                AND t.completed_at >= datetime('now', '-?days')
+        `;
+
+        const params: any[] = [weeks, weeks * 7];
+
+        if(userId) {
+            query += ` AND t.assigned_to = ? GROUP BY u.id, u.name`;
+            params.push(userId);
+        } else {
+            query += ' GROUP BY 1';
+        }
+
+        const stmt = db.prepare(query);
+        return userId ? stmt.get(...params) : stmt.all(...params);
+    }, 
+
+    
 }
 
 export default db;
