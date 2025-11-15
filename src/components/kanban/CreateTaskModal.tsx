@@ -5,22 +5,25 @@ import { TaskStatus, UserType } from '@/constants/enums';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { response } from 'express';
-import { useRouter } from 'next/navigation';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateTask: (taskData: any) => void;
   userType: UserType;
-  availableUsers: any[];
+}
+
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  type: string;
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
   onCreateTask,
-  availableUsers,
   userType
 }) => {
   const [formData, setFormData] = useState({
@@ -33,84 +36,101 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     task_type: ''
   });
 
-  const [availableProgrammers, setAvailableProgrammers] = useState<any[]>([]);
-  const [programmerId, setProgrammerId] = useState('');
-  const [user, setUser] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
-
-  useEffect(() => {
-    ;
-  }, [router]);
-
-  useEffect(() => {
-    if(userType === UserType.MANAGER) {
-      fetch(`${API_BASE_URL}/users/programmers`)
-      .then(res => res.json())
-      .then(data => setAvailableProgrammers(data))
-      .catch(err => console.error('Erro ao carregar programadores: ', err));
-    } else {
-      setAvailableProgrammers([]);
-      setProgrammerId(''); // Limpar seleção ao mudar para gestor
-    }
-
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-    
-    const userObj = JSON.parse(userData);
-    if (userObj.type !== 'gestor') {
-      router.push('/kanban');
-      return;
-    }
-    
-    setUser(userObj);
-  }, [userType, API_BASE_URL, router]);
-
+  const [availableProgrammers, setAvailableProgrammers] = useState<User[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  console.log('🔍 CreateTaskModal - availableUsers:', availableUsers);
-  console.log('🔍 CreateTaskModal - userType:', userType);
-  console.log('🔍 CreateTaskModal - formData:', formData);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    const loadProgrammers = async () => {
+      if (userType === UserType.MANAGER && isOpen) {
+        setIsLoading(true);
+        try {
+          console.log('🔍 Buscando programadores...');
+          const response = await fetch(`${API_BASE_URL}/users/programmers`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const programmers = await response.json();
+          console.log('👥 Programadores carregados:', programmers);
+          setAvailableProgrammers(programmers);
+        } catch (error) {
+          console.error('❌ Erro ao carregar programadores:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProgrammers();
+  }, [userType, isOpen, API_BASE_URL]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validações
     const newErrors: Record<string, string> = {};
     if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
-    if (!formData.assigned_to && userType === UserType.MANAGER) {
+    if (!formData.story_points) newErrors.story_points = 'Story Points são obrigatórios';
+    if (userType === UserType.MANAGER && !formData.assigned_to) {
       newErrors.assigned_to = 'Deve atribuir a um programador';
     }
-    if (!formData.story_points) newErrors.story_points = 'Story Points são obrigatórios';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // Preparar dados para enviar
+    // Dados no formato correto
     const taskData = {
-      ...formData,
+      id: Date.now().toString(),
+      title: formData.title,
+      description: formData.description || null,
+      status: formData.status,
       order: parseInt(formData.order.toString()),
       story_points: parseInt(formData.story_points),
-      assigned_to: formData.assigned_to || null
+      assigned_to: formData.assigned_to || null,
+      task_type_id: formData.task_type || null,
     };
 
     console.log('🎯 Submitting task data:', taskData);
-    console.log('🎯 Selected user:', availableUsers.find(u => u.id === formData.assigned_to));
     
-    onCreateTask(taskData);
-    handleClose();
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(taskData)
+      });
+
+      console.log('📡 Response status:', response.status);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Task criada com sucesso:', result);
+        onCreateTask(taskData);
+        handleClose();
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Erro ao criar task:', errorText);
+        alert('Erro ao criar tarefa: ' + errorText);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na requisição:', error);
+      alert('Erro de conexão ao criar tarefa: ' + error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -124,6 +144,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       task_type: ''
     });
     setErrors({});
+    setAvailableProgrammers([]);
     onClose();
   };
 
@@ -275,8 +296,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.assigned_to ? 'border-red-500' : ''
                   }`}
+                  disabled={isLoading}
                 >
-                  <option value="">Selecione um programador</option>
+                  <option value="">{isLoading ? 'Carregando programadores...' : 'Selecione um programador'}</option>
                   {availableProgrammers.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.username})
@@ -287,7 +309,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   <p className="mt-1 text-sm text-red-600">{errors.assigned_to}</p>
                 )}
                 <div className="mt-1 text-xs text-gray-500">
-                  {availableProgrammers.length === 0 ? '❌ Nenhum programador disponível' : `✅ ${availableUsers.length} programador(es) disponível(is)`}
+                  {isLoading 
+                    ? '🔄 Carregando programadores...' 
+                    : availableProgrammers.length === 0 
+                      ? '❌ Nenhum programador disponível' 
+                      : `✅ ${availableProgrammers.length} programador(es) disponível(is)`
+                  }
                 </div>
               </div>
             )}
@@ -297,15 +324,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Button
                 type="button"
                 onClick={handleClose}
-                className="bg-gray-500 hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                disabled={isLoading}
               >
-                Criar Tarefa
+                {isLoading ? 'Criando...' : 'Criar Tarefa'}
               </Button>
             </div>
           </form>

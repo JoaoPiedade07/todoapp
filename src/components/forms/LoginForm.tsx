@@ -69,7 +69,7 @@ export const LoginForm: React.FC = () => {
   };
 
   const handleRegisterRedirect = () => {
-    router.push('/Register');
+    router.push('/register');
   };
 
   return (
