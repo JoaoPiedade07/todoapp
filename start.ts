@@ -6,6 +6,7 @@ import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
 import userRoute from './src/lib/userRoute';
+import taskRoute from './src/lib/taskRoute';
 
 dotenv.config();
 
@@ -26,20 +27,21 @@ server.use(express.json());
 
 server.use('/auth', authRoutes);
 server.use('/users', userRoute);
+server.use('/', taskRoute);
 
 // Rota para tasks (precisamos criar esta rota)
-server.get('/tasks', authenticateToken, (req: any, res) => {
+//server.get('/tasks', authenticateToken, (req: any, res) => {
   // TODO: Implementar busca de tasks
-  res.json([]);
-});
+  //res.json([]);
+//});
 
-server.patch('/tasks/:id', authenticateToken, (req: any, res) => {
+//server.patch('/tasks/:id', authenticateToken, (req: any, res) => {
   // TODO: Implementar atualização de task
-  const { id } = req.params;
-  const { status } = req.body;
-  console.log(`Updating task ${id} to status: ${status}`);
-  res.json({ success: true, message: 'Task updated' });
-});
+  //const { id } = req.params;
+  //const { status } = req.body;
+  //console.log(`Updating task ${id} to status: ${status}`);
+  //res.json({ success: true, message: 'Task updated' });
+//});
 
 // Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {

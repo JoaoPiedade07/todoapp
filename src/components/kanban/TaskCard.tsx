@@ -1,8 +1,9 @@
 'use client';
 
 import { Task } from '@/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserType, TaskStatus } from '@/constants/enums';
+import { useRouter } from 'next/navigation';
 
 interface TaskCardProps {
   task: Task;
@@ -10,8 +11,87 @@ interface TaskCardProps {
   userType: UserType;
 }
 
+interface Programmer {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  type: string;
+}
+
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userType }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [programmers, setProgrammers] = useState<Programmer[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  
+  const API_BASE_URL = typeof window !== 'undefined' 
+    ? `http://${window.location.hostname}:3001`
+    : 'http://localhost:3001';
+
+  useEffect(() => {
+    const loadProgrammers = async () => {
+      // ✅ Só carrega programadores se for manager E se ainda não carregou
+      if (userType === UserType.MANAGER && programmers.length === 0 && !isLoading) {
+        setIsLoading(true);
+        try {
+          console.log('🔍 Buscando programadores de:', `${API_BASE_URL}/users/programmers`);
+          const response = await fetch(`${API_BASE_URL}/users/programmers`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data: Programmer[] = await response.json();
+          console.log('👥 Programadores carregados:', data.length, data);
+          setProgrammers(data);
+        } catch (error) {
+          console.error('❌ Erro ao carregar programadores: ', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProgrammers();
+
+    // Verificar autenticação
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+  }, [userType, API_BASE_URL, programmers.length, isLoading, router]);
+
+  // ✅ Função MELHORADA para encontrar o nome do usuário atribuído
+  const getAssignedUserName = (): string | null => {
+    if (!task.assigned_to) {
+      console.log('📌 Task não tem assigned_to:', task.id);
+      return null;
+    }
+    
+    console.log('🔍 Procurando programador para task:', task.id, 'assigned_to:', task.assigned_to);
+    console.log('👥 Programadores disponíveis:', programmers);
+    
+    // Primeiro tenta encontrar nos programadores carregados
+    const assignedProgrammer = programmers.find(p => p.id === task.assigned_to);
+    
+    if (assignedProgrammer) {
+      console.log('✅ Encontrou programador:', assignedProgrammer.name);
+      return assignedProgrammer.name;
+    }
+    
+    // Se não encontrar, verifica se a task já tem o nome (do JOIN do backend)
+    if (task.assigned_user_name) {
+      console.log('✅ Usando assigned_user_name do backend:', task.assigned_user_name);
+      return task.assigned_user_name;
+    }
+    
+    console.log('❌ Não encontrou nome para assigned_to:', task.assigned_to);
+    return null;
+  };
+
+  const assignedUserName = getAssignedUserName();
 
   const getStatusColor = (status: TaskStatus) => {
     switch (status) {
@@ -32,24 +112,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (!isDraggable) return;
+    
     setIsDragging(true);
     
-    // 🔥 ADICIONAR ESTES LOGS CRÍTICOS
     console.log('🧲 DRAG START - Task:', task.id);
     console.log('📋 Task status:', task.status);
     console.log('👤 User type:', userType);
-    console.log('🎯 Draggable:', userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE);
+    console.log('👥 Assigned user:', assignedUserName);
     
-    // Definir os dados para transferência
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('currentStatus', task.status);
     e.dataTransfer.effectAllowed = 'move';
-    
-    // 🔥 VERIFICAR SE OS DADOS FORAM DEFINIDOS CORRETAMENTE
-    console.log('📦 Dados no dataTransfer:', {
-      taskId: e.dataTransfer.getData('taskId'),
-      currentStatus: e.dataTransfer.getData('currentStatus')
-    });
   };
 
   const handleDragEnd = () => {
@@ -62,14 +136,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
     onViewDetails(task);
   };
 
-  const isDraggable = (userType === UserType.PROGRAMMER || userType === UserType.MANAGER) && task.status !== TaskStatus.DONE;
+  const isDraggable = userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE;
   
-  console.log(`🔄 TaskCard ${task.id} render - Draggable: ${isDraggable}, User: ${userType}, Status: ${task.status}`);
+  console.log(`🔄 TaskCard ${task.id} render - Draggable: ${isDraggable}, Assigned: ${assignedUserName}`);
 
-  // 🔥 CORREÇÃO: Verificar se updated_at existe antes de criar Date
   const formatUpdatedAt = () => {
     if (!task.updated_at) return 'Não disponível';
-    return new Date(task.updated_at).toLocaleDateString('pt-PT');
+    try {
+      return new Date(task.updated_at).toLocaleDateString('pt-PT');
+    } catch {
+      return 'Data inválida';
+    }
   };
 
   return (
@@ -107,21 +184,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onViewDetails, userTyp
           )}
         </div>
         
-        {task.assigned_user_name && (
-          <div className="text-right">
-            <div className="font-medium">Responsável:</div>
-            <div>{task.assigned_user_name}</div>
+        {/* ✅ USA O NOME ENCONTRADO OU MOSTRA "Não atribuído" */}
+        <div className="text-right">
+          <div className="font-medium">Responsável:</div>
+          <div className={`${assignedUserName ? 'text-gray-700' : 'text-orange-500 italic'}`}>
+            {assignedUserName || 'Não atribuído'}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* 🔥 DEBUG INFO - Remove depois de testar */}
+      {/* Debug info - útil para troubleshooting */}
       <div className="mt-2 pt-2 border-t border-gray-100 text-xs">
         <div className="flex justify-between text-gray-400">
           <span>Atualizado: {formatUpdatedAt()}</span>
+          {isLoading && <span className="text-blue-500">🔄 Carregando...</span>}
           {isDraggable && (
             <span className="text-blue-500 font-medium">🔄 Arrastável</span>
           )}
+        </div>
+        {/* Debug adicional - remove depois */}
+        <div className="text-gray-400 mt-1">
+          Task: {task.id} | Assigned: {task.assigned_to || 'N/A'} | 
+          Programmers: {programmers.length}
         </div>
       </div>
     </div>
