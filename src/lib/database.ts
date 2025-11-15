@@ -209,7 +209,6 @@ export const taskQueries = {
         let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
 
         const assignedAt = task.assignedTo && resolvedStatus === 'inprogress' ? "datetime('now')" : "NULL";
-        if(task)
 
         if (task.assignedTo) {
             const getMaxStmt = db.prepare(`
@@ -240,6 +239,30 @@ export const taskQueries = {
         );
     },
 
+    updateStatus: (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
+        let query = `UPDATE tasks SET STATUS = ?, updated_at = CURRENT_TIMESTAMP`;
+        const params: any[] = [status];
+
+        if(status === 'inprogress' && assignedTo) {
+            query += `, assigned_to = ?, assigned_at = datetime('now')`;
+            params.push(assignedTo);
+        }
+
+        else if(status === 'done') {
+            query += `, completed_at = datetime('now')`;
+        }
+
+        else if(status === 'todo') {
+            query += `, assigned_at = NULL, completed_at = NULL`;
+        }
+
+        query += ` WHERE id = ?`;
+        params.push(id);
+
+        const stmt = db.prepare(query);
+        return stmt.run(...params)
+    },
+
     update: (id: string, task: Partial<{
         title: string,
         description: string;
@@ -249,7 +272,29 @@ export const taskQueries = {
         assignedTo: string;
         taskTypeId: string;
     }>) => {
+
+        const currentTask = taskQueries.getById(id) as any;
+
+        let additionalUpdates = '';
+        const params: any[] = [];
+
         const fields = Object.keys(task).map(key => {
+            if (key === 'status' && task.status) {
+                if(task.status === 'inprogress' && task.assignedTo && !currentTask.assigned_at ) {
+                    additionalUpdates += `, assigned_at = datetime('now')`;
+                }
+                else if(task.status === 'done' && !currentTask.completed_at ) {
+                    additionalUpdates += `, completed_at = datetime('now')`;
+                }
+                else if(task.status === 'todo' ) {
+                    additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
+                }
+            }
+
+            if (key === 'assignedTo' && task.assignedTo && task.status === 'inprogress' && !currentTask.assigned_at) {
+                additionalUpdates += `, assigned_at = datetime('now')`;
+            }
+
             if (key === 'storyPoints') return 'story_points = ?';
             if (key === 'assignedTo') return 'assigned_to = ?';
             if (key === 'taskTypeId') return 'task_type_id = ?';
@@ -258,7 +303,7 @@ export const taskQueries = {
         }).join(', ');
 
         const values = Object.values(task);
-        const stmt = db.prepare(`UPDATE tasks SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+        const stmt = db.prepare(`UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
         return stmt.run(...values, id);
     },
 
