@@ -60,24 +60,21 @@ export function initDatabase() {
           story_points INTEGER,
           assigned_to TEXT,
           task_type_id TEXT,
+          assigned_at DATETIME,
+          completed_at DATETIME,
+          estimated_hours DECIMAL(10,2),
+          actual_hours DECIMAL(10,2),
+          confidence_level DECIMAL(3,2),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
           FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
         )
     `)
+    
     db.exec(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
         ON tasks(assigned_to, status, \`order\`)
-    `)
-    db.exec(`
-        assigned_at DATETIME,
-        completed_at DATETIME,
-    `)
-    db.exec(`
-        estimated_hours DECIMAL(10,2),
-        actual_hours DECIMAL(10,2),
-        confidence-level DECIMAL(3,2)    
     `)
 }
 
