@@ -172,6 +172,8 @@ export default function KanbanPage() {
 
   const handleCreateTask = async (taskData: any) => {
     try {
+      console.log('🎯 KanbanPage - Criando task:', taskData);
+      
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: 'POST',
@@ -187,25 +189,22 @@ export default function KanbanPage() {
 
       if (response.ok) {
         const newTask = await response.json();
-        setTasks(prev => [...prev, newTask]);
+        console.log('✅ KanbanPage - Task criada com sucesso:', newTask);
+        
+        // ✅ APENAS fecha o modal - NÃO adiciones manualmente
+        setShowCreateModal(false);
+        
+        // ✅ Busca a lista ATUALIZADA do servidor
+        await fetchTasks();
+        
       } else {
-        // Adiciona localmente em caso de erro
-        const mockTask = {
-          id: Date.now().toString(),
-          title: taskData.title,
-          description: taskData.description,
-          status: taskData.status,
-          order: taskData.order,
-          story_points: taskData.story_points,
-          assigned_user_name: availableUsers.find(u => u.id === taskData.assigned_to)?.name || 'Não atribuído',
-          task_type_name: taskData.task_type,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        setTasks(prev => [...prev, mockTask]);
+        const errorText = await response.text();
+        console.error('❌ KanbanPage - Erro do servidor:', errorText);
+        alert('Erro ao criar tarefa: ' + errorText);
       }
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
+      console.error('❌ KanbanPage - Erro de conexão:', error);
+      alert('Erro de conexão ao criar tarefa');
     }
   };
 
