@@ -11,6 +11,7 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onCreateTask: (taskData: any) => void;
   userType: UserType;
+  availableUsers?: User[];
 }
 
 interface User {
@@ -127,23 +128,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(taskData)
-      });
+      console.log('🔄 Frontend - Enviando dados:', taskData);
 
-      if (response.ok) {
-        const result = await response.json();
-        onCreateTask(result);
-        handleClose();
-      } else {
-        const errorText = await response.text();
-        alert('Erro ao criar tarefa: ' + errorText);
-      }
+      onCreateTask(taskData);
 
     } catch (error) {
       console.error('Erro na requisição:', error);

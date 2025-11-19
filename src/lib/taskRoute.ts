@@ -4,8 +4,8 @@ import express from 'express';
 
 const router = express.Router();
 
-// ✅ POST /tasks - Criar task
-router.post('/tasks', authenticateToken, (req: any, res) => {
+// ✅ POST / - Criar task (CORREÇÃO: remove '/tasks')
+router.post('/', authenticateToken, (req: any, res) => {
   try {
     // Verificar se o utilizador é gestor
     if (req.user.type !== 'gestor') {
@@ -16,11 +16,23 @@ router.post('/tasks', authenticateToken, (req: any, res) => {
 
     const taskData = req.body;
     
-    console.log('📥 Dados recebidos para criar task:', taskData);
+    // ✅ LOGS DETALHADOS PARA DEBUG
+    console.log('📥 Dados recebidos para criar task:');
+    console.log('🔍 Body completo:', JSON.stringify(taskData, null, 2));
+    console.log('📝 Title:', taskData.title);
+    console.log('📝 Title type:', typeof taskData.title);
+    console.log('📝 Title value:', taskData.title);
     console.log('👤 User que está a criar:', req.user);
+
+    // ✅ VALIDAÇÃO EXTRA
+    if (!taskData.title || taskData.title.trim() === '') {
+      console.error('❌ ERRO CRÍTICO: Title está vazio!');
+      return res.status(400).json({ error: 'Title é obrigatório' });
+    }
 
     const result = taskQueries.create(taskData);
     
+    console.log('✅ Task criada com sucesso no banco de dados');
     res.status(201).json(result);
   } catch (error) {
     console.error('❌ Erro ao criar tarefa:', error);
@@ -28,8 +40,8 @@ router.post('/tasks', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ GET /tasks - Buscar todas as tasks
-router.get('/tasks', authenticateToken, (req: any, res) => {
+// ✅ GET / - Buscar todas as tasks (CORREÇÃO: remove '/tasks')
+router.get('/', authenticateToken, (req: any, res) => {
   try {
     const tasks = taskQueries.getAll();
     res.json(tasks);
@@ -39,8 +51,8 @@ router.get('/tasks', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ PATCH /tasks/:id - Atualizar task
-router.patch('/tasks/:id', authenticateToken, (req: any, res) => {
+// ✅ PATCH /:id - Atualizar task (CORREÇÃO: remove '/tasks')
+router.patch('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -55,8 +67,8 @@ router.patch('/tasks/:id', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ GET /tasks/:id - Buscar task por ID
-router.get('/tasks/:id', authenticateToken, (req: any, res) => {
+// ✅ GET /:id - Buscar task por ID (CORREÇÃO: remove '/tasks')
+router.get('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
     const task = taskQueries.getById(id);
@@ -72,8 +84,8 @@ router.get('/tasks/:id', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ DELETE /tasks/:id - Eliminar task
-router.delete('/tasks/:id', authenticateToken, (req: any, res) => {
+// ✅ DELETE /:id - Eliminar task (CORREÇÃO: remove '/tasks')
+router.delete('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
     

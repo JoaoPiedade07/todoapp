@@ -8,7 +8,7 @@ export const db = new Database(dbPath);
 // Habilitar foreign keys
 db.pragma('foreign_keys = ON');
 
-//Função para loggin
+// Função para logging
 function log(message: string, data?: any) {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] ${message}${data ? ' - ' + JSON.stringify(data) : ''}\n`; 
@@ -20,9 +20,9 @@ function log(message: string, data?: any) {
     fs.appendFileSync(logPath, logMessage);
 }
 
-//Criar tabelas se não existirem
+// Criar tabelas se não existirem
 export function initDatabase() {
-    //Tabela de utilizadores
+    // Tabela de utilizadores
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
@@ -37,9 +37,9 @@ export function initDatabase() {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
         )
-    `)
+    `);
     
-    //Tabela de tipos de tarefas
+    // Tabela de tipos de tarefas
     db.exec(`
         CREATE TABLE IF NOT EXISTS task_types (
           id TEXT PRIMARY KEY,
@@ -47,9 +47,9 @@ export function initDatabase() {
           description TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    `)
+    `);
 
-    //Tabela de tarefas
+    // Tabela de tarefas
     db.exec(`
         CREATE TABLE IF NOT EXISTS tasks (
           id TEXT PRIMARY KEY,
@@ -70,12 +70,12 @@ export function initDatabase() {
           FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
           FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
         )
-    `)
+    `);
     
     db.exec(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
         ON tasks(assigned_to, status, \`order\`)
-    `)
+    `);
 }
 
 initDatabase();
@@ -207,6 +207,21 @@ export const taskQueries = {
         assignedTo?: string, 
         taskTypeId?: string
     }) => {
+        console.log('📥 Dados recebidos na database create:', task);
+
+        let estimatedHours = null;
+        let confidenceLevel = null;
+
+        if (task.storyPoints && task.storyPoints > 0) {
+            const prediction = predictionQueries.predictTaskTime(
+                task.storyPoints, 
+                task.assignedTo, 
+                task.taskTypeId
+            );
+            estimatedHours = prediction.estimated_hours;
+            confidenceLevel = prediction.confidence_level;
+        }
+
         const resolvedStatus = task.status || 'todo';
         let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
 
@@ -226,10 +241,11 @@ export const taskQueries = {
         }
 
         const stmt = db.prepare(`
-            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, assigned_at)
-            VALUES(?,?,?,?,?,?,?,?,?)
+            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, assigned_at, estimated_hours, confidence_level)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
         `);
-        return stmt.run(
+        
+        const result = stmt.run(
             task.id,
             task.title,
             task.description || null,
@@ -238,23 +254,26 @@ export const taskQueries = {
             task.storyPoints || null,
             task.assignedTo || null,
             task.taskTypeId || null,
-            shouldSetAssignedAt ? new Date().toISOString() : null
+            shouldSetAssignedAt ? new Date().toISOString() : null,
+            estimatedHours,
+            confidenceLevel
         );
+
+        console.log('✅ Task criada com sucesso no banco de dados');
+        return result;
     },
 
     updateStatus: (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
-        let query = `UPDATE tasks SET STATUS = ?, updated_at = CURRENT_TIMESTAMP`;
+        let query = `UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP`;
         const params: any[] = [status];
 
         if(status === 'inprogress' && assignedTo) {
             query += `, assigned_to = ?, assigned_at = datetime('now')`;
             params.push(assignedTo);
         }
-
         else if(status === 'done') {
             query += `, completed_at = datetime('now')`;
         }
-
         else if(status === 'todo') {
             query += `, assigned_at = NULL, completed_at = NULL`;
         }
@@ -263,7 +282,7 @@ export const taskQueries = {
         params.push(id);
 
         const stmt = db.prepare(query);
-        return stmt.run(...params)
+        return stmt.run(...params);
     },
 
     update: (id: string, task: Partial<{
@@ -275,7 +294,6 @@ export const taskQueries = {
         assignedTo: string;
         taskTypeId: string;
     }>) => {
-
         const currentTask = taskQueries.getById(id) as any;
 
         let additionalUpdates = '';
@@ -344,7 +362,7 @@ export const taskQueries = {
 
         return tx(normalized);
     }
-}
+};
 
 export const timeCalculationQueries = {
     getTimeSinceAssignment: (taskId: string) => {
@@ -353,37 +371,72 @@ export const timeCalculationQueries = {
                 assigned_at,
                 completed_at,
                 CASE
-                    WHEN assingned_at IS NULL THEN 'Nao atribuido'
+                    WHEN assigned_at IS NULL THEN 'Nao atribuido'
                     WHEN completed_at IS NOT NULL THEN 
-                        'Concluido em ' || ROUND((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 * 60 * 2) || 'minutos'
+                        'Concluido em ' || ROUND((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 * 60) || ' minutos'
                     ELSE
-                        'Em andamento há ' || ROUND((JULIANDAY(now) - JULIANDAY(assigned_at)) * 24 * 60 * 2) || 'minutos'
-                    END as time_info
-                    FROM tasks
-                    WHERE id = ?
-            `);
-            return stmt.get(taskId);
+                        'Em andamento há ' || ROUND((JULIANDAY(datetime('now')) - JULIANDAY(assigned_at)) * 24 * 60) || ' minutos'
+                END as time_info
+            FROM tasks
+            WHERE id = ?
+        `);
+        return stmt.get(taskId);
     },
+};
 
-}
+// Funções auxiliares para predictionQueries
+const calculateComplexityFactor = (storyPoints: number): number => {
+    if (storyPoints <= 2) return 0.8;
+    if (storyPoints <= 5) return 1.0;
+    if (storyPoints <= 8) return 1.3;
+    return 1.6;
+};
+
+const calculateConfidenceLevel = (sampleSize: number, stdDev: number, avgHours: number): number => {
+    let confidence = 0.5;
+    
+    if (sampleSize >= 20) confidence += 0.3;
+    else if (sampleSize >= 10) confidence += 0.2;
+    else if (sampleSize >= 5) confidence += 0.1;
+    
+    const coefficientOfVariation = stdDev / avgHours;
+    if (coefficientOfVariation < 0.3) confidence += 0.2;
+    else if (coefficientOfVariation < 0.6) confidence += 0.1;
+    else confidence -= 0.1;
+    
+    return Math.min(Math.max(confidence, 0.1), 0.95);
+};
+
+const generatePredictionMessage = (confidence: number, sampleSize: number): string => {
+    if (confidence >= 0.8) return 'Previsão de alta confiança';
+    if (confidence >= 0.6) return 'Previsão com boa confiança';
+    if (confidence >= 0.4) return 'Previsão com confiança moderada';
+    return 'Previsão com baixa confiança - use com cautela';
+};
+
+const calculateSprintDays = (totalHours: number): number => {
+    const hoursPerDay = 6;
+    const sprintDays = Math.ceil(totalHours / hoursPerDay);
+    return Math.max(sprintDays, 1);
+};
 
 export const predictionQueries = {
     calculateTeamVelocity: (userId?: string, weeks: number = 8) => {
         let query = `
             SELECT 
-                ${userId ? 'u.id as user_id, u.name as user_name,': ''}
-                COUNT (t.id) as completed_tasks,
+                ${userId ? 'u.id as user_id, u.name as user_name,' : ''}
+                COUNT(t.id) as completed_tasks,
                 SUM(t.story_points) as total_story_points,
                 ROUND(SUM(t.story_points) * 1.0 / ?, 2) as velocity_per_week,
-                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDY(t.assigned_at)) * 24), 2) as avg_hours_per_task,
+                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24), 2) as avg_hours_per_task,
                 ROUND(AVG(t.story_points), 2) as avg_story_points
-                FROM tasks t
-                ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
-                WHERE t.completed_at IS NOT NULL
-                AND t.assigned_at IS NOT NULL
-                AND t.story_points IS NOT NULL
-                AND t.story_points > 0
-                AND t.completed_at >= datetime('now', '-?days')
+            FROM tasks t
+            ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
+            WHERE t.completed_at IS NOT NULL
+            AND t.assigned_at IS NOT NULL
+            AND t.story_points IS NOT NULL
+            AND t.story_points > 0
+            AND t.completed_at >= datetime('now', '-' || ? || ' days')
         `;
 
         const params: any[] = [weeks, weeks * 7];
@@ -399,7 +452,177 @@ export const predictionQueries = {
         return userId ? stmt.get(...params) : stmt.all(...params);
     }, 
 
-    
-}
+    calculatePointsToHoursRatio: (userId?: string) => {
+        let query = `
+            SELECT 
+                ${userId ? 'u.id as user_id, u.name as user_name,' : ''}
+                COUNT(t.id) as sample_size,
+                ROUND(AVG(t.story_points), 2) as avg_story_points,
+                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24), 2) as avg_hours,
+                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24) / AVG(t.story_points), 2) as hours_per_point
+            FROM tasks t
+            ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
+            WHERE t.completed_at IS NOT NULL 
+            AND t.assigned_at IS NOT NULL
+            AND t.story_points IS NOT NULL
+            AND t.story_points > 0
+            AND (JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) > 0
+        `;
+        
+        if (userId) {
+            query += ' AND t.assigned_to = ? GROUP BY u.id, u.name';
+            const stmt = db.prepare(query);
+            return stmt.get(userId);
+        } else {
+            query += ' GROUP BY 1';
+            const stmt = db.prepare(query);
+            return stmt.all();
+        }
+    },
+
+    predictTaskTime: (storyPoints: number, userId?: string, taskTypeId?: string) => {
+        let baseQuery = `
+            SELECT 
+                ROUND(AVG((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24), 2) as avg_hours,
+                ROUND(AVG(story_points), 2) as avg_points,
+                COUNT(*) as sample_size,
+                ROUND(STDEV((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24), 2) as std_dev_hours
+            FROM tasks 
+            WHERE completed_at IS NOT NULL 
+            AND assigned_at IS NOT NULL
+            AND story_points IS NOT NULL
+            AND story_points > 0
+        `;
+        
+        const params: any[] = [];
+
+        if(userId) {
+            baseQuery += ' AND assigned_to = ?';
+            params.push(userId);
+        }
+
+        if (taskTypeId) {
+            baseQuery += ' AND task_type_id = ?';
+            params.push(taskTypeId);
+        }
+
+        const stmt = db.prepare(baseQuery);
+        const historicalData = stmt.get(...params) as {
+            avg_hours: number;
+            avg_points: number;
+            sample_size: number;
+            std_dev_hours: number;
+        } | undefined;
+
+        if(!historicalData || historicalData.sample_size < 3) {
+            const defaultHoursPerPoint = 4;
+            return {
+                estimated_hours: storyPoints * defaultHoursPerPoint,
+                confidence_level: 0.3,
+                message: 'Estimativa baseada em padrão da indústria (dados insuficientes)'
+            };
+        }
+
+        const hourPerPoint = historicalData.avg_hours / historicalData.avg_points;
+        let estimatedHours = storyPoints * hourPerPoint;
+        const complexityFactor = calculateComplexityFactor(storyPoints);
+        estimatedHours *= complexityFactor;
+        
+        const confidence = calculateConfidenceLevel(
+            historicalData.sample_size, 
+            historicalData.std_dev_hours, 
+            historicalData.avg_hours
+        );
+        
+        const marginOfError = historicalData.std_dev_hours * (2 / Math.sqrt(historicalData.sample_size));
+
+        return {
+            estimated_hours: Math.round(estimatedHours * 100) / 100,
+            confidence_level: Math.round(confidence * 100) / 100,
+            min_hours: Math.round((estimatedHours - marginOfError) * 100) / 100,
+            max_hours: Math.round((estimatedHours + marginOfError) * 100) / 100,
+            hours_per_point: Math.round(hourPerPoint * 100) / 100,
+            sample_size: historicalData.sample_size,
+            message: generatePredictionMessage(confidence, historicalData.sample_size)
+        };
+    },
+
+    predictMultipleTasks: (tasks: Array<{storyPoints: number, userId?: string, taskTypeId?: string}>) => {
+        const predictions = tasks.map(task => 
+            predictionQueries.predictTaskTime(task.storyPoints, task.userId, task.taskTypeId)
+        );
+
+        const totalEstimated = predictions.reduce((sum, pred) => sum + pred.estimated_hours, 0);
+        const avgConfidence = predictions.reduce((sum, pred) => sum + pred.confidence_level, 0) / predictions.length;
+        
+        return {
+            total_estimated_hours: Math.round(totalEstimated * 100) / 100,
+            average_confidence: Math.round(avgConfidence * 100) / 100,
+            task_count: tasks.length,
+            total_story_points: tasks.reduce((sum, task) => sum + task.storyPoints, 0),
+            predictions: predictions,
+            suggested_sprint_days: calculateSprintDays(totalEstimated)
+        };
+    },
+
+    updatePredictionModel: (taskId: string) => {
+        const taskStmt = db.prepare(`
+            SELECT 
+                story_points,
+                assigned_to,
+                task_type_id,
+                (JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 as actual_hours
+            FROM tasks 
+            WHERE id = ? AND completed_at IS NOT NULL AND assigned_at IS NOT NULL
+        `);
+        
+        const task = taskStmt.get(taskId) as {
+            story_points: number;
+            assigned_to: string;
+            task_type_id: string;
+            actual_hours: number;
+        };
+
+        if (!task) return null;
+
+        const updateStmt = db.prepare(`
+            UPDATE tasks SET actual_hours = ? WHERE id = ?
+        `);
+        updateStmt.run(task.actual_hours, taskId);
+
+        return {
+            task_id: taskId,
+            story_points: task.story_points,
+            actual_hours: Math.round(task.actual_hours * 100) / 100,
+            efficiency: task.story_points > 0 ? Math.round((task.story_points / task.actual_hours) * 100) / 100 : 0
+        };
+    },
+
+    analyzePredictionAccuracy: (userId?: string) => {
+        let query = `
+            SELECT 
+                COUNT(*) as total_tasks,
+                AVG(estimated_hours) as avg_estimated,
+                AVG(actual_hours) as avg_actual,
+                ROUND(AVG(ABS(actual_hours - estimated_hours)), 2) as avg_absolute_error,
+                ROUND(AVG(ABS(actual_hours - estimated_hours) / actual_hours * 100), 2) as avg_percentage_error
+            FROM tasks
+            WHERE completed_at IS NOT NULL 
+            AND estimated_hours IS NOT NULL 
+            AND actual_hours IS NOT NULL
+            AND actual_hours > 0
+        `;
+
+        const params: any[] = [];
+        
+        if (userId) {
+            query += ' AND assigned_to = ?';
+            params.push(userId);
+        }
+
+        const stmt = db.prepare(query);
+        return stmt.get(...params);
+    }
+};
 
 export default db;
