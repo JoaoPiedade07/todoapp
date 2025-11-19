@@ -20,22 +20,52 @@ interface User {
   type: string;
 }
 
+interface TaskFormData {
+  title: string;
+  description: string;
+  status: TaskStatus;
+  order: number;
+  story_points: string;
+  assigned_to: string;
+  task_type: string;
+}
+
+const TASK_TYPES = [
+  'Desenvolvimento',
+  'Design',
+  'Testes',
+  'Documentação',
+  'Reunião',
+  'Bug Fix',
+  'Feature'
+];
+
+const STORY_POINTS_OPTIONS = [
+  { value: '1', label: '1 SP' },
+  { value: '2', label: '2 SP' },
+  { value: '3', label: '3 SP' },
+  { value: '5', label: '5 SP' },
+  { value: '8', label: '8 SP' },
+  { value: '13', label: '13 SP' }
+];
+
+const INITIAL_FORM_DATA: TaskFormData = {
+  title: '',
+  description: '',
+  status: TaskStatus.TODO,
+  order: 1,
+  story_points: '',
+  assigned_to: '',
+  task_type: ''
+};
+
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen,
   onClose,
   onCreateTask,
   userType
 }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    status: TaskStatus.TODO,
-    order: 1,
-    story_points: '',
-    assigned_to: '',
-    task_type: ''
-  });
-
+  const [formData, setFormData] = useState<TaskFormData>(INITIAL_FORM_DATA);
   const [availableProgrammers, setAvailableProgrammers] = useState<User[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +77,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       if (userType === UserType.MANAGER && isOpen) {
         setIsLoading(true);
         try {
-          console.log('🔍 Buscando programadores...');
           const response = await fetch(`${API_BASE_URL}/users/programmers`);
           
           if (!response.ok) {
@@ -55,10 +84,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           }
           
           const programmers = await response.json();
-          console.log('👥 Programadores carregados:', programmers);
           setAvailableProgrammers(programmers);
         } catch (error) {
-          console.error('❌ Erro ao carregar programadores:', error);
+          console.error('Erro ao carregar programadores:', error);
         } finally {
           setIsLoading(false);
         }
@@ -68,38 +96,34 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     loadProgrammers();
   }, [userType, isOpen, API_BASE_URL]);
 
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validações
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    
     if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
     if (!formData.story_points) newErrors.story_points = 'Story Points são obrigatórios';
     if (userType === UserType.MANAGER && !formData.assigned_to) {
       newErrors.assigned_to = 'Deve atribuir a um programador';
     }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    // Dados no formato correto
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
     const taskData = {
-      id: Date.now().toString(),
-      title: formData.title,
-      description: formData.description || null,
+      title: formData.title.trim(),
+      description: formData.description.trim() || null,
       status: formData.status,
-      order: parseInt(formData.order.toString()),
+      order: formData.order,
       story_points: parseInt(formData.story_points),
       assigned_to: formData.assigned_to || null,
       task_type_id: formData.task_type || null,
     };
 
-    console.log('🎯 Submitting task data:', taskData);
-    
     try {
       setIsLoading(true);
 
@@ -112,51 +136,39 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         body: JSON.stringify(taskData)
       });
 
-      console.log('📡 Response status:', response.status);
-      
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Task criada com sucesso:', result);
-        onCreateTask(taskData);
+        onCreateTask(result);
         handleClose();
       } else {
         const errorText = await response.text();
-        console.error('❌ Erro ao criar task:', errorText);
         alert('Erro ao criar tarefa: ' + errorText);
       }
 
     } catch (error) {
-      console.error('❌ Erro na requisição:', error);
-      alert('Erro de conexão ao criar tarefa: ' + error);
+      console.error('Erro na requisição:', error);
+      alert('Erro de conexão ao criar tarefa');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      title: '',
-      description: '',
-      status: TaskStatus.TODO,
-      order: 1,
-      story_points: '',
-      assigned_to: '',
-      task_type: ''
-    });
+    setFormData(INITIAL_FORM_DATA);
     setErrors({});
     setAvailableProgrammers([]);
     onClose();
   };
 
-  const taskTypes = [
-    'Desenvolvimento',
-    'Design',
-    'Testes',
-    'Documentação',
-    'Reunião',
-    'Bug Fix',
-    'Feature'
-  ];
+  const handleInputChange = (field: keyof TaskFormData, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -165,7 +177,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           <h2 className="text-xl font-bold text-gray-900">Criar Nova Tarefa</h2>
           <Button
             onClick={handleClose}
-            className="bg-gray-500 hover:bg-gray-600"
+            variant="outline"
+            size="sm"
           >
             ✕
           </Button>
@@ -181,7 +194,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Input
                 placeholder="Digite o título da tarefa"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) => handleInputChange('title', e.target.value)}
                 className={errors.title ? 'border-red-500' : ''}
               />
               {errors.title && (
@@ -197,7 +210,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <textarea
                 placeholder="Descreva a tarefa em detalhes"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
@@ -211,7 +224,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value={TaskStatus.TODO}>A Fazer</option>
@@ -230,7 +243,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   min="1"
                   placeholder="1"
                   value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => handleInputChange('order', parseInt(e.target.value) || 1)}
                 />
               </div>
             </div>
@@ -243,18 +256,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
                 <select
                   value={formData.story_points}
-                  onChange={(e) => setFormData({ ...formData, story_points: e.target.value })}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.story_points ? 'border-red-500' : ''
+                  onChange={(e) => handleInputChange('story_points', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.story_points ? 'border-red-500' : 'border-gray-300'
                   }`}
                 >
                   <option value="">Selecione os SP</option>
-                  <option value="1">1 SP</option>
-                  <option value="2">2 SP</option>
-                  <option value="3">3 SP</option>
-                  <option value="5">5 SP</option>
-                  <option value="8">8 SP</option>
-                  <option value="13">13 SP</option>
+                  {STORY_POINTS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 {errors.story_points && (
                   <p className="mt-1 text-sm text-red-600">{errors.story_points}</p>
@@ -268,11 +280,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
                 <select
                   value={formData.task_type}
-                  onChange={(e) => setFormData({ ...formData, task_type: e.target.value })}
+                  onChange={(e) => handleInputChange('task_type', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Selecione o tipo</option>
-                  {taskTypes.map((type) => (
+                  {TASK_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {type}
                     </option>
@@ -289,16 +301,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </label>
                 <select
                   value={formData.assigned_to}
-                  onChange={(e) => {
-                    console.log('👤 Selected user ID:', e.target.value);
-                    setFormData({ ...formData, assigned_to: e.target.value });
-                  }}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.assigned_to ? 'border-red-500' : ''
+                  onChange={(e) => handleInputChange('assigned_to', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.assigned_to ? 'border-red-500' : 'border-gray-300'
                   }`}
                   disabled={isLoading}
                 >
-                  <option value="">{isLoading ? 'Carregando programadores...' : 'Selecione um programador'}</option>
+                  <option value="">
+                    {isLoading ? 'Carregando programadores...' : 'Selecione um programador'}
+                  </option>
                   {availableProgrammers.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.username})
@@ -310,10 +321,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 )}
                 <div className="mt-1 text-xs text-gray-500">
                   {isLoading 
-                    ? '🔄 Carregando programadores...' 
+                    ? 'Carregando programadores...' 
                     : availableProgrammers.length === 0 
-                      ? '❌ Nenhum programador disponível' 
-                      : `✅ ${availableProgrammers.length} programador(es) disponível(is)`
+                      ? 'Nenhum programador disponível' 
+                      : `${availableProgrammers.length} programador(es) disponível(is)`
                   }
                 </div>
               </div>
@@ -324,13 +335,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                variant="outline"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 disabled={isLoading}
               >
                 {isLoading ? 'Criando...' : 'Criar Tarefa'}

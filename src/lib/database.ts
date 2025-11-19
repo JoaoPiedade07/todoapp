@@ -210,7 +210,7 @@ export const taskQueries = {
         const resolvedStatus = task.status || 'todo';
         let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
 
-        const assignedAt = task.assignedTo && resolvedStatus === 'inprogress' ? "datetime('now')" : "NULL";
+        const shouldSetAssignedAt = task.assignedTo && resolvedStatus === 'inprogress';
 
         if (task.assignedTo) {
             const getMaxStmt = db.prepare(`
@@ -226,8 +226,8 @@ export const taskQueries = {
         }
 
         const stmt = db.prepare(`
-            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id)
-            VALUES(?,?,?,?,?,?,?,?)
+            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, assigned_at)
+            VALUES(?,?,?,?,?,?,?,?,?)
         `);
         return stmt.run(
             task.id,
@@ -237,7 +237,8 @@ export const taskQueries = {
             resolvedOrder,
             task.storyPoints || null,
             task.assignedTo || null,
-            task.taskTypeId || null
+            task.taskTypeId || null,
+            shouldSetAssignedAt ? new Date().toISOString() : null
         );
     },
 
@@ -352,7 +353,7 @@ export const timeCalculationQueries = {
                 assigned_at,
                 completed_at,
                 CASE
-                    WHEN assinged_at IS NULL THEN 'Nao atribuido'
+                    WHEN assingned_at IS NULL THEN 'Nao atribuido'
                     WHEN completed_at IS NOT NULL THEN 
                         'Concluido em ' || ROUND((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 * 60 * 2) || 'minutos'
                     ELSE
@@ -371,11 +372,11 @@ export const predictionQueries = {
         let query = `
             SELECT 
                 ${userId ? 'u.id as user_id, u.name as user_name,': ''}
-                COUNT (t.id) as completed_at;
-                SUM(t.story_points) as total_story_points;
+                COUNT (t.id) as completed_tasks,
+                SUM(t.story_points) as total_story_points,
                 ROUND(SUM(t.story_points) * 1.0 / ?, 2) as velocity_per_week,
                 ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDY(t.assigned_at)) * 24), 2) as avg_hours_per_task,
-                ROUND(AVG(t.story_points), 2) as avg_story_points;
+                ROUND(AVG(t.story_points), 2) as avg_story_points
                 FROM tasks t
                 ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
                 WHERE t.completed_at IS NOT NULL
