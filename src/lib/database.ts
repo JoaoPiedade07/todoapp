@@ -61,6 +61,7 @@ export function initDatabase() {
           assigned_to TEXT,
           task_type_id TEXT,
           assigned_at DATETIME,
+          created_by TEXT REFERENCES users(id),
           completed_at DATETIME,
           estimated_hours DECIMAL(10,2),
           actual_hours DECIMAL(10,2),
@@ -205,9 +206,16 @@ export const taskQueries = {
         order?: number, 
         storyPoints?: number, 
         assignedTo?: string, 
-        taskTypeId?: string
+        taskTypeId?: string,
+        createdBy: string
     }) => {
         console.log('📥 Dados recebidos na database create:', task);
+
+        let finalAssignedTo = task.assignedTo;
+        if(!finalAssignedTo) {
+            console.log('🔄 Auto-atribuindo tarefa ao criador:', task.createdBy);
+            finalAssignedTo = task.createdBy;
+        }
 
         let estimatedHours = null;
         let confidenceLevel = null;
@@ -241,8 +249,8 @@ export const taskQueries = {
         }
 
         const stmt = db.prepare(`
-            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, assigned_at, estimated_hours, confidence_level)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, created_by, assigned_at, estimated_hours, confidence_level)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
         `);
         
         const result = stmt.run(
@@ -254,10 +262,13 @@ export const taskQueries = {
             task.storyPoints || null,
             task.assignedTo || null,
             task.taskTypeId || null,
+            task.createdBy,
             shouldSetAssignedAt ? new Date().toISOString() : null,
             estimatedHours,
             confidenceLevel
         );
+
+        console.log('Task criada. Criador:', task.createdBy, 'Responsável:', finalAssignedTo);
 
         console.log('✅ Task criada com sucesso no banco de dados');
         return result;
@@ -481,12 +492,12 @@ export const predictionQueries = {
     },
 
     predictTaskTime: (storyPoints: number, userId?: string, taskTypeId?: string) => {
+        // Primeiro, buscar a média e outros dados básicos
         let baseQuery = `
             SELECT 
                 ROUND(AVG((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24), 2) as avg_hours,
                 ROUND(AVG(story_points), 2) as avg_points,
-                COUNT(*) as sample_size,
-                ROUND(STDEV((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24), 2) as std_dev_hours
+                COUNT(*) as sample_size
             FROM tasks 
             WHERE completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
@@ -507,14 +518,13 @@ export const predictionQueries = {
         }
 
         const stmt = db.prepare(baseQuery);
-        const historicalData = stmt.get(...params) as {
+        const basicData = stmt.get(...params) as {
             avg_hours: number;
             avg_points: number;
             sample_size: number;
-            std_dev_hours: number;
         } | undefined;
 
-        if(!historicalData || historicalData.sample_size < 3) {
+        if (!basicData || basicData.sample_size < 3) {
             const defaultHoursPerPoint = 4;
             return {
                 estimated_hours: storyPoints * defaultHoursPerPoint,
@@ -522,6 +532,39 @@ export const predictionQueries = {
                 message: 'Estimativa baseada em padrão da indústria (dados insuficientes)'
             };
         }
+
+        // Calcular desvio padrão manualmente (SQLite não tem STDEV)
+        let stdDevQuery = `
+            SELECT 
+                ROUND(SQRT(AVG(POWER((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 - ?, 2))), 2) as std_dev_hours
+            FROM tasks 
+            WHERE completed_at IS NOT NULL 
+            AND assigned_at IS NOT NULL
+            AND story_points IS NOT NULL
+            AND story_points > 0
+        `;
+        
+        const stdDevParams: any[] = [basicData.avg_hours];
+
+        if(userId) {
+            stdDevQuery += ' AND assigned_to = ?';
+            stdDevParams.push(userId);
+        }
+
+        if (taskTypeId) {
+            stdDevQuery += ' AND task_type_id = ?';
+            stdDevParams.push(taskTypeId);
+        }
+
+        const stdDevStmt = db.prepare(stdDevQuery);
+        const stdDevResult = stdDevStmt.get(...stdDevParams) as {
+            std_dev_hours: number;
+        } | undefined;
+
+        const historicalData = {
+            ...basicData,
+            std_dev_hours: stdDevResult?.std_dev_hours || 0
+        };
 
         const hourPerPoint = historicalData.avg_hours / historicalData.avg_points;
         let estimatedHours = storyPoints * hourPerPoint;

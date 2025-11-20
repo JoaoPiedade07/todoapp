@@ -36,7 +36,7 @@ export enum NivelExperiencia {
   // Enum EstadoAtual (para tarefas)
   export enum TaskStatus {
     TODO = "todo",
-    DOING = "inprogess", 
+    DOING = "inprogress", 
     DONE = "done"
   }
   
