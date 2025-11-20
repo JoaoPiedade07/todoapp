@@ -1,11 +1,11 @@
 import { authenticateToken } from './middleware';
-import { taskQueries } from './database';
+import { taskQueries, taskTypeQueries } from './database';
 import express from 'express';
 
 const router = express.Router();
 
-// ✅ POST / - Criar task (CORREÇÃO: remove '/tasks')
-router.post('/', authenticateToken, (req: any, res) => {
+// POST / - Criar task
+router.post('/', authenticateToken, async (req: any, res) => {
   try {
     // Verificar se o utilizador é gestor
     if (req.user.type !== 'gestor') {
@@ -16,31 +16,71 @@ router.post('/', authenticateToken, (req: any, res) => {
 
     const taskData = req.body;
     
-    // ✅ LOGS DETALHADOS PARA DEBUG
     console.log('📥 Dados recebidos para criar task:');
     console.log('🔍 Body completo:', JSON.stringify(taskData, null, 2));
-    console.log('📝 Title:', taskData.title);
-    console.log('📝 Title type:', typeof taskData.title);
-    console.log('📝 Title value:', taskData.title);
     console.log('👤 User que está a criar:', req.user);
 
-    // ✅ VALIDAÇÃO EXTRA
+    // ✅ VALIDAÇÃO
     if (!taskData.title || taskData.title.trim() === '') {
       console.error('❌ ERRO CRÍTICO: Title está vazio!');
       return res.status(400).json({ error: 'Title é obrigatório' });
     }
 
-    const result = taskQueries.create(taskData);
+    // Converter status do frontend para o formato do banco
+    let status = taskData.status || 'todo';
+    if (status === 'inprogess') { // Corrigir typo do enum
+      status = 'inprogress';
+    }
+
+    // Converter task_type (nome) para task_type_id (ID)
+    let taskTypeId: string | undefined = undefined;
+    if (taskData.task_type && taskData.task_type.trim() !== '') {
+      // Buscar o ID do tipo de tarefa pelo nome
+      const taskTypes = taskTypeQueries.getAll() as Array<{ id: string; name: string; description?: string }>;
+      const taskType = taskTypes.find((tt) => tt.name === taskData.task_type);
+      if (taskType) {
+        taskTypeId = taskType.id;
+      } else {
+        // Se não existir, criar um novo tipo
+        const newTaskTypeId = `task_type_${Date.now()}`;
+        taskTypeQueries.create({
+          id: newTaskTypeId,
+          name: taskData.task_type,
+          description: `Tipo de tarefa: ${taskData.task_type}`
+        });
+        taskTypeId = newTaskTypeId;
+      }
+    }
+
+    // Converter campos de snake_case para camelCase (formato esperado pelo database.ts)
+    const taskToCreate = {
+      id: taskData.id || `task_${Date.now()}`,
+      title: taskData.title.trim(),
+      description: taskData.description || undefined,
+      status: status as 'todo' | 'inprogress' | 'done',
+      order: taskData.order || 0,
+      storyPoints: taskData.story_points ? parseInt(taskData.story_points) : undefined,
+      assignedTo: taskData.assigned_to || undefined,
+      taskTypeId: taskTypeId,
+      createdBy: taskData.createdBy || req.user.id
+    };
+
+    console.log('🔄 Dados convertidos para criar task:', taskToCreate);
+
+    const result = taskQueries.create(taskToCreate);
+    
+    // Buscar a task criada para retornar com os dados completos
+    const createdTask = taskQueries.getById(taskToCreate.id);
     
     console.log('✅ Task criada com sucesso no banco de dados');
-    res.status(201).json(result);
-  } catch (error) {
+    res.status(201).json(createdTask);
+  } catch (error: any) {
     console.error('❌ Erro ao criar tarefa:', error);
-    res.status(500).json({ error: 'Erro ao criar tarefa' });
+    res.status(500).json({ error: 'Erro ao criar tarefa', details: error.message });
   }
 });
 
-// ✅ GET / - Buscar todas as tasks (CORREÇÃO: remove '/tasks')
+// GET / - Buscar todas as tasks
 router.get('/', authenticateToken, (req: any, res) => {
   try {
     const tasks = taskQueries.getAll();
@@ -51,7 +91,7 @@ router.get('/', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ PATCH /:id - Atualizar task (CORREÇÃO: remove '/tasks')
+// PATCH /:id - Atualizar task
 router.patch('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
@@ -59,15 +99,32 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
     
     console.log(`🔄 Atualizando task ${id}:`, updates);
 
-    const result = taskQueries.update(id, updates);
-    res.json({ success: true, message: 'Task atualizada', data: result });
+    // Converter campos se necessário
+    const updateData: any = {};
+    if (updates.status !== undefined) {
+      let status = updates.status;
+      if (status === 'inprogess') {
+        status = 'inprogress';
+      }
+      updateData.status = status;
+    }
+    if (updates.story_points !== undefined) updateData.storyPoints = updates.story_points;
+    if (updates.assigned_to !== undefined) updateData.assignedTo = updates.assigned_to;
+    if (updates.task_type_id !== undefined) updateData.taskTypeId = updates.task_type_id;
+    if (updates.order !== undefined) updateData.order = updates.order;
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.description !== undefined) updateData.description = updates.description;
+
+    const result = taskQueries.update(id, updateData);
+    const updatedTask = taskQueries.getById(id);
+    res.json({ success: true, message: 'Task atualizada', data: updatedTask });
   } catch (error) {
     console.error('❌ Erro ao atualizar task:', error);
     res.status(500).json({ error: 'Erro ao atualizar task' });
   }
 });
 
-// ✅ GET /:id - Buscar task por ID (CORREÇÃO: remove '/tasks')
+// GET /:id - Buscar task por ID
 router.get('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
@@ -84,7 +141,7 @@ router.get('/:id', authenticateToken, (req: any, res) => {
   }
 });
 
-// ✅ DELETE /:id - Eliminar task (CORREÇÃO: remove '/tasks')
+// DELETE /:id - Eliminar task
 router.delete('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;

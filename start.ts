@@ -23,25 +23,19 @@ server.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// ✅ ADICIONA ESTE MIDDLEWARE PARA DEBUG
+server.use((req, res, next) => {
+  console.log('🔍 Request:', req.method, req.url);
+  console.log('🔍 Headers:', req.headers);
+  console.log('🔍 Body:', req.body);
+  next();
+});
+
 server.use(express.json());
 
 server.use('/auth', authRoutes);
 server.use('/users', userRoute);
-server.use('/', taskRoute);
-
-// Rota para tasks (precisamos criar esta rota)
-//server.get('/tasks', authenticateToken, (req: any, res) => {
-  // TODO: Implementar busca de tasks
-  //res.json([]);
-//});
-
-//server.patch('/tasks/:id', authenticateToken, (req: any, res) => {
-  // TODO: Implementar atualização de task
-  //const { id } = req.params;
-  //const { status } = req.body;
-  //console.log(`Updating task ${id} to status: ${status}`);
-  //res.json({ success: true, message: 'Task updated' });
-//});
+server.use('/tasks', taskRoute);
 
 // Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {
