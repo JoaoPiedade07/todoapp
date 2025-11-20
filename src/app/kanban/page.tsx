@@ -8,19 +8,16 @@ import { TaskDetails } from '@/components/kanban/TaskDetails';
 import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
-import router from '@/lib/userRoute';
 
 export default function KanbanPage() {
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isManager = user?.type === 'gestor';
 
   const API_BASE_URL = typeof window !== 'undefined' 
     ? `http://${window.location.hostname}:3001`
@@ -44,16 +41,12 @@ export default function KanbanPage() {
     
     console.log('🔄 Converted user:', convertedUser);
     console.log('🎯 User type after conversion:', convertedUser.type);
-    console.log('👑 Is manager?', convertedUser.type === UserType.MANAGER);
-    console.log('💻 Is programmer?', convertedUser.type === UserType.PROGRAMMER);
-    console.log('🔤 UserType.MANAGER value:', UserType.MANAGER);
-    console.log('🔤 UserType.PROGRAMMER value:', UserType.PROGRAMMER);
     
     setUser(convertedUser);
     fetchTasks();
 
-    // Carregar utilizadores se for gestor
-    if (convertedUser.type === UserType.PROGRAMMER) {
+    // ✅ CORREÇÃO: Carregar utilizadores se for MANAGER (não programmer)
+    if (convertedUser.type === UserType.MANAGER) {
       console.log('📥 Loading available users for manager');
       fetchAvailableUsers();
     }
@@ -87,7 +80,8 @@ export default function KanbanPage() {
   const fetchAvailableUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/user/programmers`, {
+      // ✅ CORREÇÃO: URL correta
+      const response = await fetch(`${API_BASE_URL}/users/programmers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -97,18 +91,12 @@ export default function KanbanPage() {
         const usersData = await response.json();
         setAvailableUsers(usersData);
       } else {
-        // Dados mock para demonstração
-        setAvailableUsers([
-          { id: '2', name: 'João Silva', username: 'joao.silva' },
-          { id: '3', name: 'Maria Santos', username: 'maria.santos' },
-        ]);
+        console.error('Erro ao carregar programadores');
+        setAvailableUsers([]);
       }
     } catch (error) {
       console.error('Erro ao carregar programadores:', error);
-      setAvailableUsers([
-        { id: '2', name: 'João Silva', username: 'joao.silva' },
-        { id: '3', name: 'Maria Santos', username: 'maria.santos' },
-      ]);
+      setAvailableUsers([]);
     }
   };
 
@@ -143,7 +131,7 @@ export default function KanbanPage() {
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-
+    if (user?.type !== UserType.PROGRAMMER) return;
 
     setTasks(prevTasks =>
       prevTasks.map(task =>
@@ -184,17 +172,17 @@ export default function KanbanPage() {
         body: JSON.stringify({
           ...taskData,
           id: Date.now().toString(),
+          createdBy: user.id, // ✅ ADICIONAR createdBy
         }),
       });
+
+      console.log('📡 Response status:', response.status);
 
       if (response.ok) {
         const newTask = await response.json();
         console.log('✅ KanbanPage - Task criada com sucesso:', newTask);
         
-        // ✅ APENAS fecha o modal - NÃO adiciones manualmente
         setShowCreateModal(false);
-        
-        // ✅ Busca a lista ATUALIZADA do servidor
         await fetchTasks();
         
       } else {
@@ -232,14 +220,6 @@ export default function KanbanPage() {
       </div>
     );
   }
-
-  // 🔍 DEBUG ANTES DO RENDER
-  console.log('🎨 RENDERING - User:', user);
-  console.log('🎨 RENDERING - User type:', user?.type);
-  console.log('🎨 RENDERING - UserType.MANAGER:', UserType.MANAGER);
-  console.log('🎨 RENDERING - UserType.PROGRAMMER:', UserType.PROGRAMMER);
-  console.log('🎨 RENDERING - Should show button?', user?.type === UserType.MANAGER);
-  console.log('🎨 RENDERING - Should show button (strict)?', user?.type === 'manager');
 
   return (
     <MainLayout user={user}>
@@ -287,7 +267,7 @@ export default function KanbanPage() {
         onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
       />
 
-      {/* 🔥 BOTÃO FLUTUANTE - MOSTRAR SEMPRE (PARA TESTE) */}
+      {/* Botão para criar tarefa */}
       {user.type === UserType.MANAGER && (
         <button
           onClick={() => setShowCreateModal(true)}
@@ -298,13 +278,14 @@ export default function KanbanPage() {
         </button>
       )}
 
-      {/* Modal (sempre disponível para teste) */}
+      {/* Modal para criar tarefa */}
       <CreateTaskModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreateTask={handleCreateTask}
         userType={user.type}
         availableUsers={availableUsers}
+        currentUser={user} // ✅ CORREÇÃO: passar user em vez de currentUser
       />
     </MainLayout>
   );
