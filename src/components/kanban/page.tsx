@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Task } from '@/types';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { TaskDetails } from '@/components/kanban/TaskDetails';
+import { CreateTaskModal } from '@/components/kanban/CreateTaskModal'; // ✅ ADICIONAR
 import { MainLayout } from '@/components/layout/MainLayout';
-import { TaskStatus, UserType } from '@/constants/enums'; // IMPORT ADICIONADO
+import { TaskStatus, UserType } from '@/constants/enums';
 
 export default function KanbanPage() {
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false); // ✅ ADICIONAR
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -44,7 +46,6 @@ export default function KanbanPage() {
         setTasks(tasksData);
       } else {
         console.error('Erro ao buscar tarefas');
-        // Carregar dados mock para demonstração
         loadMockTasks();
       }
     } catch (error) {
@@ -56,7 +57,6 @@ export default function KanbanPage() {
   };
 
   const loadMockTasks = () => {
-    // Dados mock para demonstração enquanto a API não está disponível
     const mockTasks: Task[] = [
       {
         id: '1',
@@ -82,20 +82,48 @@ export default function KanbanPage() {
         created_at: '2024-10-24T14:20:00Z',
         updated_at: '2024-10-28T09:15:00Z',
       },
-      {
-        id: '3',
-        title: 'Configurar ambiente DevOps',
-        description: 'Configurar CI/CD e ambiente de produção',
-        status: TaskStatus.TODO,
-        order: 3,
-        story_points: 8,
-        assigned_user_name: 'Pedro Costa',
-        task_type_name: 'DevOps',
-        created_at: '2024-10-26T11:45:00Z',
-        updated_at: '2024-10-27T16:20:00Z',
-      },
     ];
     setTasks(mockTasks);
+  };
+
+  // ✅ ADICIONAR: Função para criar task
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      console.log('🎯 KanbanPage - Criando task:', taskData);
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...taskData,
+          id: Date.now().toString(),
+          createdBy: user.id, // ✅ ADICIONAR createdBy
+        }),
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (response.ok) {
+        const newTask = await response.json();
+        console.log('✅ KanbanPage - Task criada com sucesso:', newTask);
+        
+        // Fecha o modal e atualiza a lista
+        setShowCreateModal(false);
+        await fetchTasks(); // Busca lista atualizada
+        
+      } else {
+        const errorText = await response.text();
+        console.error('❌ KanbanPage - Erro do servidor:', errorText);
+        alert('Erro ao criar tarefa: ' + errorText);
+      }
+    } catch (error) {
+      console.error('❌ KanbanPage - Erro de conexão:', error);
+      alert('Erro de conexão ao criar tarefa');
+    }
   };
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
@@ -111,14 +139,10 @@ export default function KanbanPage() {
         },
         body: JSON.stringify({
           status: newStatus,
-          // Adicionar datas reais quando mudar de estado
-          ...(newStatus === TaskStatus.DOING && { real_start_date: new Date().toISOString() }),
-          ...(newStatus === TaskStatus.DONE && { real_end_date: new Date().toISOString() }),
         }),
       });
 
       if (response.ok) {
-        // Atualizar estado local
         setTasks(prevTasks =>
           prevTasks.map(task =>
             task.id === taskId ? { ...task, status: newStatus } : task
@@ -143,9 +167,7 @@ export default function KanbanPage() {
   };
 
   const handleEditTask = (task: Task) => {
-    // Navegar para página de edição (a implementar no Sprint 3)
     console.log('Editar tarefa:', task);
-    // router.push(`/tasks/edit/${task.id}`);
   };
 
   if (!user) {
@@ -162,8 +184,22 @@ export default function KanbanPage() {
   return (
     <MainLayout user={user}>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
-        <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
+            <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
+          </div>
+          
+          {/* ✅ ADICIONAR: Botão para criar tarefa (apenas para gestores) */}
+          {user.type === UserType.MANAGER && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              + Criar Tarefa
+            </button>
+          )}
+        </div>
         
         {/* Estatísticas Rápidas */}
         <div className="flex gap-4 mt-4 text-sm">
@@ -201,6 +237,16 @@ export default function KanbanPage() {
           userType={user.type}
         />
       )}
+
+      {/* ✅ ADICIONAR: Modal para criar tarefa */}
+      <CreateTaskModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreateTask={handleCreateTask}
+        userType={user.type}
+        availableUsers={[]} // Podes passar users se tiveres
+        currentUser={user}
+      />
 
       <TaskDetails
         task={selectedTask}

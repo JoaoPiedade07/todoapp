@@ -11,7 +11,8 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onCreateTask: (taskData: any) => void;
   userType: UserType;
-  availableUsers?: User[];
+  availableUsers: User[];
+  currentUser: User;
 }
 
 interface User {
@@ -122,16 +123,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       order: formData.order,
       story_points: parseInt(formData.story_points),
       assigned_to: formData.assigned_to || null,
-      task_type_id: formData.task_type || null,
+      task_type: formData.task_type || null, // Enviar nome do tipo, não ID
     };
 
     try {
       setIsLoading(true);
 
       console.log('🔄 Frontend - Enviando dados:', taskData);
-
+        
       onCreateTask(taskData);
-
+      handleClose();
     } catch (error) {
       console.error('Erro na requisição:', error);
       alert('Erro de conexão ao criar tarefa');
