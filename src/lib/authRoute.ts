@@ -1,120 +1,81 @@
 import express from 'express';
-import { userQueries } from '../lib/database';
-import { authenticateToken } from '../lib/middleware';
+import { AuthService } from '../lib/auth';
+import { authenticateToken, AuthenticatedRequest } from '../lib/middleware';
 
 const router = express.Router();
 
-// Obter todos os utilizadores
-router.get('/', authenticateToken, async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    const users = userQueries.getAll();
-    res.json(users);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+    const { username, name, email, password, type, department, manager_id, experience_level } = req.body;
 
-// Obter utilizador por ID
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = userQueries.getById(id);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'Utilizador não encontrado' });
+    if (!username || !name || !email || !password || !type || !department) {
+      return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
     }
-    
-    res.json(user);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
 
-// Atualizar utilizador
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    console.log('🔄 Atualizando utilizador:', { id, updates });
+    if(type === 'programador' && !manager_id) {
+      return res.status(400).json({ error: 'Programadores devem ter um gestor responsavel' });
+    }
 
-    // Converter campos se necessário
-    const updateData: any = {};
-    if (updates.username !== undefined) updateData.username = updates.username;
-    if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.type !== undefined) updateData.type = updates.type;
-    if (updates.department !== undefined) updateData.department = updates.department;
-    if (updates.experience_level !== undefined) updateData.experience_level = updates.experience_level;
-    if (updates.manager_id !== undefined) updateData.manager_id = updates.manager_id;
-
-    const result = userQueries.update(id, updateData);
-    const updatedUser = userQueries.getById(id);
+    const result = await AuthService.register({ 
+      username, 
+      name, 
+      email, 
+      password, 
+      type, 
+      department, 
+      manager_id,
+      experience_level
+    });
     
-    res.json({ 
-      success: true, 
-      message: 'Utilizador atualizado com sucesso', 
-      data: updatedUser 
+    res.status(201).json({
+      message: 'Usuário criado com sucesso',
+      user: result.user,
+      token: result.token
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Eliminar utilizador
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    console.log('🗑️ Eliminando utilizador:', id);
+    const { email, password } = req.body;
 
-    // Verificar se o utilizador existe
-    const user = userQueries.getById(id);
-    if (!user) {
-      return res.status(404).json({ error: 'Utilizador não encontrado' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email e senha são obrigatórios' });
     }
 
-    const result = userQueries.delete(id);
+    const result = await AuthService.login(email, password);
     
-    res.json({ 
-      success: true, 
-      message: 'Utilizador eliminado com sucesso', 
-      data: result 
+    res.json({
+      message: 'Login realizado com sucesso',
+      user: result.user,
+      token: result.token
     });
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    res.status(401).json({ error: error.message });
   }
 });
 
-// Obter todos os gestores
-router.get('/managers', authenticateToken, async (req, res) => {
+router.post('/change-password', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const managers = userQueries.getManagers();
-    res.json(managers);
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias' });
+    }
+
+    await AuthService.changePassword(userId, currentPassword, newPassword);
+    
+    res.json({ message: 'Senha alterada com sucesso' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Obter todos os programadores
-router.get('/programmers', authenticateToken, async (req, res) => {
-  try {
-    const programmers = userQueries.getProgrammers();
-    res.json(programmers);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Obter programadores de um gestor específico
-router.get('/by-manager/:managerId', authenticateToken, async (req, res) => {
-  try {
-    const { managerId } = req.params;
-    const users = userQueries.getByManagerId(managerId);
-    res.json(users);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
+router.get('/me', authenticateToken, (req: AuthenticatedRequest, res) => {
+  res.json({ user: req.user });
 });
 
 export default router;

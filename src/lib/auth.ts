@@ -27,8 +27,8 @@ export class AuthService {
       JWT_SECRET, 
       { 
         expiresIn: JWT_EXPIRES_IN,
-        algorithm: 'HS256' // Especifica o algoritmo explicitamente
-      } as jwt.SignOptions // Cast para resolver o erro de tipos
+        algorithm: 'HS256'
+      } as jwt.SignOptions
     );
   }
 
@@ -41,7 +41,6 @@ export class AuthService {
   }
 
   static async register(userData: CreateUserData): Promise<{ user: User; token: string }> {
-
     const existingUserByEmail = UserModel.findByEmail(userData.email);
     if (existingUserByEmail) {
       throw new Error('Email já está em uso');
@@ -72,9 +71,9 @@ export class AuthService {
         throw new Error('O gestor responsável deve ser do tipo gestor');
       }
     }
-
+    
     if(userData.type === 'gestor') {
-      userData.manager_id = null;
+      userData.manager_id = undefined;
     }
 
     const passwordHash = await this.hashPassword(userData.password);

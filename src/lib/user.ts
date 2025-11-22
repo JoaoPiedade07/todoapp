@@ -10,6 +10,7 @@ export interface User {
   type: 'gestor' | 'programador';
   manager_id?: string | null;
   department: Department;
+  experience_level?: string; // ✅ ADICIONADO
   created_at: string;
   updated_at: string;
 }
@@ -19,9 +20,10 @@ export interface CreateUserData {
   name: string;
   email: string;
   password: string;
-  type: 'gestor' | 'programador';
-  department: Department;
-  manager_id?: string | null;
+  type: string;
+  department: string;
+  manager_id?: string;
+  experience_level?: string; // ✅ JÁ EXISTE
 }
 
 export class UserModel {
@@ -45,34 +47,45 @@ export class UserModel {
     return stmt.get(name) as User | undefined;
   }
 
-  //Obter todos os programadores de um gestor especifico
+  // Obter todos os programadores de um gestor especifico
   static findByManagerId(managerId: string): User[] {
     const stmt = db.prepare('SELECT * FROM users WHERE manager_id = ?');
     return stmt.all(managerId) as User[];
   }
 
-  //Obter apenas programadores
+  // Obter apenas programadores
   static findProgrammers(): User[] {
     const stmt = db.prepare("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
     return stmt.all() as User[];
   }
 
-  //Obter apenas gestores
+  // Obter apenas gestores
   static findManagers(): User[] {
     const stmt = db.prepare("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
     return stmt.all() as User[];
   }
 
   static create(userData: CreateUserData): User {
-    const { username, name, email, password, type, department, manager_id } = userData;
+    const { username, name, email, password, type, department, manager_id, experience_level } = userData;
     const id = Date.now().toString(); // Gerar ID único
     
+    // ✅ ATUALIZADO: Incluir experience_level na query
     const stmt = db.prepare(`
-      INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id, experience_level) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(id, username, name, email, password, type, department, manager_id || null);
+    const result = stmt.run(
+      id, 
+      username, 
+      name, 
+      email, 
+      password, 
+      type, 
+      department, 
+      manager_id || null,
+      experience_level || 'junior' // ✅ ADICIONADO (valor padrão)
+    );
     
     return this.findById(id)!;
   }
@@ -84,5 +97,57 @@ export class UserModel {
       WHERE id = ?
     `);
     stmt.run(newPasswordHash, userId);
+  }
+
+  // ✅ ADICIONAR: Método update para atualizar outros campos
+  static update(userId: string, updates: Partial<User>): User {
+    const user = this.findById(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const allowedFields = ['username', 'name', 'email', 'type', 'department', 'manager_id', 'experience_level'];
+    const fieldsToUpdate: string[] = [];
+    const values: any[] = [];
+
+    allowedFields.forEach(field => {
+      if (updates[field as keyof User] !== undefined) {
+        fieldsToUpdate.push(`${field} = ?`);
+        values.push(updates[field as keyof User]);
+      }
+    });
+
+    if (fieldsToUpdate.length === 0) {
+      return user;
+    }
+
+    fieldsToUpdate.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(userId);
+
+    const stmt = db.prepare(`
+      UPDATE users 
+      SET ${fieldsToUpdate.join(', ')} 
+      WHERE id = ?
+    `);
+
+    stmt.run(...values);
+    return this.findById(userId)!;
+  }
+
+  // ✅ ADICIONAR: Método delete
+  static delete(userId: string): void {
+    const user = this.findById(userId);
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+    stmt.run(userId);
+  }
+
+  // ✅ ADICIONAR: Obter todos os usuários
+  static findAll(): User[] {
+    const stmt = db.prepare('SELECT * FROM users ORDER BY name');
+    return stmt.all() as User[];
   }
 }

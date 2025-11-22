@@ -22,7 +22,7 @@ function log(message: string, data?: any) {
 
 // Criar tabelas se não existirem
 export function initDatabase() {
-    // Tabela de utilizadores
+    // Tabela de utilizadores (já existe)
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
@@ -38,6 +38,21 @@ export function initDatabase() {
           FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
         )
     `);
+
+    // ✅ ADICIONAR COLUNA experience_level SE NÃO EXISTIR
+    try {
+        const addExperienceLevelColumn = db.prepare(`
+            ALTER TABLE users ADD COLUMN experience_level TEXT DEFAULT 'junior'
+        `);
+        addExperienceLevelColumn.run();
+        console.log('✅ Coluna experience_level adicionada com sucesso');
+    } catch (error: any) {
+        if (error.message.includes('duplicate column name')) {
+            console.log('ℹ️ Coluna experience_level já existe');
+        } else {
+            console.log('⚠️ Erro ao adicionar coluna experience_level:', error.message);
+        }
+    }
     
     // Tabela de tipos de tarefas
     db.exec(`
@@ -108,18 +123,50 @@ export const userQueries = {
         return stmt.all(managerId);
     },
     
-    create: (user: { id: string; username: string; name: string; email: string; password_hash: string; type: 'gestor' | 'programador'; department: string; manager_id?: string }) => {
+    create: (user: {
+        id: string;
+        username: string;
+        name: string;
+        email: string;
+        password_hash: string;
+        type: string;
+        department: string;
+        manager_id?: string;
+        experience_level?: string;
+    }) => {
         const stmt = db.prepare(`
-        INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id, experience_level)
+            VALUES(?,?,?,?,?,?,?,?,?)
         `);
-        return stmt.run(user.id, user.username, user.name, user.email, user.password_hash, user.type, user.department, user.manager_id || null);
+        return stmt.run(user.id,
+            user.username,
+            user.name,
+            user.email,
+            user.password_hash,
+            user.type,
+            user.department,
+            user.manager_id || null,
+            user.experience_level || 'junior' // default value
+        );
     },
     
-    update: (id: string, user: Partial<{ username: string; name: string; email: string; type: 'gestor' | 'programador'; department: string; manager_id?: string }>) => {
-        const fields = Object.keys(user).map(key => `${key} = ?`).join(', ');
+    update: (id: string, user: Partial<{
+        username: string;
+        name: string;
+        email: string;
+        type: string;
+        department: string;
+        manager_id: string;
+        experience_level: string;
+    }>) => {
+        const fields = Object.keys(user).map(key => {
+            if (key === 'manager_id') return 'manager_id = ?';
+            if (key === 'experience_level') return 'experience_level = ?';
+            return `${key} = ?`;
+        }).join(', ');
+
         const values = Object.values(user);
-        const stmt = db.prepare(`UPDATE users SET ${fields} WHERE id = ?`);
+        const stmt = db.prepare(`UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
         return stmt.run(...values, id);
     },
     

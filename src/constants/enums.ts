@@ -1,18 +1,25 @@
 // Enum NivelExperiencia
 export enum NivelExperiencia {
+    ESTAGIARIO = "estagiario",
     JUNIOR = "junior",
+    PLENO = "pleno", 
     SENIOR = "senior"
   }
   
   export const NivelExperienciaLabels = {
+    [NivelExperiencia.ESTAGIARIO]: 'Estagiário',
     [NivelExperiencia.JUNIOR]: 'Junior',
+    [NivelExperiencia.PLENO]: 'Pleno',
     [NivelExperiencia.SENIOR]: 'Sénior'
   };
+
   
-  export const NivelExperienciaOptions = [
+export const NivelExperienciaOptions = [
+    { value: NivelExperiencia.ESTAGIARIO, label: NivelExperienciaLabels[NivelExperiencia.ESTAGIARIO] },
     { value: NivelExperiencia.JUNIOR, label: NivelExperienciaLabels[NivelExperiencia.JUNIOR] },
+    { value: NivelExperiencia.PLENO, label: NivelExperienciaLabels[NivelExperiencia.PLENO] },
     { value: NivelExperiencia.SENIOR, label: NivelExperienciaLabels[NivelExperiencia.SENIOR] }
-  ];
+];
   
   // Enum Departamento
   export enum Department {

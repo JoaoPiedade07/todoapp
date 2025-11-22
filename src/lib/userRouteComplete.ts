@@ -62,6 +62,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // PUT - Atualizar utilizador
+// PUT - Atualizar utilizador
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -69,7 +70,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
     
     console.log('🔄 [PUT] Atualizando utilizador:', { id, updates });
 
-    const result = userQueries.update(id, updates);
+    // Filtrar apenas os campos que existem e são permitidos
+    // No userRouteComplete.ts, nas rotas PUT e PATCH, atualize:
+    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id', 'experience_level'];;
+    const filteredUpdates: any = {};
+    
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        filteredUpdates[field] = updates[field];
+      }
+    });
+
+    console.log('📝 Campos filtrados para update:', filteredUpdates);
+
+    const result = userQueries.update(id, filteredUpdates);
     const updatedUser = userQueries.getById(id);
     
     res.json({ 
@@ -91,7 +105,19 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     
     console.log('🔧 [PATCH] Atualizando utilizador:', { id, updates });
 
-    const result = userQueries.update(id, updates);
+    // Filtrar apenas os campos que existem e são permitidos
+    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id'];
+    const filteredUpdates: any = {};
+    
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        filteredUpdates[field] = updates[field];
+      }
+    });
+
+    console.log('📝 Campos filtrados para update:', filteredUpdates);
+
+    const result = userQueries.update(id, filteredUpdates);
     const updatedUser = userQueries.getById(id);
     
     res.json({ 

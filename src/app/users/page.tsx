@@ -38,6 +38,32 @@ export default function UsersPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Adicione esta função para testar a API
+  const testAPI = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token:', token);
+      
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      console.log('📡 API Response status:', response.status);
+      console.log('📡 API Response headers:', response.headers);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ API Users data:', data);
+      } else {
+        console.log('❌ API Error:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.log('❌ API Connection error:', error);
+    }
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (!userData) {
@@ -54,6 +80,7 @@ export default function UsersPage() {
     }
     
     setUser(userObj);
+    testAPI(); // ✅ ADICIONAR ESTA LINHA
     fetchUsers();
   }, [router]);
 
@@ -82,52 +109,6 @@ export default function UsersPage() {
       setLoading(false);
     }
   };
-
-  // Adicione esta função para testar a API
-const testAPI = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    console.log('🔑 Token:', token);
-    
-    const response = await fetch(`${API_BASE_URL}/users`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    
-    console.log('📡 API Response status:', response.status);
-    console.log('📡 API Response headers:', response.headers);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ API Users data:', data);
-    } else {
-      console.log('❌ API Error:', response.status, response.statusText);
-    }
-  } catch (error) {
-    console.log('❌ API Connection error:', error);
-  }
-};
-
-// Chame esta função no useEffect para testar
-useEffect(() => {
-  const userData = localStorage.getItem('user');
-  if (!userData) {
-    router.push('/login');
-    return;
-  }
-  
-  const userObj = JSON.parse(userData);
-  
-  if (!isManager(userObj.type)) {
-    router.push('/kanban');
-    return;
-  }
-  
-  setUser(userObj);
-  testAPI(); // ✅ ADICIONAR ESTA LINHA
-  fetchUsers();
-}, [router]);
 
   const loadMockUsers = () => {
     const mockUsers: User[] = [
@@ -188,118 +169,94 @@ useEffect(() => {
     }
 
     try {
-    const token = localStorage.getItem('token');
-    
-    // Preparar dados para a API
-    const userData = {
-      username: formData.username,
-      email: formData.email,
-      name: formData.name,
-      ...(formData.password && { password: formData.password }),
-      type: formData.type === UserType.MANAGER ? 'gestor' : 'programador',
-      department: formData.department,
-      experience_level: formData.experience_level,
-      manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
-    };
-
-    console.log('📤 Dados enviados para API:', userData);
-
-    const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
-    const method = editingUser ? 'PUT' : 'POST';
-
-    console.log('🌐 Chamando API:', method, url);
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    });
-
-    console.log('📡 Response status:', response.status);
-    console.log('📡 Response ok:', response.ok);
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✅ Sucesso:', result);
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token:', token);
       
-      fetchUsers();
-      handleCloseModal();
-      alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
-    } else {
-      const errorText = await response.text();
-      console.log('❌ Erro da API:', errorText);
-      setErrors({ submit: errorText || 'Erro ao processar pedido' });
+      // Preparar dados para a API (INCLUIR experience_level)
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        name: formData.name,
+        ...(formData.password && { password: formData.password }),
+        type: formData.type === UserType.MANAGER ? 'gestor' : 'programador',
+        department: formData.department,
+        experience_level: formData.experience_level, // ✅ INCLUIR experience_level
+        manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
+      };
+
+      console.log('📤 Dados enviados para API:', userData);
+
+      const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
+      const method = editingUser ? 'PUT' : 'POST';
+
+      console.log('🌐 Chamando API:', method, url);
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Sucesso:', result);
+        
+        fetchUsers();
+        handleCloseModal();
+        alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
+      } else {
+        const errorText = await response.text();
+        console.log('❌ Erro da API:', errorText);
+        setErrors({ submit: errorText || 'Erro ao processar pedido' });
+      }
+    } catch (error) {
+      console.error('❌ Erro de conexão completo:', error);
+      setErrors({ submit: 'Erro de conexão: ' + (error as Error).message });
     }
-  } catch (error) {
-    console.error('❌ Erro de conexão:', error);
-    setErrors({ submit: 'Erro de conexão' });
-  }
-};
+  };
 
-const mockCRUD = {
-  createUser: (userData: any) => {
-    const newUser = {
-      id: `user_${Date.now()}`,
-      ...userData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    setUsers(prev => [...prev, newUser]);
-    return newUser;
-  },
-
-  updateUser: (userId: string, userData: any) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId 
-        ? { ...user, ...userData, updated_at: new Date().toISOString() }
-        : user
-    ));
-  },
-
-  deleteUser: (userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
-  }
-};
-
-const handleDeleteUser = async (userId: string) => {
-  console.log('🗑️ Tentando eliminar usuário:', userId);
-  
-  try {
-    const token = localStorage.getItem('token');
-    console.log('🔑 Token usado:', token);
+  const handleDeleteUser = async (userId: string) => {
+    console.log('🗑️ Tentando eliminar usuário:', userId);
     
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    console.log('📡 DELETE Response status:', response.status);
-    console.log('📡 DELETE Response ok:', response.ok);
-
-    if (response.ok) {
-      console.log('✅ Utilizador eliminado com sucesso');
-      // Atualizar a lista localmente primeiro para feedback imediato
-      setUsers(prev => prev.filter(user => user.id !== userId));
-      setShowDeleteConfirm(null);
-      alert('Utilizador eliminado com sucesso!');
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token usado:', token);
       
-      // Recarregar da API para garantir sincronização
-      setTimeout(() => fetchUsers(), 100);
-    } else {
-      const errorText = await response.text();
-      console.log('❌ Erro ao eliminar utilizador:', errorText);
-      alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('📡 DELETE Response status:', response.status);
+      console.log('📡 DELETE Response ok:', response.ok);
+
+      if (response.ok) {
+        console.log('✅ Utilizador eliminado com sucesso');
+        // Atualizar a lista localmente primeiro para feedback imediato
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        setShowDeleteConfirm(null);
+        alert('Utilizador eliminado com sucesso!');
+        
+        // Recarregar da API para garantir sincronização
+        setTimeout(() => fetchUsers(), 100);
+      } else {
+        const errorText = await response.text();
+        console.log('❌ Erro ao eliminar utilizador:', errorText);
+        alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Erro de conexão:', error);
+      alert('Erro de conexão ao eliminar utilizador');
     }
-  } catch (error) {
-    console.error('❌ Erro de conexão:', error);
-    alert('Erro de conexão ao eliminar utilizador');
-  }
-};
+  };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
@@ -339,8 +296,28 @@ const handleDeleteUser = async (userId: string) => {
     return manager ? manager.name : 'Não atribuído';
   };
 
+  const getExperienceLevelLabel = (level: string) => {
+    switch (level) {
+      case NivelExperiencia.ESTAGIARIO: return 'Estagiário';
+      case NivelExperiencia.JUNIOR: return 'Junior';
+      case NivelExperiencia.PLENO: return 'Pleno';
+      case NivelExperiencia.SENIOR: return 'Sénior';
+      default: return level;
+    }
+  };
+
+  const getExperienceLevelColor = (level: string) => {
+    switch (level) {
+      case NivelExperiencia.ESTAGIARIO: return 'bg-blue-100 text-blue-800';
+      case NivelExperiencia.JUNIOR: return 'bg-yellow-100 text-yellow-800';
+      case NivelExperiencia.PLENO: return 'bg-orange-100 text-orange-800';
+      case NivelExperiencia.SENIOR: return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   // Filtrar apenas gestores para o dropdown
- const managers = users.filter(u => isManager(u.type));
+  const managers = users.filter(u => isManager(u.type));
 
   if (!user) {
     return (
@@ -418,11 +395,9 @@ const handleDeleteUser = async (userId: string) => {
                       <td className="py-3 px-4 text-sm text-gray-600">{user.department}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.experience_level === NivelExperiencia.SENIOR
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                          getExperienceLevelColor(user.experience_level || '')
                         }`}>
-                          {user.experience_level === NivelExperiencia.SENIOR ? 'Sénior' : 'Junior'}
+                          {getExperienceLevelLabel(user.experience_level || '')}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">
@@ -564,7 +539,9 @@ const handleDeleteUser = async (userId: string) => {
                       onChange={(e) => setFormData({ ...formData, experience_level: e.target.value as NivelExperiencia })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
+                      <option value={NivelExperiencia.ESTAGIARIO}>Estagiário</option>
                       <option value={NivelExperiencia.JUNIOR}>Junior</option>
+                      <option value={NivelExperiencia.PLENO}>Pleno</option>
                       <option value={NivelExperiencia.SENIOR}>Sénior</option>
                     </select>
                   </div>
