@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { User } from '@/types';
 import { UserType, Department, NivelExperiencia } from '@/constants/enums';
+import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUtils';
 
 export default function UsersPage() {
   const [user, setUser] = useState<any>(null);
@@ -45,14 +46,15 @@ export default function UsersPage() {
     }
     
     const userObj = JSON.parse(userData);
-    if (userObj.type !== 'gestor') {
+    
+    // Verificar se é gestor - usando a função de compatibilidade
+    if (!isManager(userObj.type)) {
       router.push('/kanban');
       return;
     }
     
     setUser(userObj);
     fetchUsers();
-    fetchManagers();
   }, [router]);
 
   const fetchUsers = async () => {
@@ -66,8 +68,11 @@ export default function UsersPage() {
 
       if (response.ok) {
         const usersData = await response.json();
-        setUsers(usersData);
+        // Normalizar os dados da API para o formato do frontend
+        const normalizedUsers = usersData.map((user: any) => normalizeUserFromAPI(user));
+        setUsers(normalizedUsers);
       } else {
+        console.warn('API não disponível, carregando dados mock');
         loadMockUsers();
       }
     } catch (error) {
@@ -75,23 +80,6 @@ export default function UsersPage() {
       loadMockUsers();
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchManagers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/users/managers`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        // Gestores carregados para dropdown
-      }
-    } catch (error) {
-      console.error('Erro ao carregar gestores:', error);
     }
   };
 
@@ -154,19 +142,21 @@ export default function UsersPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
-      const method = editingUser ? 'PUT' : 'POST';
-
+      
+      // Preparar dados para a API (converter para formato do backend)
       const userData = {
         username: formData.username,
         email: formData.email,
         name: formData.name,
         ...(formData.password && { password: formData.password }),
-        type: formData.type,
+        type: formData.type === UserType.MANAGER ? 'gestor' : 'programador', // Converter para formato backend
         department: formData.department,
         experience_level: formData.experience_level,
         manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
       };
+
+      const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
+      const method = editingUser ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
@@ -184,6 +174,7 @@ export default function UsersPage() {
         // Recarregar lista
         fetchUsers();
         handleCloseModal();
+        alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
       } else {
         const errorData = await response.json();
         setErrors({ submit: errorData.error || 'Erro ao processar pedido' });
@@ -208,11 +199,14 @@ export default function UsersPage() {
         console.log('✅ Utilizador eliminado');
         fetchUsers();
         setShowDeleteConfirm(null);
+        alert('Utilizador eliminado com sucesso!');
       } else {
         console.error('Erro ao eliminar utilizador');
+        alert('Erro ao eliminar utilizador');
       }
     } catch (error) {
       console.error('Erro:', error);
+      alert('Erro de conexão ao eliminar utilizador');
     }
   };
 
@@ -253,6 +247,9 @@ export default function UsersPage() {
     const manager = users.find(u => u.id === managerId);
     return manager ? manager.name : 'Não atribuído';
   };
+
+  // Filtrar apenas gestores para o dropdown
+  const managers = users.filter(u => u.type === UserType.MANAGER || u.type === 'gestor');
 
   if (!user) {
     return (
@@ -320,11 +317,11 @@ export default function UsersPage() {
                       <td className="py-3 px-4 text-sm text-gray-600">{user.email}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.type === UserType.MANAGER 
+                          isManager(user.type)
                             ? 'bg-purple-100 text-purple-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {user.type === UserType.MANAGER ? 'Gestor' : 'Programador'}
+                          {getUserTypeLabel(user.type)}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">{user.department}</td>
@@ -494,7 +491,7 @@ export default function UsersPage() {
                         }`}
                       >
                         <option value="">Selecione um gestor</option>
-                        {users.filter(u => u.type === UserType.MANAGER).map((manager) => (
+                        {managers.map((manager) => (
                           <option key={manager.id} value={manager.id}>
                             {manager.name}
                           </option>

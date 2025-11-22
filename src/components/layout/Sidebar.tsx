@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { UserType } from '@/constants/enums';
 
 interface SidebarProps {
   user: any;
@@ -19,22 +20,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     {
       name: '👥 Gestão de Utilizadores',
       path: '/users',
-      accessible: user.type === 'manager'
+      accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
       name: '🏷️ Tipos de Tarefa',
       path: '/task-types', 
-      accessible: user.type === 'manager'
+      accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
       name: '📊 Relatórios',
       path: '/reports',
-      accessible: user.type === 'manager'
+      accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     }
   ];
 
   const isActive = (path: string) => {
     return pathname === path;
+  };
+
+  const getUserTypeLabel = () => {
+    if (user.type === UserType.MANAGER || user.type === 'gestor') return 'Gestor';
+    if (user.type === UserType.PROGRAMMER || user.type === 'programador') return 'Programador';
+    return user.type;
   };
 
   return (
@@ -74,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
           </div>
           <p className="text-sm font-medium text-gray-900">{user.name}</p>
           <p className="text-xs text-gray-500">
-            {user.type === 'manager' ? 'Gestor' : 'Programador'}
+            {getUserTypeLabel()}
           </p>
         </div>
       </div>
