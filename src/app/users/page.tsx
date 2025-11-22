@@ -80,7 +80,7 @@ export default function UsersPage() {
     }
     
     setUser(userObj);
-    testAPI(); // ✅ ADICIONAR ESTA LINHA
+    testAPI();
     fetchUsers();
   }, [router]);
 
@@ -180,7 +180,7 @@ export default function UsersPage() {
         ...(formData.password && { password: formData.password }),
         type: formData.type === UserType.MANAGER ? 'gestor' : 'programador',
         department: formData.department,
-        experience_level: formData.experience_level, // ✅ INCLUIR experience_level
+        experience_level: formData.experience_level,
         manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
       };
 
