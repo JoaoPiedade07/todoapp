@@ -83,6 +83,52 @@ export default function UsersPage() {
     }
   };
 
+  // Adicione esta função para testar a API
+const testAPI = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    console.log('🔑 Token:', token);
+    
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    console.log('📡 API Response status:', response.status);
+    console.log('📡 API Response headers:', response.headers);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ API Users data:', data);
+    } else {
+      console.log('❌ API Error:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.log('❌ API Connection error:', error);
+  }
+};
+
+// Chame esta função no useEffect para testar
+useEffect(() => {
+  const userData = localStorage.getItem('user');
+  if (!userData) {
+    router.push('/login');
+    return;
+  }
+  
+  const userObj = JSON.parse(userData);
+  
+  if (!isManager(userObj.type)) {
+    router.push('/kanban');
+    return;
+  }
+  
+  setUser(userObj);
+  testAPI(); // ✅ ADICIONAR ESTA LINHA
+  fetchUsers();
+}, [router]);
+
   const loadMockUsers = () => {
     const mockUsers: User[] = [
       {
@@ -123,6 +169,7 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Submetendo formulário:', formData);
     
     // Validações
     const newErrors: Record<string, string> = {};
@@ -141,74 +188,118 @@ export default function UsersPage() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    
+    // Preparar dados para a API
+    const userData = {
+      username: formData.username,
+      email: formData.email,
+      name: formData.name,
+      ...(formData.password && { password: formData.password }),
+      type: formData.type === UserType.MANAGER ? 'gestor' : 'programador',
+      department: formData.department,
+      experience_level: formData.experience_level,
+      manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
+    };
+
+    console.log('📤 Dados enviados para API:', userData);
+
+    const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
+    const method = editingUser ? 'PUT' : 'POST';
+
+    console.log('🌐 Chamando API:', method, url);
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    });
+
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response ok:', response.ok);
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Sucesso:', result);
       
-      // Preparar dados para a API (converter para formato do backend)
-      const userData = {
-        username: formData.username,
-        email: formData.email,
-        name: formData.name,
-        ...(formData.password && { password: formData.password }),
-        type: formData.type === UserType.MANAGER ? 'gestor' : 'programador', // Converter para formato backend
-        department: formData.department,
-        experience_level: formData.experience_level,
-        manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
-      };
-
-      const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
-      const method = editingUser ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(editingUser ? '✅ Utilizador atualizado' : '✅ Utilizador criado', result);
-        
-        // Recarregar lista
-        fetchUsers();
-        handleCloseModal();
-        alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
-      } else {
-        const errorData = await response.json();
-        setErrors({ submit: errorData.error || 'Erro ao processar pedido' });
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      setErrors({ submit: 'Erro de conexão' });
+      fetchUsers();
+      handleCloseModal();
+      alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
+    } else {
+      const errorText = await response.text();
+      console.log('❌ Erro da API:', errorText);
+      setErrors({ submit: errorText || 'Erro ao processar pedido' });
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro de conexão:', error);
+    setErrors({ submit: 'Erro de conexão' });
+  }
+};
 
-  const handleDeleteUser = async (userId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+const mockCRUD = {
+  createUser: (userData: any) => {
+    const newUser = {
+      id: `user_${Date.now()}`,
+      ...userData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    setUsers(prev => [...prev, newUser]);
+    return newUser;
+  },
 
-      if (response.ok) {
-        console.log('✅ Utilizador eliminado');
-        fetchUsers();
-        setShowDeleteConfirm(null);
-        alert('Utilizador eliminado com sucesso!');
-      } else {
-        console.error('Erro ao eliminar utilizador');
-        alert('Erro ao eliminar utilizador');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro de conexão ao eliminar utilizador');
+  updateUser: (userId: string, userData: any) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId 
+        ? { ...user, ...userData, updated_at: new Date().toISOString() }
+        : user
+    ));
+  },
+
+  deleteUser: (userId: string) => {
+    setUsers(prev => prev.filter(user => user.id !== userId));
+  }
+};
+
+const handleDeleteUser = async (userId: string) => {
+  console.log('🗑️ Tentando eliminar usuário:', userId);
+  
+  try {
+    const token = localStorage.getItem('token');
+    console.log('🔑 Token usado:', token);
+    
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    console.log('📡 DELETE Response status:', response.status);
+    console.log('📡 DELETE Response ok:', response.ok);
+
+    if (response.ok) {
+      console.log('✅ Utilizador eliminado com sucesso');
+      // Atualizar a lista localmente primeiro para feedback imediato
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      setShowDeleteConfirm(null);
+      alert('Utilizador eliminado com sucesso!');
+      
+      // Recarregar da API para garantir sincronização
+      setTimeout(() => fetchUsers(), 100);
+    } else {
+      const errorText = await response.text();
+      console.log('❌ Erro ao eliminar utilizador:', errorText);
+      alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro de conexão:', error);
+    alert('Erro de conexão ao eliminar utilizador');
+  }
+};
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
@@ -249,7 +340,7 @@ export default function UsersPage() {
   };
 
   // Filtrar apenas gestores para o dropdown
-  const managers = users.filter(u => u.type === UserType.MANAGER || u.type === 'gestor');
+ const managers = users.filter(u => isManager(u.type));
 
   if (!user) {
     return (

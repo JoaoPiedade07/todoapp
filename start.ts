@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
-import userRoute from './src/lib/userRoute';
+import userRoute from './src/lib/userRouteComplete';
 import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
 
@@ -45,6 +45,17 @@ server.get('/protected', authenticateToken, (req: any, res) => {
     message: 'Esta é uma rota protegida',
     user: req.user 
   });
+});
+
+// No start.ts, adicione isto ANTES do server.listen:
+console.log('🔄 Carregando rotas...');
+console.log('📁 userRoute:', Object.keys(userRoute));
+console.log('🔗 Rotas em userRoute:');
+userRoute.stack.forEach((layer: any) => {
+  if (layer.route) {
+    const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
+    console.log(`  ${methods} ${layer.route.path}`);
+  }
 });
 
 server.listen(PORT, '0.0.0.0', () => {

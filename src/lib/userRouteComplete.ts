@@ -4,7 +4,9 @@ import { authenticateToken } from '../lib/middleware';
 
 const router = express.Router();
 
-// Obter todos os utilizadores
+// 🔥 ROTAS COMPLETAS DO CRUD
+
+// GET - Obter todos os utilizadores
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const users = userQueries.getAll();
@@ -14,7 +16,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Obter utilizador por ID
+// GET - Obter utilizador por ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -30,43 +32,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Atualizar utilizador
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    console.log('🔄 Atualizando utilizador:', { id, updates });
-
-    // Converter campos se necessário
-    const updateData: any = {};
-    if (updates.username !== undefined) updateData.username = updates.username;
-    if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.type !== undefined) updateData.type = updates.type;
-    if (updates.department !== undefined) updateData.department = updates.department;
-    if (updates.experience_level !== undefined) updateData.experience_level = updates.experience_level;
-    if (updates.manager_id !== undefined) updateData.manager_id = updates.manager_id;
-
-    const result = userQueries.update(id, updateData);
-    const updatedUser = userQueries.getById(id);
-    
-    res.json({ 
-      success: true, 
-      message: 'Utilizador atualizado com sucesso', 
-      data: updatedUser 
-    });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Eliminar utilizador
+// POST - Criar utilizador (já existe no authRoute)
+// DELETE - Eliminar utilizador
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log('🗑️ Eliminando utilizador:', id);
+    console.log('🗑️ [DELETE] Eliminando utilizador:', id);
 
     // Verificar se o utilizador existe
     const user = userQueries.getById(id);
@@ -76,17 +48,64 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     const result = userQueries.delete(id);
     
+    console.log('✅ Utilizador eliminado com sucesso:', id);
+    
     res.json({ 
       success: true, 
       message: 'Utilizador eliminado com sucesso', 
       data: result 
     });
   } catch (error: any) {
+    console.error('❌ Erro ao eliminar utilizador:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Obter todos os gestores
+// PUT - Atualizar utilizador
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    console.log('🔄 [PUT] Atualizando utilizador:', { id, updates });
+
+    const result = userQueries.update(id, updates);
+    const updatedUser = userQueries.getById(id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Utilizador atualizado com sucesso', 
+      data: updatedUser 
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao atualizar utilizador:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// PATCH - Atualização parcial
+router.patch('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    console.log('🔧 [PATCH] Atualizando utilizador:', { id, updates });
+
+    const result = userQueries.update(id, updates);
+    const updatedUser = userQueries.getById(id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Utilizador atualizado com sucesso', 
+      data: updatedUser 
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao atualizar utilizador:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Rotas existentes...
 router.get('/managers', authenticateToken, async (req, res) => {
   try {
     const managers = userQueries.getManagers();
@@ -96,7 +115,6 @@ router.get('/managers', authenticateToken, async (req, res) => {
   }
 });
 
-// Obter todos os programadores
 router.get('/programmers', authenticateToken, async (req, res) => {
   try {
     const programmers = userQueries.getProgrammers();
@@ -106,7 +124,6 @@ router.get('/programmers', authenticateToken, async (req, res) => {
   }
 });
 
-// Obter programadores de um gestor específico
 router.get('/by-manager/:managerId', authenticateToken, async (req, res) => {
   try {
     const { managerId } = req.params;
