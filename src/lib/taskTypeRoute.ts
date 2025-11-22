@@ -1,7 +1,6 @@
 import { authenticateToken } from "./middleware";
 import { taskQueries, taskTypeQueries } from "./database";
 import express from 'express';
-import { error } from "console";
 
 const router = express.Router();
 

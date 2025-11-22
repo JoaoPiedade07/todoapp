@@ -79,7 +79,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       if (userType === UserType.MANAGER && isOpen) {
         setIsLoading(true);
         try {
-          const response = await fetch(`${API_BASE_URL}/users/programmers`);
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${API_BASE_URL}/users/programmers`, {
+            headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            },
+          });
           
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -89,6 +95,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           setAvailableProgrammers(programmers);
         } catch (error) {
           console.error('Erro ao carregar programadores:', error);
+          setAvailableProgrammers([]);
         } finally {
           setIsLoading(false);
         }
