@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
-import userRoute from './src/lib/userRouteComplete';
+//import userRoute from './src/lib/userRouteComplete';
+import userRoute from './src/lib/userRoute';
 import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
 
