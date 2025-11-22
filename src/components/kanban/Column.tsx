@@ -56,74 +56,77 @@ export const Column: React.FC<ColumnProps> = ({
     e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
     console.log('🚪 DRAG LEAVE coluna:', title);
   };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
-    
-    const taskId = e.dataTransfer.getData('taskId');
-    const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
-    
-    console.log('🎯 DROP EVENT na coluna:', title);
-    console.log('📦 Dados transferidos:', { taskId, currentStatus });
-    console.log('🎯 Estado destino:', status);
-    console.log('👤 Tipo de usuário:', userType);
-    
-    if (!taskId) {
-      console.log('❌ taskId não encontrado no dataTransfer');
-      return;
-    }
+const handleDrop = (e: React.DragEvent) => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
   
-    // Não permitir mover tarefas concluídas (regra #15)
-    if (currentStatus === TaskStatus.DONE) {
-      console.log('❌ Não pode mover tarefas concluídas');
-      return;
-    }
+  const taskId = e.dataTransfer.getData('taskId');
+  const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
+  
+  console.log('🎯 DROP EVENT na coluna:', title);
+  console.log('📦 Dados transferidos:', { taskId, currentStatus });
+  console.log('🎯 Estado destino:', status);
+  console.log('👤 Tipo de usuário:', userType);
+  
+  if (!taskId) {
+    console.log('❌ taskId não encontrado no dataTransfer');
+    return;
+  }
+
+  // 🔥 REGRA IMPORTANTE: Não permitir mover tarefas concluídas
+  // Como o TypeScript não sabe que currentStatus pode ser DONE (mesmo com a prevenção),
+  // vamos fazer uma verificação de runtime
+  if (currentStatus === TaskStatus.DONE) {
+    console.log('❌ Não pode mover tarefas concluídas');
+    alert('Tarefas concluídas não podem ser movidas!');
+    return;
+  }
+  
+  // Permitir que tanto programadores quanto gestores movam tarefas
+  if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
+    console.log('❌ Apenas programadores e gestores podem mover tarefas');
+    return;
+  }
+  
+  // Não permitir mover para o mesmo estado
+  if (currentStatus === status) {
+    console.log('❌ Já está nesta coluna');
+    return;
+  }
+  
+  // 🔥 REGRAS DE MOVIMENTAÇÃO SIMPLIFICADAS:
+  // - Tarefas NUNCA podem ser movidas da coluna "Concluído" (já verificado acima)
+  // - Tarefas podem ser movidas livremente entre "A Fazer" e "Em Progresso"
+  // - Tarefas podem ser movidas para "Concluído" apenas se vierem de "Em Progresso"
+  
+  let isValidMove = false;
+  
+  // Se o destino for "Concluído", só permitir se vier de "Em Progresso"
+  if (status === TaskStatus.DONE) {
+    isValidMove = currentStatus === TaskStatus.DOING;
+  } else {
+    // Movimento entre "A Fazer" e "Em Progresso" é sempre permitido
+    isValidMove = true;
+  }
+  
+  if (isValidMove) {
+    console.log('✅ Movimento válido!');
+    console.log('📞 Chamando onTaskMove...');
+    onTaskMove(taskId, status);
+  } else {
+    console.log('❌ Movimento inválido:', { 
+      de: currentStatus, 
+      para: status,
+      userType: userType
+    });
     
-    // Permitir que tanto programadores quanto gestores movam tarefas
-    if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
-      console.log('❌ Apenas programadores e gestores podem mover tarefas');
-      return;
-    }
-    
-    // Não permitir mover para o mesmo estado
-    if (currentStatus === status) {
-      console.log('❌ Já está nesta coluna');
-      return;
-    }
-    
-    // REGRAS DE MOVIMENTAÇÃO:
-    // - Programadores: só podem mover TODO→DOING e DOING→TODO/DONE
-    // - Gestores: podem mover entre qualquer estado (exceto DONE como origem)
-    
-    let isValidMove = false;
-    
-    if (userType === UserType.PROGRAMMER) {
-      // Regras para programadores
-      isValidMove = (
-        (currentStatus === TaskStatus.TODO && status === TaskStatus.DOING) ||
-        (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
-      );
-    } else if (userType === UserType.MANAGER) {
-      // Regras para gestores - mais flexíveis
-      isValidMove = (
-        (currentStatus === TaskStatus.TODO && (status === TaskStatus.DOING || status === TaskStatus.DONE)) ||
-        (currentStatus === TaskStatus.DOING && (status === TaskStatus.TODO || status === TaskStatus.DONE))
-      );
-    }
-    
-    if (isValidMove) {
-      console.log('✅ Movimento válido!');
-      console.log('📞 Chamando onTaskMove...');
-      onTaskMove(taskId, status);
+    if (status === TaskStatus.DONE) {
+      alert('Só pode concluir tarefas que estão em progresso!');
     } else {
-      console.log('❌ Movimento inválido:', { 
-        de: currentStatus, 
-        para: status,
-        userType: userType
-      });
+      alert('Movimento não permitido!');
     }
-  };
+  }
+};
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">

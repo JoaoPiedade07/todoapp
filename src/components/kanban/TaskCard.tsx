@@ -52,12 +52,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    if (!isDraggable) return;
+    // 🔥 REGRA IMPORTANTE: Não permitir drag de tarefas concluídas
+    if (task.status === TaskStatus.DONE) {
+      e.preventDefault();
+      console.log('❌ Tentativa de arrastar tarefa concluída bloqueada');
+      return;
+    }
+
+    if (!isDraggable) {
+      e.preventDefault();
+      return;
+    }
     
     setIsDragging(true);
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('currentStatus', task.status);
     e.dataTransfer.effectAllowed = 'move';
+    
+    console.log('🚀 DRAG START:', { 
+      taskId: task.id, 
+      currentStatus: task.status,
+      isDraggable: isDraggable 
+    });
   };
 
   const handleDragEnd = () => {
@@ -77,13 +93,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  const isDraggable = userType === UserType.PROGRAMMER && task.status !== TaskStatus.DONE;
+  // 🔥 REGRA PRINCIPAL: Só é draggable se não estiver concluída
+  const isDraggable = task.status !== TaskStatus.DONE && 
+    (userType === UserType.PROGRAMMER || userType === UserType.MANAGER);
 
   return (
     <div
       className={`bg-white rounded-lg border border-gray-200 p-4 mb-3 cursor-pointer hover:shadow-md transition-all ${
         isDragging ? 'opacity-50 shadow-lg scale-95' : ''
-      } ${isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+      } ${isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
       draggable={isDraggable}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -125,8 +143,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-400">
         <div className="flex justify-between">
           <span>Atualizado: {formatUpdatedAt()}</span>
-          {isDraggable && (
+          {isDraggable ? (
             <span className="text-blue-500 font-medium">🔄 Arrastável</span>
+          ) : (
+            <span className="text-gray-400 font-medium">🔒 Bloqueado</span>
           )}
         </div>
       </div>
