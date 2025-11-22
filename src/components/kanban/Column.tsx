@@ -3,6 +3,7 @@
 import { Task } from '@/types';
 import { TaskCard } from './TaskCard';
 import { TaskStatus, UserType } from '@/constants/enums';
+import { useState } from 'react';
 
 interface ColumnProps {
   title: string;
@@ -21,6 +22,8 @@ export const Column: React.FC<ColumnProps> = ({
   onViewDetails,
   userType
 }) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const getColumnColor = () => {
     switch (status) {
       case TaskStatus.TODO: return 'bg-red-50 border-red-200 text-red-900';
@@ -42,91 +45,95 @@ export const Column: React.FC<ColumnProps> = ({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
     console.log('🔄 DRAG OVER coluna:', title);
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.add('bg-blue-50', 'border-blue-300', 'border-2');
+    setIsDragOver(true);
     console.log('🚪 DRAG ENTER coluna:', title);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
+    // Só remove o estado se o mouse saiu do container principal
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
     console.log('🚪 DRAG LEAVE coluna:', title);
   };
-const handleDrop = (e: React.DragEvent) => {
-  e.preventDefault();
-  e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300', 'border-2');
-  
-  const taskId = e.dataTransfer.getData('taskId');
-  const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
-  
-  console.log('🎯 DROP EVENT na coluna:', title);
-  console.log('📦 Dados transferidos:', { taskId, currentStatus });
-  console.log('🎯 Estado destino:', status);
-  console.log('👤 Tipo de usuário:', userType);
-  
-  if (!taskId) {
-    console.log('❌ taskId não encontrado no dataTransfer');
-    return;
-  }
 
-  // 🔥 REGRA IMPORTANTE: Não permitir mover tarefas concluídas
-  // Como o TypeScript não sabe que currentStatus pode ser DONE (mesmo com a prevenção),
-  // vamos fazer uma verificação de runtime
-  if (currentStatus === TaskStatus.DONE) {
-    console.log('❌ Não pode mover tarefas concluídas');
-    alert('Tarefas concluídas não podem ser movidas!');
-    return;
-  }
-  
-  // Permitir que tanto programadores quanto gestores movam tarefas
-  if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
-    console.log('❌ Apenas programadores e gestores podem mover tarefas');
-    return;
-  }
-  
-  // Não permitir mover para o mesmo estado
-  if (currentStatus === status) {
-    console.log('❌ Já está nesta coluna');
-    return;
-  }
-  
-  // 🔥 REGRAS DE MOVIMENTAÇÃO SIMPLIFICADAS:
-  // - Tarefas NUNCA podem ser movidas da coluna "Concluído" (já verificado acima)
-  // - Tarefas podem ser movidas livremente entre "A Fazer" e "Em Progresso"
-  // - Tarefas podem ser movidas para "Concluído" apenas se vierem de "Em Progresso"
-  
-  let isValidMove = false;
-  
-  // Se o destino for "Concluído", só permitir se vier de "Em Progresso"
-  if (status === TaskStatus.DONE) {
-    isValidMove = currentStatus === TaskStatus.DOING;
-  } else {
-    // Movimento entre "A Fazer" e "Em Progresso" é sempre permitido
-    isValidMove = true;
-  }
-  
-  if (isValidMove) {
-    console.log('✅ Movimento válido!');
-    console.log('📞 Chamando onTaskMove...');
-    onTaskMove(taskId, status);
-  } else {
-    console.log('❌ Movimento inválido:', { 
-      de: currentStatus, 
-      para: status,
-      userType: userType
-    });
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
     
-    if (status === TaskStatus.DONE) {
-      alert('Só pode concluir tarefas que estão em progresso!');
-    } else {
-      alert('Movimento não permitido!');
+    const taskId = e.dataTransfer.getData('taskId');
+    const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
+    
+    console.log('🎯 DROP EVENT DETECTADO na coluna:', title);
+    console.log('📦 Dados transferidos:', { taskId, currentStatus });
+    console.log('🎯 Estado destino:', status);
+    console.log('👤 Tipo de usuário:', userType);
+    console.log('🔍 onTaskMove function:', typeof onTaskMove);
+      
+    if (!taskId) {
+      console.log('❌ taskId não encontrado no dataTransfer');
+      return;
     }
-  }
-};
+
+    // 🔥 REGRA IMPORTANTE: Não permitir mover tarefas concluídas
+    if (currentStatus === TaskStatus.DONE) {
+      console.log('❌ Não pode mover tarefas concluídas');
+      alert('Tarefas concluídas não podem ser movidas!');
+      return;
+    }
+    
+    // Permitir que tanto programadores quanto gestores movam tarefas
+    if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
+      console.log('❌ Apenas programadores e gestores podem mover tarefas');
+      return;
+    }
+    
+    // Não permitir mover para o mesmo estado
+    if (currentStatus === status) {
+      console.log('❌ Já está nesta coluna');
+      return;
+    }
+    
+    // 🔥 REGRAS DE MOVIMENTAÇÃO SIMPLIFICADAS:
+    // - Tarefas NUNCA podem ser movidas da coluna "Concluído" (já verificado acima)
+    // - Tarefas podem ser movidas livremente entre "A Fazer" e "Em Progresso"
+    // - Tarefas podem ser movidas para "Concluído" apenas se vierem de "Em Progresso"
+    
+    let isValidMove = false;
+    
+    // Se o destino for "Concluído", só permitir se vier de "Em Progresso"
+    if (status === TaskStatus.DONE) {
+      isValidMove = currentStatus === TaskStatus.DOING;
+    } else {
+      // Movimento entre "A Fazer" e "Em Progresso" é sempre permitido
+      isValidMove = true;
+    }
+    
+    if (isValidMove) {
+      console.log('✅ Movimento válido!');
+      console.log('📞 Chamando onTaskMove...');
+      onTaskMove(taskId, status);
+    } else {
+      console.log('❌ Movimento inválido:', { 
+        de: currentStatus, 
+        para: status,
+        userType: userType
+      });
+      
+      if (status === TaskStatus.DONE) {
+        alert('Só pode concluir tarefas que estão em progresso!');
+      } else {
+        alert('Movimento não permitido!');
+      }
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
@@ -140,21 +147,29 @@ const handleDrop = (e: React.DragEvent) => {
       </div>
       
       <div 
-        className="flex-1 p-4 space-y-3 min-h-[500px] max-h-[600px] overflow-y-auto transition-all duration-200"
+        className={`flex-1 p-4 space-y-3 min-h-[500px] max-h-[600px] overflow-y-auto transition-all duration-200 ${
+          isDragOver 
+            ? 'bg-blue-50 border-2 border-blue-300 border-dashed' 
+            : 'bg-transparent border-2 border-transparent'
+        }`}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        style={{ minHeight: '400px' }} // Garantir altura mínima
+        style={{ minHeight: '400px' }}
       >
         {tasks.length === 0 ? (
           <div 
-            className="text-center text-gray-500 text-sm py-16 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 transition-colors"
+            className={`text-center text-gray-500 text-sm py-16 border-2 border-dashed rounded-lg transition-colors ${
+              isDragOver 
+                ? 'border-blue-300 bg-blue-25 text-blue-600' 
+                : 'border-gray-300 bg-gray-50'
+            }`}
             style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <div>
-              <p>🔄 Arraste tarefas para aqui</p>
-              <p className="text-xs mt-1">Solte para mover</p>
+              <p>{isDragOver ? '🎯 Solte aqui!' : '🔄 Arraste tarefas para aqui'}</p>
+              <p className="text-xs mt-1">{isDragOver ? 'Libere para mover' : 'Solte para mover'}</p>
             </div>
           </div>
         ) : (

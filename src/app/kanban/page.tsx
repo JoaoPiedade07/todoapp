@@ -130,33 +130,46 @@ export default function KanbanPage() {
     setTasks(mockTasks);
   };
 
-  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-    if (user?.type !== UserType.PROGRAMMER) return;
+const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+  // ✅ PERMITIR tanto programadores quanto gestores
+  if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
+    console.log('❌ Usuário não autorizado a mover tarefas:', user?.type);
+    return;
+  }
 
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
+  console.log('🔄 Movendo tarefa:', { taskId, newStatus, userType: user?.type });
 
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        status: newStatus,
+      }),
+    });
 
-      if (response.ok) {
-        console.log('✅ Task moved successfully');
-      }
-    } catch (error) {
-      console.error('❌ Erro ao mover tarefa:', error);
+    if (response.ok) {
+      console.log('✅ Tarefa movida com sucesso no servidor');
+      // Atualizar estado local imediatamente para feedback visual
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId ? { ...task, status: newStatus } : task
+        )
+      );
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Erro ao mover tarefa no servidor:', errorText);
+      alert('Erro ao mover tarefa: ' + errorText);
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro de conexão ao mover tarefa:', error);
+    alert('Erro de conexão ao mover tarefa');
+  }
+};
 
   const handleCreateTask = async (taskData: any) => {
     try {
