@@ -45,6 +45,15 @@ export interface Task {
   assigned_user_name?: string;
   task_type_name?: string;
   created_by_name?: string;
+  
+  // Predição de tempo
+  estimated_hours?: number;
+  confidence_level?: number;
+  min_hours?: number;
+  max_hours?: number;
+  hours_per_point?: number;
+  sample_size?: number;
+  prediction_message?: string;
 }
 
 export interface AuthResponse {

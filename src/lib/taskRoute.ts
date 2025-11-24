@@ -1,5 +1,5 @@
 import { authenticateToken } from './middleware';
-import { taskQueries, taskTypeQueries } from './database';
+import { taskQueries, taskTypeQueries, predictionQueries } from './database';
 import express from 'express';
 
 const router = express.Router();
@@ -158,6 +158,35 @@ router.delete('/:id', authenticateToken, (req: any, res) => {
   } catch (error) {
     console.error('❌ Erro ao eliminar task:', error);
     res.status(500).json({ error: 'Erro ao eliminar task' });
+  }
+});
+
+// GET /predict - Obter predição de tempo para uma tarefa
+router.get('/predict', authenticateToken, (req: any, res) => {
+  try {
+    const { story_points, user_id, task_type_id } = req.query;
+    
+    if (!story_points) {
+      return res.status(400).json({ error: 'story_points é obrigatório' });
+    }
+
+    const storyPoints = parseInt(story_points as string);
+    if (isNaN(storyPoints) || storyPoints <= 0) {
+      return res.status(400).json({ error: 'story_points deve ser um número positivo' });
+    }
+
+    const userId = user_id as string | undefined;
+    const taskTypeId = task_type_id as string | undefined;
+
+    const prediction = predictionQueries.predictTaskTime(storyPoints, userId, taskTypeId);
+    
+    res.json({
+      success: true,
+      prediction
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao calcular predição:', error);
+    res.status(500).json({ error: 'Erro ao calcular predição', details: error.message });
   }
 });
 
