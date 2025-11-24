@@ -130,6 +130,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <span>{task.story_points}</span>
             </div>
           )}
+          {task.estimated_hours && (
+            <div className="flex items-center gap-1">
+              <span className="font-medium">⏱️:</span>
+              <span className="text-blue-600">{task.estimated_hours}h</span>
+            </div>
+          )}
         </div>
         
         <div className="text-right">

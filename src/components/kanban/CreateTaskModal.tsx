@@ -71,6 +71,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [availableProgrammers, setAvailableProgrammers] = useState<User[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [prediction, setPrediction] = useState<any>(null);
+  const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -104,6 +106,54 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     loadProgrammers();
   }, [userType, isOpen, API_BASE_URL]);
+
+  // Buscar predição quando story points, programador ou tipo mudarem
+  useEffect(() => {
+    const fetchPrediction = async () => {
+      if (!formData.story_points || parseInt(formData.story_points) <= 0) {
+        setPrediction(null);
+        return;
+      }
+
+      setIsLoadingPrediction(true);
+      try {
+        const token = localStorage.getItem('token');
+        const params = new URLSearchParams({
+          story_points: formData.story_points
+        });
+        
+        if (formData.assigned_to) {
+          params.append('user_id', formData.assigned_to);
+        }
+
+        // Nota: task_type_id precisaria ser obtido do nome, mas por agora vamos sem
+        // Pode ser melhorado depois se necessário
+
+        const response = await fetch(`${API_BASE_URL}/tasks/predict?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setPrediction(data.prediction);
+        } else {
+          setPrediction(null);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar predição:', error);
+        setPrediction(null);
+      } finally {
+        setIsLoadingPrediction(false);
+      }
+    };
+
+    // Debounce para não fazer muitas requisições
+    const timeoutId = setTimeout(fetchPrediction, 500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.story_points, formData.assigned_to, API_BASE_URL]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -152,6 +202,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setFormData(INITIAL_FORM_DATA);
     setErrors({});
     setAvailableProgrammers([]);
+    setPrediction(null);
     onClose();
   };
 
@@ -265,6 +316,38 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </select>
                 {errors.story_points && (
                   <p className="mt-1 text-sm text-red-600">{errors.story_points}</p>
+                )}
+                {/* Mostrar predição em tempo real */}
+                {formData.story_points && (
+                  <div className="mt-2">
+                    {isLoadingPrediction ? (
+                      <p className="text-xs text-gray-500">Calculando predição...</p>
+                    ) : prediction ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-semibold text-blue-900">⏱️ Predição:</span>
+                          <span className="text-sm font-bold text-blue-700">
+                            {prediction.estimated_hours}h
+                          </span>
+                          {prediction.confidence_level && (
+                            <span className="text-xs text-blue-600">
+                              (Confiança: {Math.round(prediction.confidence_level * 100)}%)
+                            </span>
+                          )}
+                        </div>
+                        {prediction.min_hours && prediction.max_hours && (
+                          <p className="text-xs text-blue-600">
+                            Intervalo: {prediction.min_hours}h - {prediction.max_hours}h
+                          </p>
+                        )}
+                        {prediction.message && (
+                          <p className="text-xs text-blue-700 italic mt-1">
+                            {prediction.message}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 )}
               </div>
 

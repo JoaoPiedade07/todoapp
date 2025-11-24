@@ -109,6 +109,62 @@ export const TaskDetails: React.FC<TaskDetailsProps> = ({
             </div>
           </div>
 
+          {/* Predição de Tempo */}
+          {task.story_points && task.estimated_hours && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                <span>⏱️</span>
+                <span>Predição de Tempo</span>
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-blue-700 font-medium mb-1">Tempo Estimado</p>
+                  <p className="text-lg font-bold text-blue-900">
+                    {task.estimated_hours}h
+                  </p>
+                </div>
+                {task.min_hours && task.max_hours && (
+                  <div>
+                    <p className="text-xs text-blue-700 font-medium mb-1">Intervalo</p>
+                    <p className="text-sm font-semibold text-blue-800">
+                      {task.min_hours}h - {task.max_hours}h
+                    </p>
+                  </div>
+                )}
+                {task.confidence_level !== undefined && (
+                  <div>
+                    <p className="text-xs text-blue-700 font-medium mb-1">Confiança</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-bold text-blue-900">
+                        {Math.round(task.confidence_level * 100)}%
+                      </p>
+                      <div className="w-16 h-2 bg-blue-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-600 transition-all"
+                          style={{ width: `${task.confidence_level * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {task.hours_per_point && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-xs text-blue-600">
+                    <span className="font-medium">Razão:</span> {task.hours_per_point}h por Story Point
+                  </p>
+                </div>
+              )}
+              {task.prediction_message && (
+                <div className="mt-2">
+                  <p className="text-xs text-blue-700 italic">
+                    {task.prediction_message}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Datas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
