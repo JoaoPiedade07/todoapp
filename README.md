@@ -308,6 +308,8 @@ Este projeto foi desenvolvido para fins académicos.
 
 ## 👨‍💻 Autor
 
+João Piedade & Marcelo Ramos
+
 Desenvolvido como parte do projeto de Laboratório de Dados II.
 
 ---
