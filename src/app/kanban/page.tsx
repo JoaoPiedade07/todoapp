@@ -79,19 +79,9 @@ export default function KanbanPage() {
     }
   };
 
-  // ✅ CORREÇÃO: Função wrapper para compatibilidade com KanbanBoard
+  // ✅ CORREÇÃO: Função para abrir modal de edição
   const handleEditTaskWrapper = (task: Task) => {
-    // Extrair dados do objeto task para a função original
-    const taskId = task.id;
-    const updates = {
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      story_points: task.story_points,
-      assigned_to: task.assigned_to,
-      task_type_id: task.task_type_id,
-    };
-    handleEditTaskOriginal(taskId, updates);
+    openEditModal(task);
   };
 
   // ✅ CORREÇÃO: Renomear função original
@@ -109,6 +99,7 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
+        closeEditModal(); // ✅ Fechar modal após salvar
         alert('Tarefa atualizada com sucesso!');
       } else {
         const errorText = await response.text();
@@ -116,6 +107,7 @@ export default function KanbanPage() {
       }
     } catch (error: any) {
       console.error('Erro ao editar tarefa:', error);
+      alert('Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'));
       throw error;
     }
   };
@@ -132,6 +124,7 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
+        closeEditModal(); // ✅ Fechar modal após eliminar
         alert('Tarefa eliminada com sucesso!');
       } else {
         const errorText = await response.text();
@@ -282,10 +275,6 @@ export default function KanbanPage() {
     setSelectedTask(null);
   };
 
-  const handleEditTaskClick = (task: Task) => {
-    console.log('Editar tarefa:', task);
-  };
-
   const openEditModal = (task: Task) => {
     setEditingTask(task);
     setShowEditModal(true);
@@ -380,7 +369,7 @@ export default function KanbanPage() {
         isOpen={showTaskDetails}
         onClose={handleCloseDetails}
         userType={user.type}
-        onEditTask={user.type === UserType.MANAGER ? handleEditTaskClick : undefined}
+        onEditTask={user.type === UserType.MANAGER ? openEditModal : undefined}
       />
 
       <CreateTaskModal
