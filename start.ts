@@ -17,15 +17,13 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 initDatabase();
 
-// 🔥 CORREÇÃO CORS: Adicionar PATCH nos métodos permitidos
 server.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://10.0.97.104:3000'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // ← ADICIONADO PATCH
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// ✅ ADICIONA ESTE MIDDLEWARE PARA DEBUG
 server.use((req, res, next) => {
   console.log('🔍 Request:', req.method, req.url);
   console.log('🔍 Headers:', req.headers);
@@ -48,7 +46,6 @@ server.get('/protected', authenticateToken, (req: any, res) => {
   });
 });
 
-// No start.ts, adicione isto ANTES do server.listen:
 console.log('🔄 Carregando rotas...');
 console.log('📁 userRoute:', Object.keys(userRoute));
 console.log('🔗 Rotas em userRoute:');
