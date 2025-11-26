@@ -1,11 +1,9 @@
+// src/components/kanban/EditTaskModal.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Task } from '@/types';
-import { TaskStatus, UserType } from '@/constants/enums';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { UserType } from '@/constants/enums';
 
 interface EditTaskModalProps {
   task: Task | null;
@@ -29,39 +27,64 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: TaskStatus.TODO,
     story_points: 0,
     assigned_to: '',
-    order: 0
+    task_type_id: ''
   });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [taskTypes, setTaskTypes] = useState<any[]>([]);
 
+  // Carregar dados quando o modal abrir ou a task mudar
   useEffect(() => {
-    if (task) {
+    if (task && isOpen) {
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        status: task.status,
         story_points: task.story_points || 0,
         assigned_to: task.assigned_to || '',
-        order: task.order || 0
+        task_type_id: task.task_type_id || ''
       });
     }
-  }, [task]);
+  }, [task, isOpen]);
+
+  // Carregar tipos de tarefa
+  useEffect(() => {
+    if (isOpen) {
+      fetchTaskTypes();
+    }
+  }, [isOpen]);
+
+  const fetchTaskTypes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = typeof window !== 'undefined' 
+        ? `http://${window.location.hostname}:3001`
+        : 'http://localhost:3001';
+      
+      const response = await fetch(`${API_BASE_URL}/task-types`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const types = await response.json();
+        setTaskTypes(types);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar tipos de tarefa:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task) return;
 
     setLoading(true);
-    setErrors({});
-
     try {
       await onSave(task.id, formData);
-      onClose();
-    } catch (error: any) {
-      setErrors({ submit: error.message });
+    } catch (error) {
+      console.error('Erro ao salvar tarefa:', error);
     } finally {
       setLoading(false);
     }
@@ -69,175 +92,187 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
 
   const handleDelete = async () => {
     if (!task) return;
-    
-    if (!confirm('Tem certeza que deseja eliminar esta tarefa? Esta ação não pode ser revertida.')) {
-      return;
-    }
 
-    setLoading(true);
-    try {
-      await onDelete(task.id);
-      onClose();
-    } catch (error: any) {
-      setErrors({ submit: error.message });
-    } finally {
-      setLoading(false);
+    if (window.confirm('Tem certeza que deseja eliminar esta tarefa?')) {
+      setLoading(true);
+      try {
+        await onDelete(task.id);
+      } catch (error) {
+        console.error('Erro ao eliminar tarefa:', error);
+      } finally {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'story_points' ? parseInt(value) || 0 : value
+    }));
   };
 
   if (!isOpen || !task) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">Editar Tarefa</h2>
-          <Button
+          <button
             onClick={onClose}
-            className="bg-gray-500 hover:bg-gray-600"
-            disabled={loading}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
           >
-            ✕
-          </Button>
-        </CardHeader>
+            ×
+          </button>
+        </div>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {errors.submit && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {errors.submit}
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Nome da Tarefa */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nome da Tarefa *
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Digite o nome da tarefa"
+            />
+          </div>
 
+          {/* Descrição */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Descrição
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Descreva a tarefa"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Story Points */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Título *
+                Story Points
               </label>
-              <Input
-                placeholder="Título da tarefa"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                disabled={loading}
+              <input
+                type="number"
+                name="story_points"
+                value={formData.story_points}
+                onChange={handleChange}
+                min="0"
+                max="20"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
               />
             </div>
 
+            {/* Programador */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição
+                Programador
               </label>
-              <textarea
-                placeholder="Descrição da tarefa"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                rows={3}
-                disabled={loading}
-              />
+              <select
+                name="assigned_to"
+                value={formData.assigned_to}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar programador</option>
+                {availableUsers.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.username})
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Tipo de Tarefa */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tipo de Tarefa
+            </label>
+            <select
+              name="task_type_id"
+              value={formData.task_type_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Selecionar tipo de tarefa</option>
+              {taskTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Informações da Tarefa (somente leitura) */}
+          <div className="bg-gray-50 p-3 rounded-md">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Informações da Tarefa</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status *
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={loading}
-                >
-                  <option value={TaskStatus.TODO}>A Fazer</option>
-                  <option value={TaskStatus.DOING}>Em Progresso</option>
-                  <option value={TaskStatus.DONE}>Concluído</option>
-                </select>
+                <span className="font-medium">ID:</span> {task.id}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Story Points
-                </label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.story_points}
-                  onChange={(e) => setFormData({ ...formData, story_points: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  disabled={loading}
-                />
+                <span className="font-medium">Status:</span> {task.status}
+              </div>
+              <div>
+                <span className="font-medium">Criada em:</span> {new Date(task.created_at || '').toLocaleDateString('pt-PT')}
+              </div>
+              <div>
+                <span className="font-medium">Atualizada em:</span> {new Date(task.updated_at || '').toLocaleDateString('pt-PT')}
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ordem
-                </label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  disabled={loading}
-                />
-              </div>
-
+          {/* Botões */}
+          <div className="flex justify-between pt-4">
+            <div>
               {userType === UserType.MANAGER && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Responsável
-                  </label>
-                  <select
-                    value={formData.assigned_to}
-                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={loading}
-                  >
-                    <option value="">Não atribuído</option>
-                    {availableUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-between gap-3 pt-4 border-t">
-              <div>
-                <Button
+                <button
                   type="button"
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700"
                   disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50"
                 >
-                  🗑️ Eliminar Tarefa
-                </Button>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  onClick={onClose}
-                  className="bg-gray-500 hover:bg-gray-600"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? 'A guardar...' : 'Guardar Alterações'}
-                </Button>
-              </div>
+                  {loading ? 'Eliminando...' : 'Eliminar Tarefa'}
+                </button>
+              )}
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

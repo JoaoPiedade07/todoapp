@@ -6,6 +6,7 @@ import { Task } from '@/types';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { TaskDetails } from '@/components/kanban/TaskDetails';
 import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
+import { EditTaskModal } from '@/components/kanban/EditTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
 
@@ -15,6 +16,9 @@ export default function KanbanPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -28,8 +32,19 @@ export default function KanbanPage() {
       router.push('/login');
       return;
     }
-    setUser(JSON.parse(userData));
+    
+    const userObj = JSON.parse(userData);
+    const convertedUser = {
+      ...userObj,
+      type: userObj.type === 'gestor' ? UserType.MANAGER : UserType.PROGRAMMER
+    };
+    
+    setUser(convertedUser);
     fetchTasks();
+
+    if (convertedUser.type === UserType.MANAGER) {
+      fetchAvailableUsers();
+    }
   }, [router]);
 
   const fetchTasks = async () => {
@@ -38,6 +53,7 @@ export default function KanbanPage() {
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
@@ -53,6 +69,28 @@ export default function KanbanPage() {
       loadMockTasks();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/programmers`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const usersData = await response.json();
+        setAvailableUsers(usersData);
+      } else {
+        console.error('Erro ao carregar programadores');
+        setAvailableUsers([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar programadores:', error);
+      setAvailableUsers([]);
     }
   };
 
@@ -86,11 +124,61 @@ export default function KanbanPage() {
     setTasks(mockTasks);
   };
 
-// Função para criar task
+  // ✅ FUNÇÃO para SALVAR as edições (chamada pelo modal)
+  const handleSaveTask = async (taskId: string, updates: any) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+  
+      if (response.ok) {
+        await fetchTasks();
+        setShowEditModal(false);
+        alert('Tarefa atualizada com sucesso!');
+      } else {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+    } catch (error: any) {
+      console.error('Erro ao editar tarefa:', error);
+      alert('Erro ao editar tarefa: ' + error.message);
+    }
+  };
+
+  // ✅ FUNÇÃO para eliminar tarefa
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      if (response.ok) {
+        await fetchTasks();
+        setShowEditModal(false);
+        alert('Tarefa eliminada com sucesso!');
+      } else {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+    } catch (error: any) {
+      console.error('Erro ao eliminar tarefa:', error);
+      alert('Erro ao eliminar tarefa: ' + error.message);
+    }
+  };
+
+  // ✅ FUNÇÃO para criar tarefa
   const handleCreateTask = async (taskData: any) => {
     try {
-      console.log('🎯 KanbanPage - Criando task:', taskData);
-      
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: 'POST',
@@ -105,29 +193,24 @@ export default function KanbanPage() {
         }),
       });
 
-      console.log('📡 Response status:', response.status);
-
       if (response.ok) {
-        const newTask = await response.json();
-        console.log('✅ KanbanPage - Task criada com sucesso:', newTask);
-        
-        // Fecha o modal e atualiza a lista
         setShowCreateModal(false);
-        await fetchTasks(); // Busca lista atualizada
-        
+        await fetchTasks();
+        alert('Tarefa criada com sucesso!');
       } else {
         const errorText = await response.text();
-        console.error('❌ KanbanPage - Erro do servidor:', errorText);
         alert('Erro ao criar tarefa: ' + errorText);
       }
     } catch (error) {
-      console.error('❌ KanbanPage - Erro de conexão:', error);
       alert('Erro de conexão ao criar tarefa');
     }
   };
 
+  // ✅ FUNÇÃO para mover tarefa (drag and drop)
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-    if (user?.type !== UserType.PROGRAMMER) return;
+    if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -149,10 +232,11 @@ export default function KanbanPage() {
           )
         );
       } else {
-        console.error('Erro ao mover tarefa');
+        const errorText = await response.text();
+        alert('Erro ao mover tarefa: ' + errorText);
       }
     } catch (error) {
-      console.error('Erro ao mover tarefa:', error);
+      alert('Erro de conexão ao mover tarefa');
     }
   };
 
@@ -166,9 +250,25 @@ export default function KanbanPage() {
     setSelectedTask(null);
   };
 
-  const handleEditTask = (task: Task) => {
-    console.log('Editar tarefa:', task);
+  const closeEditModal = () => {
+    setEditingTask(null);
+    setShowEditModal(false);
   };
+
+const openEditModal = (task: Task) => {
+  console.log('🔴 DEBUG 1 - openEditModal CHAMADA! Task:', task);
+  alert('Modal deve abrir agora! Task: ' + task.title);
+  setEditingTask(task);
+  setShowEditModal(true);
+};
+
+// Adicione este log no return do componente (antes do return):
+console.log('🟡 DEBUG 5 - Estado atual do componente:', {
+  showEditModal,
+  editingTask: editingTask?.id,
+  userType: user?.type,
+  isUserManager: user?.type === UserType.MANAGER
+});
 
   if (!user) {
     return (
@@ -190,7 +290,6 @@ export default function KanbanPage() {
             <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
           </div>
           
-          {/*Botão para criar tarefa (apenas para gestores) */}
           {user.type === UserType.MANAGER && (
             <button
               onClick={() => setShowCreateModal(true)}
@@ -201,7 +300,6 @@ export default function KanbanPage() {
           )}
         </div>
         
-        {/* Estatísticas Rápidas */}
         <div className="flex gap-4 mt-4 text-sm">
           <div className="bg-blue-50 px-3 py-2 rounded-lg">
             <span className="font-semibold text-blue-800">Total: </span>
@@ -234,27 +332,41 @@ export default function KanbanPage() {
           tasks={tasks}
           onTaskMove={handleTaskMove}
           onViewDetails={handleViewDetails}
+          onEditTask={user.type === UserType.MANAGER ? openEditModal : undefined} // ✅ DEVE SER openEditModal
+          onDeleteTask={user.type === UserType.MANAGER ? handleDeleteTask : undefined}
           userType={user.type}
           currentUser={user}
         />
       )}
 
-      {/*Modal para criar tarefa */}
-      <CreateTaskModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreateTask={handleCreateTask}
+      {/* Modal de Edição */}
+      <EditTaskModal
+        task={editingTask}
+        isOpen={showEditModal}
+        onClose={closeEditModal}
+        onSave={handleSaveTask}
+        onDelete={handleDeleteTask}
         userType={user.type}
-        availableUsers={[]} // Podes passar users se tiveres
-        currentUser={user}
+        availableUsers={availableUsers}
       />
 
+      {/* Modal de Detalhes */}
       <TaskDetails
         task={selectedTask}
         isOpen={showTaskDetails}
         onClose={handleCloseDetails}
         userType={user.type}
-        onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
+        onEditTask={user.type === UserType.MANAGER ? openEditModal : undefined}
+      />
+
+      {/* Modal para criar tarefa */}
+      <CreateTaskModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreateTask={handleCreateTask}
+        userType={user.type}
+        availableUsers={availableUsers}
+        currentUser={user}
       />
     </MainLayout>
   );
