@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Task } from '@/types';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { TaskDetails } from '@/components/kanban/TaskDetails';
-import { CreateTaskModal } from '@/components/kanban/CreateTaskModal'; // ✅ ADICIONAR
+import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
 
@@ -14,7 +14,7 @@ export default function KanbanPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false); // ✅ ADICIONAR
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -86,7 +86,7 @@ export default function KanbanPage() {
     setTasks(mockTasks);
   };
 
-  // ✅ ADICIONAR: Função para criar task
+// Função para criar task
   const handleCreateTask = async (taskData: any) => {
     try {
       console.log('🎯 KanbanPage - Criando task:', taskData);
@@ -101,7 +101,7 @@ export default function KanbanPage() {
         body: JSON.stringify({
           ...taskData,
           id: Date.now().toString(),
-          createdBy: user.id, // ✅ ADICIONAR createdBy
+          createdBy: user.id,
         }),
       });
 
@@ -190,7 +190,7 @@ export default function KanbanPage() {
             <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
           </div>
           
-          {/* ✅ ADICIONAR: Botão para criar tarefa (apenas para gestores) */}
+          {/*Botão para criar tarefa (apenas para gestores) */}
           {user.type === UserType.MANAGER && (
             <button
               onClick={() => setShowCreateModal(true)}
@@ -239,7 +239,7 @@ export default function KanbanPage() {
         />
       )}
 
-      {/* ✅ ADICIONAR: Modal para criar tarefa */}
+      {/*Modal para criar tarefa */}
       <CreateTaskModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
