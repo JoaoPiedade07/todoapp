@@ -6,6 +6,7 @@ import { Task } from '@/types';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { TaskDetails } from '@/components/kanban/TaskDetails';
 import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
+import { EditTaskModal } from '@/components/kanban/EditTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
 
@@ -18,6 +19,8 @@ export default function KanbanPage() {
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const API_BASE_URL = typeof window !== 'undefined' 
     ? `http://${window.location.hostname}:3001`
@@ -45,7 +48,6 @@ export default function KanbanPage() {
     setUser(convertedUser);
     fetchTasks();
 
-    // ✅ CORREÇÃO: Carregar utilizadores se for MANAGER (não programmer)
     if (convertedUser.type === UserType.MANAGER) {
       console.log('📥 Loading available users for manager');
       fetchAvailableUsers();
@@ -77,10 +79,73 @@ export default function KanbanPage() {
     }
   };
 
+  // ✅ CORREÇÃO: Função wrapper para compatibilidade com KanbanBoard
+  const handleEditTaskWrapper = (task: Task) => {
+    // Extrair dados do objeto task para a função original
+    const taskId = task.id;
+    const updates = {
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      story_points: task.story_points,
+      assigned_to: task.assigned_to,
+      task_type_id: task.task_type_id,
+    };
+    handleEditTaskOriginal(taskId, updates);
+  };
+
+  // ✅ CORREÇÃO: Renomear função original
+  const handleEditTaskOriginal = async (taskId: string, updates: any) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+  
+      if (response.ok) {
+        await fetchTasks();
+        alert('Tarefa atualizada com sucesso!');
+      } else {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+    } catch (error: any) {
+      console.error('Erro ao editar tarefa:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+  
+      if (response.ok) {
+        await fetchTasks();
+        alert('Tarefa eliminada com sucesso!');
+      } else {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+    } catch (error: any) {
+      console.error('Erro ao eliminar tarefa:', error);
+      throw error;
+    }
+  };
+
   const fetchAvailableUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      // ✅ CORREÇÃO: URL correta
       const response = await fetch(`${API_BASE_URL}/users/programmers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -130,46 +195,44 @@ export default function KanbanPage() {
     setTasks(mockTasks);
   };
 
-const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
-  // ✅ PERMITIR tanto programadores quanto gestores
-  if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
-    console.log('❌ Usuário não autorizado a mover tarefas:', user?.type);
-    return;
-  }
-
-  console.log('🔄 Movendo tarefa:', { taskId, newStatus, userType: user?.type });
-
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        status: newStatus,
-      }),
-    });
-
-    if (response.ok) {
-      console.log('✅ Tarefa movida com sucesso no servidor');
-      // Atualizar estado local imediatamente para feedback visual
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskId ? { ...task, status: newStatus } : task
-        )
-      );
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Erro ao mover tarefa no servidor:', errorText);
-      alert('Erro ao mover tarefa: ' + errorText);
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
+    if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
+      console.log('❌ Usuário não autorizado a mover tarefas:', user?.type);
+      return;
     }
-  } catch (error) {
-    console.error('❌ Erro de conexão ao mover tarefa:', error);
-    alert('Erro de conexão ao mover tarefa');
-  }
-};
+
+    console.log('🔄 Movendo tarefa:', { taskId, newStatus, userType: user?.type });
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Tarefa movida com sucesso no servidor');
+        setTasks(prevTasks =>
+          prevTasks.map(task =>
+            task.id === taskId ? { ...task, status: newStatus } : task
+          )
+        );
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Erro ao mover tarefa no servidor:', errorText);
+        alert('Erro ao mover tarefa: ' + errorText);
+      }
+    } catch (error) {
+      console.error('❌ Erro de conexão ao mover tarefa:', error);
+      alert('Erro de conexão ao mover tarefa');
+    }
+  };
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -185,7 +248,7 @@ const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
         body: JSON.stringify({
           ...taskData,
           id: Date.now().toString(),
-          createdBy: user.id, // ✅ ADICIONAR createdBy
+          createdBy: user.id,
         }),
       });
 
@@ -219,8 +282,18 @@ const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     setSelectedTask(null);
   };
 
-  const handleEditTask = (task: Task) => {
+  const handleEditTaskClick = (task: Task) => {
     console.log('Editar tarefa:', task);
+  };
+
+  const openEditModal = (task: Task) => {
+    setEditingTask(task);
+    setShowEditModal(true);
+  };
+  
+  const closeEditModal = () => {
+    setEditingTask(null);
+    setShowEditModal(false);
   };
 
   if (!user) {
@@ -237,8 +310,21 @@ const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
   return (
     <MainLayout user={user}>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
-        <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
+            <p className="text-gray-600">Gerencie suas tarefas de forma visual</p>
+          </div>
+          
+          {user.type === UserType.MANAGER && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              + Criar Tarefa
+            </button>
+          )}
+        </div>
         
         <div className="flex gap-4 mt-4 text-sm">
           <div className="bg-blue-50 px-3 py-2 rounded-lg">
@@ -252,6 +338,10 @@ const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
           <div className="bg-yellow-50 px-3 py-2 rounded-lg">
             <span className="font-semibold text-yellow-800">Em Progresso: </span>
             <span className="text-yellow-600">{tasks.filter(t => t.status === TaskStatus.DOING).length}</span>
+          </div>
+          <div className="bg-green-50 px-3 py-2 rounded-lg">
+            <span className="font-semibold text-green-800">Concluído: </span>
+            <span className="text-green-600">{tasks.filter(t => t.status === TaskStatus.DONE).length}</span>
           </div>
         </div>
       </div>
@@ -268,37 +358,38 @@ const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
           tasks={tasks}
           onTaskMove={handleTaskMove}
           onViewDetails={handleViewDetails}
+          onEditTask={user.type === UserType.MANAGER ? handleEditTaskWrapper : undefined}
+          onDeleteTask={user.type === UserType.MANAGER ? handleDeleteTask : undefined}
           userType={user.type}
+          currentUser={user}
         />
       )}
+
+      <EditTaskModal
+        task={editingTask}
+        isOpen={showEditModal}
+        onClose={closeEditModal}
+        onSave={handleEditTaskOriginal}
+        onDelete={handleDeleteTask}
+        userType={user.type}
+        availableUsers={availableUsers}
+      />
 
       <TaskDetails
         task={selectedTask}
         isOpen={showTaskDetails}
         onClose={handleCloseDetails}
         userType={user.type}
-        onEditTask={user.type === UserType.MANAGER ? handleEditTask : undefined}
+        onEditTask={user.type === UserType.MANAGER ? handleEditTaskClick : undefined}
       />
 
-      {/* Botão para criar tarefa */}
-      {user.type === UserType.MANAGER && (
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-8 right-8 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-40"
-          title="Criar Nova Tarefa"
-        >
-          +
-        </button>
-      )}
-
-      {/* Modal para criar tarefa */}
       <CreateTaskModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreateTask={handleCreateTask}
         userType={user.type}
         availableUsers={availableUsers}
-        currentUser={user} // ✅ CORREÇÃO: passar user em vez de currentUser
+        currentUser={user}
       />
     </MainLayout>
   );

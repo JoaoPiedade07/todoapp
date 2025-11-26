@@ -7,8 +7,8 @@ import { UserType, TaskStatus } from '@/constants/enums';
 interface TaskCardProps {
   task: Task;
   onViewDetails: (task: Task) => void;
-  onEditTask: (task: Task) => void;
-  onDeleteTask: (taskId: string) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
   userType: UserType;
   currentUser: any;
   programmers?: Programmer[];
@@ -24,7 +24,9 @@ interface Programmer {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ 
   task, 
-  onViewDetails, 
+  onViewDetails,
+  onEditTask,
+  onDeleteTask,
   userType, 
   currentUser,
   programmers = [] 

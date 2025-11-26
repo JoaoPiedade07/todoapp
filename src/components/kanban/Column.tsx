@@ -11,6 +11,8 @@ interface ColumnProps {
   tasks: Task[];
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void; 
   userType: UserType;
   currentUser: any;
 }
@@ -21,6 +23,8 @@ export const Column: React.FC<ColumnProps> = ({
   tasks,
   onTaskMove,
   onViewDetails,
+  onEditTask,
+  onDeleteTask,
   userType,
   currentUser
 }) => {
@@ -174,6 +178,8 @@ export const Column: React.FC<ColumnProps> = ({
               key={task.id}
               task={task}
               onViewDetails={onViewDetails}
+              onEditTask={onEditTask}
+              onDeleteTask={onDeleteTask}
               userType={userType}
               currentUser={currentUser}
             />

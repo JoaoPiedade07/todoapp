@@ -346,11 +346,11 @@ export const taskQueries = {
         console.log('✅ Task criada com sucesso no banco de dados');
         return result;
     },
-
-    validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): boolean => {
+// No database.ts, procure esta função e adicione a verificação:
+validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): boolean => {
     // Só aplicar validação de ordem quando mover para "inprogress"
     if (newStatus === 'inprogress') {
-      const task = taskQueries.getById(taskId);
+      const task = taskQueries.getById(taskId) as any; // ✅ ADICIONAR 'as any' para evitar erro de tipo
       if (!task) return true;
   
       const blockingTasksStmt = db.prepare(`
@@ -360,7 +360,7 @@ export const taskQueries = {
         AND \`order\` < (SELECT \`order\` FROM tasks WHERE id = ?)
         AND assigned_to = ?
       `);
-      const result = blockingTasksStmt.get(taskId, task.assigned_to) as { count: number };
+      const result = blockingTasksStmt.get(taskId, (task as any).assigned_to) as { count: number };
       
       if (result.count > 0) {
         throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
@@ -567,6 +567,8 @@ const calculateSprintDays = (totalHours: number): number => {
     const sprintDays = Math.ceil(totalHours / hoursPerDay);
     return Math.max(sprintDays, 1);
 };
+
+
 
 export const predictionQueries = {
     calculateTeamVelocity: (userId?: string, weeks: number = 8) => {

@@ -9,6 +9,8 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
+  onEditTask?: (task: Task) => void; // ✅ ADICIONAR
+  onDeleteTask?: (taskId: string) => void;
   userType: UserType;
   currentUser: any;
 }
@@ -17,6 +19,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
   onTaskMove,
   onViewDetails,
+  onEditTask,
+  onDeleteTask,
   userType,
   currentUser 
 }) => {
@@ -58,6 +62,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           tasks={column.tasks}
           onTaskMove={onTaskMove}
           onViewDetails={onViewDetails}
+          onEditTask={onEditTask}
+          onDeleteTask={onDeleteTask}
           userType={userType}
           currentUser={currentUser}
         />
