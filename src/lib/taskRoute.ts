@@ -20,7 +20,6 @@ router.post('/', authenticateToken, async (req: any, res) => {
     console.log('🔍 Body completo:', JSON.stringify(taskData, null, 2));
     console.log('👤 User que está a criar:', req.user);
 
-    // ✅ VALIDAÇÃO
     if (!taskData.title || taskData.title.trim() === '') {
       console.error('❌ ERRO CRÍTICO: Title está vazio!');
       return res.status(400).json({ error: 'Title é obrigatório' });
