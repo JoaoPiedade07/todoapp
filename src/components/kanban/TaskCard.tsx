@@ -8,6 +8,7 @@ interface TaskCardProps {
   task: Task;
   onViewDetails: (task: Task) => void;
   userType: UserType;
+  currentUser: any;
   programmers?: Programmer[];
 }
 
@@ -23,6 +24,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   task, 
   onViewDetails, 
   userType, 
+  currentUser,
   programmers = [] 
 }) => {
   const [isDragging, setIsDragging] = useState(false);

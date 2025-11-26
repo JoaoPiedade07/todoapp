@@ -235,6 +235,7 @@ export default function KanbanPage() {
           onTaskMove={handleTaskMove}
           onViewDetails={handleViewDetails}
           userType={user.type}
+          currentUser={user}
         />
       )}
 

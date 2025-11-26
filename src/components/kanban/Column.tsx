@@ -12,6 +12,7 @@ interface ColumnProps {
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
   userType: UserType;
+  currentUser: any;
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -20,7 +21,8 @@ export const Column: React.FC<ColumnProps> = ({
   tasks,
   onTaskMove,
   onViewDetails,
-  userType
+  userType,
+  currentUser
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -179,6 +181,7 @@ export const Column: React.FC<ColumnProps> = ({
               task={task}
               onViewDetails={onViewDetails}
               userType={userType}
+              currentUser={currentUser}
             />
           ))
         )}

@@ -40,6 +40,8 @@ export interface Task {
   planned_end_date?: string;
   real_start_date?: string;
   real_end_date?: string;
+  assigned_at?: string;
+  completed_at?: string;
   
   // Relacionamentos (para display)
   assigned_user_name?: string;

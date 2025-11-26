@@ -7,16 +7,18 @@ import { TaskStatus, UserType } from '@/constants/enums';
 
 interface KanbanBoardProps {
   tasks: Task[];
-  onTaskMove: (taskId: string, newStatus: TaskStatus) => void; // MUDAR PARA TaskStatus
+  onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
-  userType: UserType; // MUDAR PARA UserType
+  userType: UserType;
+  currentUser: any; // ✅ ADICIONADO
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
   onTaskMove,
   onViewDetails,
-  userType
+  userType,
+  currentUser // ✅ ADICIONADO
 }) => {
   const [todoTasks, setTodoTasks] = useState<Task[]>([]);
   const [doingTasks, setDoingTasks] = useState<Task[]>([]);
@@ -57,6 +59,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onTaskMove={onTaskMove}
           onViewDetails={onViewDetails}
           userType={userType}
+          currentUser={currentUser} // ✅ ADICIONADO
         />
       ))}
     </div>
