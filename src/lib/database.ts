@@ -446,20 +446,32 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
         let additionalUpdates = '';
         const params: any[] = [];
 
-        const fields = Object.keys(task).map(key => {
-            if (key === 'status' && task.status) {
-                if(task.status === 'inprogress' && task.assignedTo && !currentTask.assigned_at ) {
+        // ✅ CORREÇÃO: Normalizar valores null e strings vazias para foreign keys
+        const normalizedTask: any = { ...task };
+        if (normalizedTask.assignedTo === '' || normalizedTask.assignedTo === undefined) {
+            normalizedTask.assignedTo = null;
+        }
+        if (normalizedTask.taskTypeId === '' || normalizedTask.taskTypeId === undefined) {
+            normalizedTask.taskTypeId = null;
+        }
+        if (normalizedTask.description === '') {
+            normalizedTask.description = null;
+        }
+
+        const fields = Object.keys(normalizedTask).map(key => {
+            if (key === 'status' && normalizedTask.status) {
+                if(normalizedTask.status === 'inprogress' && normalizedTask.assignedTo && !currentTask.assigned_at ) {
                     additionalUpdates += `, assigned_at = datetime('now')`;
                 }
-                else if(task.status === 'done' && !currentTask.completed_at ) {
+                else if(normalizedTask.status === 'done' && !currentTask.completed_at ) {
                     additionalUpdates += `, completed_at = datetime('now')`;
                 }
-                else if(task.status === 'todo' ) {
+                else if(normalizedTask.status === 'todo' ) {
                     additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
                 }
             }
 
-            if (key === 'assignedTo' && task.assignedTo && task.status === 'inprogress' && !currentTask.assigned_at) {
+            if (key === 'assignedTo' && normalizedTask.assignedTo && normalizedTask.status === 'inprogress' && !currentTask.assigned_at) {
                 additionalUpdates += `, assigned_at = datetime('now')`;
             }
 
@@ -470,7 +482,7 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
             return `${key} = ?`;
         }).join(', ');
 
-        const values = Object.values(task);
+        const values = Object.values(normalizedTask);
         const stmt = db.prepare(`UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
         return stmt.run(...values, id);
     },
@@ -594,12 +606,11 @@ export const predictionQueries = {
         if(userId) {
             query += ` AND t.assigned_to = ? GROUP BY u.id, u.name`;
             params.push(userId);
-        } else {
-            query += ' GROUP BY 1';
         }
+        // Quando não há userId, não precisamos de GROUP BY - é uma agregação geral
 
         const stmt = db.prepare(query);
-        return userId ? stmt.get(...params) : stmt.all(...params);
+        return userId ? stmt.get(...params) : stmt.get(...params);
     }, 
 
     calculatePointsToHoursRatio: (userId?: string) => {
@@ -624,9 +635,9 @@ export const predictionQueries = {
             const stmt = db.prepare(query);
             return stmt.get(userId);
         } else {
-            query += ' GROUP BY 1';
+            // Quando não há userId, não precisamos de GROUP BY - é uma agregação geral
             const stmt = db.prepare(query);
-            return stmt.all();
+            return stmt.get();
         }
     },
 

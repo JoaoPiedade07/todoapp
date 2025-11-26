@@ -1,5 +1,5 @@
 import { authenticateToken } from './middleware';
-import { taskQueries, taskTypeQueries, predictionQueries } from './database';
+import { taskQueries, taskTypeQueries, predictionQueries, userQueries } from './database';
 import express from 'express';
 
 const router = express.Router();
@@ -23,6 +23,22 @@ router.post('/', authenticateToken, async (req: any, res) => {
     if (!taskData.title || taskData.title.trim() === '') {
       console.error('❌ ERRO CRÍTICO: Title está vazio!');
       return res.status(400).json({ error: 'Title é obrigatório' });
+    }
+
+    // Validação de story_points
+    if (taskData.story_points) {
+      const storyPoints = parseInt(taskData.story_points);
+      if (isNaN(storyPoints) || storyPoints <= 0) {
+        return res.status(400).json({ error: 'Story Points deve ser um número positivo' });
+      }
+    }
+
+    // Validação de order
+    if (taskData.order !== undefined && taskData.order !== null) {
+      const order = typeof taskData.order === 'number' ? taskData.order : parseInt(taskData.order);
+      if (isNaN(order) || order < 0) {
+        return res.status(400).json({ error: 'Order deve ser um número não-negativo' });
+      }
     }
 
     // Converter status do frontend para o formato do banco
@@ -93,8 +109,30 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.status !== undefined) updateData.status = updates.status;
     if (updates.story_points !== undefined) updateData.storyPoints = updates.story_points;
-    if (updates.assigned_to !== undefined) updateData.assignedTo = updates.assigned_to;
-    if (updates.task_type_id !== undefined) updateData.taskTypeId = updates.task_type_id;
+    
+    // ✅ CORREÇÃO: Converter strings vazias para null para foreign keys
+    if (updates.assigned_to !== undefined) {
+      updateData.assignedTo = updates.assigned_to === '' || updates.assigned_to === null ? null : updates.assigned_to;
+      // Validar se o ID existe se não for null
+      if (updateData.assignedTo) {
+        const user = userQueries.getById(updateData.assignedTo);
+        if (!user) {
+          return res.status(400).json({ error: 'Programador não encontrado' });
+        }
+      }
+    }
+    
+    if (updates.task_type_id !== undefined) {
+      updateData.taskTypeId = updates.task_type_id === '' || updates.task_type_id === null ? null : updates.task_type_id;
+      // Validar se o ID existe se não for null
+      if (updateData.taskTypeId) {
+        const taskType = taskTypeQueries.getById(updateData.taskTypeId);
+        if (!taskType) {
+          return res.status(400).json({ error: 'Tipo de tarefa não encontrado' });
+        }
+      }
+    }
+    
     if (updates.order !== undefined) updateData.order = updates.order;
 
     const result = taskQueries.update(id, updateData);
