@@ -79,6 +79,64 @@ router.post('/', authenticateToken, async (req: any, res) => {
   }
 });
 
+// PUT /:id - Editar task completamente
+router.put('/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    console.log('🔄 Editando task:', { id, updates });
+
+    // Converter campos se necessário
+    const updateData: any = {};
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.story_points !== undefined) updateData.storyPoints = updates.story_points;
+    if (updates.assigned_to !== undefined) updateData.assignedTo = updates.assigned_to;
+    if (updates.task_type_id !== undefined) updateData.taskTypeId = updates.task_type_id;
+    if (updates.order !== undefined) updateData.order = updates.order;
+
+    const result = taskQueries.update(id, updateData);
+    const updatedTask = taskQueries.getById(id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Task atualizada com sucesso', 
+      data: updatedTask 
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao editar task:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// DELETE /:id - Eliminar task
+router.delete('/:id', authenticateToken, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🗑️ Eliminando task:', id);
+
+    // Verificar se a task existe
+    const task = taskQueries.getById(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task não encontrada' });
+    }
+
+    const result = taskQueries.delete(id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Task eliminada com sucesso', 
+      data: result 
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao eliminar task:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // GET / - Buscar todas as tasks
 router.get('/', authenticateToken, (req: any, res) => {
   try {
