@@ -10,7 +10,7 @@ interface KanbanBoardProps {
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
   userType: UserType;
-  currentUser: any; // ✅ ADICIONADO
+  currentUser: any;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -18,7 +18,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onTaskMove,
   onViewDetails,
   userType,
-  currentUser // ✅ ADICIONADO
+  currentUser 
 }) => {
   const [todoTasks, setTodoTasks] = useState<Task[]>([]);
   const [doingTasks, setDoingTasks] = useState<Task[]>([]);
@@ -59,7 +59,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onTaskMove={onTaskMove}
           onViewDetails={onViewDetails}
           userType={userType}
-          currentUser={currentUser} // ✅ ADICIONADO
+          currentUser={currentUser}
         />
       ))}
     </div>

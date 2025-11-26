@@ -54,7 +54,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    // 🔥 REGRA IMPORTANTE: Não permitir drag de tarefas concluídas
     if (task.status === TaskStatus.DONE) {
       e.preventDefault();
       console.log('❌ Tentativa de arrastar tarefa concluída bloqueada');
@@ -95,7 +94,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  // 🔥 REGRA PRINCIPAL: Só é draggable se não estiver concluída
   const isDraggable = task.status !== TaskStatus.DONE && 
     (userType === UserType.PROGRAMMER || userType === UserType.MANAGER);
 

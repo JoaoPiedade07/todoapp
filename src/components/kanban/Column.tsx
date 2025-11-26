@@ -84,7 +84,6 @@ export const Column: React.FC<ColumnProps> = ({
       return;
     }
 
-    // 🔥 REGRA IMPORTANTE: Não permitir mover tarefas concluídas
     if (currentStatus === TaskStatus.DONE) {
       console.log('❌ Não pode mover tarefas concluídas');
       alert('Tarefas concluídas não podem ser movidas!');
@@ -102,11 +101,6 @@ export const Column: React.FC<ColumnProps> = ({
       console.log('❌ Já está nesta coluna');
       return;
     }
-    
-    // 🔥 REGRAS DE MOVIMENTAÇÃO SIMPLIFICADAS:
-    // - Tarefas NUNCA podem ser movidas da coluna "Concluído" (já verificado acima)
-    // - Tarefas podem ser movidas livremente entre "A Fazer" e "Em Progresso"
-    // - Tarefas podem ser movidas para "Concluído" apenas se vierem de "Em Progresso"
     
     let isValidMove = false;
     
