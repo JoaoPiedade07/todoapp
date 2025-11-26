@@ -39,7 +39,6 @@ export function initDatabase() {
         )
     `);
 
-    // ✅ ADICIONAR COLUNA experience_level SE NÃO EXISTIR
     try {
         const addExperienceLevelColumn = db.prepare(`
             ALTER TABLE users ADD COLUMN experience_level TEXT DEFAULT 'junior'
@@ -222,6 +221,23 @@ export const taskQueries = {
         return stmt.all();
     },
 
+    getDoingTasksCount: (assignedTo: string): number => {
+        const stmt = db.prepare(`
+          SELECT COUNT(*) as count 
+          FROM tasks 
+          WHERE assigned_to = ? AND status = 'inprogress'
+        `);
+        const result = stmt.get(assignedTo) as { count: number };
+        return result.count;
+      },
+
+      canAssignToDoing: (assignedTo: string): boolean => {
+        const doingCount = taskQueries.getDoingTasksCount(assignedTo);
+        return doingCount < 2; // Máximo 2 tarefas em Doing
+      },
+
+
+
     getById: (id: string) => {
         const stmt = db.prepare(`
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
@@ -246,17 +262,25 @@ export const taskQueries = {
     },
 
     create: (task: {
-        id: string,
-        title: string, 
-        description?: string, 
-        status?: 'todo' | 'inprogress' | 'done', 
-        order?: number, 
-        storyPoints?: number, 
-        assignedTo?: string, 
-        taskTypeId?: string,
-        createdBy: string
-    }) => {
-        console.log('📥 Dados recebidos na database create:', task);
+    id: string;
+    title: string;
+    description?: string;
+    status?: 'todo' | 'inprogress' | 'done';
+    order?: number;
+    storyPoints?: number;
+    assignedTo?: string;
+    taskTypeId?: string;
+    createdBy: string;
+  }) => {
+    console.log('📥 Dados recebidos na database create:', task);
+
+    if (task.status === 'inprogress' && task.assignedTo) {
+        const canAssign = taskQueries.canAssignToDoing(task.assignedTo);
+        if (!canAssign) {
+          throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+        }
+      }
+    
 
         let finalAssignedTo = task.assignedTo;
         if(!finalAssignedTo) {
@@ -295,6 +319,8 @@ export const taskQueries = {
             }
         }
 
+        
+
         const stmt = db.prepare(`
             INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, created_by, assigned_at, estimated_hours, confidence_level)
             VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
@@ -321,27 +347,86 @@ export const taskQueries = {
         return result;
     },
 
-    updateStatus: (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
+    validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): boolean => {
+        // Regra: Só pode mover para "inprogress" se não houver tarefas bloqueantes
+        if (newStatus === 'inprogress') {
+          const blockingTasksStmt = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM tasks 
+            WHERE status = 'todo' 
+            AND \`order\` < (SELECT \`order\` FROM tasks WHERE id = ?)
+            AND assigned_to = (SELECT assigned_to FROM tasks WHERE id = ?)
+          `);
+          const result = blockingTasksStmt.get(taskId, taskId) as { count: number };
+          
+          if (result.count > 0) {
+            throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
+          }
+        }
+        return true;
+      },
+
+      getCompletedTasksByProgrammer: (programmerId: string) => {
+        const stmt = db.prepare(`
+          SELECT * FROM tasks 
+          WHERE assigned_to = ? AND status = 'done'
+          ORDER BY completed_at DESC
+        `);
+        return stmt.all(programmerId);
+      },
+    
+      getProgrammerStats: (programmerId: string) => {
+        const stmt = db.prepare(`
+          SELECT 
+            COUNT(*) as total_tasks,
+            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as completed_tasks,
+            SUM(CASE WHEN status = 'inprogress' THEN 1 ELSE 0 END) as doing_tasks,
+            SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) as todo_tasks,
+            AVG(story_points) as avg_story_points,
+            AVG((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24) as avg_completion_hours
+          FROM tasks 
+          WHERE assigned_to = ?
+        `);
+        return stmt.get(programmerId);
+      },
+
+      updateStatus: (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
+        taskQueries.validateExecutionOrder(id, status);
+    
+        if (status === 'inprogress' && assignedTo) {
+          const canAssign = taskQueries.canAssignToDoing(assignedTo);
+          if (!canAssign) {
+            throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+          }
+        }
+
+        if (status === 'inprogress' && assignedTo) {
+          const canAssign = taskQueries.canAssignToDoing(assignedTo);
+          if (!canAssign) {
+            throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+          }
+        }
+    
         let query = `UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP`;
         const params: any[] = [status];
-
+    
         if(status === 'inprogress' && assignedTo) {
-            query += `, assigned_to = ?, assigned_at = datetime('now')`;
-            params.push(assignedTo);
+          query += `, assigned_to = ?, assigned_at = datetime('now')`;
+          params.push(assignedTo);
         }
         else if(status === 'done') {
-            query += `, completed_at = datetime('now')`;
+          query += `, completed_at = datetime('now')`;
         }
         else if(status === 'todo') {
-            query += `, assigned_at = NULL, completed_at = NULL`;
+          query += `, assigned_at = NULL, completed_at = NULL`;
         }
-
+    
         query += ` WHERE id = ?`;
         params.push(id);
-
+    
         const stmt = db.prepare(query);
         return stmt.run(...params);
-    },
+      },
 
     update: (id: string, task: Partial<{
         title: string,
@@ -420,6 +505,8 @@ export const taskQueries = {
 
         return tx(normalized);
     }
+
+    
 };
 
 export const timeCalculationQueries = {
@@ -442,7 +529,6 @@ export const timeCalculationQueries = {
     },
 };
 
-// Funções auxiliares para predictionQueries
 const calculateComplexityFactor = (storyPoints: number): number => {
     if (storyPoints <= 2) return 0.8;
     if (storyPoints <= 5) return 1.0;
