@@ -149,12 +149,13 @@ router.get('/', authenticateToken, (req: any, res) => {
 });
 
 // PATCH /:id - Atualizar task
+// PATCH /:id - Atualizar task
 router.patch('/:id', authenticateToken, (req: any, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log(`🔄 Atualizando task ${id}:`, updates);
+    console.log('🔄 Atualizando task:', { id, updates });
 
     // Converter campos se necessário
     const updateData: any = {};
@@ -172,12 +173,17 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
     if (updates.title !== undefined) updateData.title = updates.title;
     if (updates.description !== undefined) updateData.description = updates.description;
 
+    console.log('📝 Dados convertidos para update:', updateData);
+
     const result = taskQueries.update(id, updateData);
     const updatedTask = taskQueries.getById(id);
+    
+    console.log('✅ Task atualizada com sucesso:', updatedTask);
+    
     res.json({ success: true, message: 'Task atualizada', data: updatedTask });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao atualizar task:', error);
-    res.status(500).json({ error: 'Erro ao atualizar task' });
+    res.status(500).json({ error: 'Erro ao atualizar task', details: error.message });
   }
 });
 

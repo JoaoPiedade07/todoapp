@@ -348,23 +348,27 @@ export const taskQueries = {
     },
 
     validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): boolean => {
-        // Regra: Só pode mover para "inprogress" se não houver tarefas bloqueantes
-        if (newStatus === 'inprogress') {
-          const blockingTasksStmt = db.prepare(`
-            SELECT COUNT(*) as count 
-            FROM tasks 
-            WHERE status = 'todo' 
-            AND \`order\` < (SELECT \`order\` FROM tasks WHERE id = ?)
-            AND assigned_to = (SELECT assigned_to FROM tasks WHERE id = ?)
-          `);
-          const result = blockingTasksStmt.get(taskId, taskId) as { count: number };
-          
-          if (result.count > 0) {
-            throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
-          }
-        }
-        return true;
-      },
+    // Só aplicar validação de ordem quando mover para "inprogress"
+    if (newStatus === 'inprogress') {
+      const task = taskQueries.getById(taskId);
+      if (!task) return true;
+  
+      const blockingTasksStmt = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM tasks 
+        WHERE status = 'todo' 
+        AND \`order\` < (SELECT \`order\` FROM tasks WHERE id = ?)
+        AND assigned_to = ?
+      `);
+      const result = blockingTasksStmt.get(taskId, task.assigned_to) as { count: number };
+      
+      if (result.count > 0) {
+        throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
+      }
+    }
+        
+    return true;
+  },
 
       getCompletedTasksByProgrammer: (programmerId: string) => {
         const stmt = db.prepare(`

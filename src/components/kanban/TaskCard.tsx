@@ -7,6 +7,8 @@ import { UserType, TaskStatus } from '@/constants/enums';
 interface TaskCardProps {
   task: Task;
   onViewDetails: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (taskId: string) => void;
   userType: UserType;
   currentUser: any;
   programmers?: Programmer[];
