@@ -9,6 +9,7 @@ import { authenticateToken } from './src/lib/middleware';
 import userRoute from './src/lib/userRoute';
 import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
+import programmerRoutes from './src/lib/programmerRoutes';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ server.use('/auth', authRoutes);
 server.use('/users', userRoute);
 server.use('/tasks', taskRoute);
 server.use('/task-type', taskTypeRoute);
+server.use('/programmer', programmerRoutes);
 
 // Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {
