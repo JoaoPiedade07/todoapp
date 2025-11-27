@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
-      name: '🏷️ Tipos de Tarefa',
+      name: '🏷️ Tarefas Concluídas',
       path: '/task-types', 
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
