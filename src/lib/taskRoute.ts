@@ -186,6 +186,30 @@ router.get('/', authenticateToken, (req: any, res) => {
   }
 });
 
+// GET /completed/:programmerId - Obter tarefas concluídas de um programador (apenas gestores)
+router.get('/completed/:programmerId', authenticateToken, (req: any, res) => {
+  try {
+    // Verificar se o utilizador é gestor
+    if (req.user.type !== 'gestor') {
+      return res.status(403).json({ 
+        error: 'Apenas gestores podem visualizar tarefas concluídas de outros utilizadores' 
+      });
+    }
+
+    const { programmerId } = req.params;
+    const completedTasks = taskQueries.getCompletedTasksByProgrammer(programmerId);
+    
+    res.json({
+      success: true,
+      data: completedTasks,
+      count: completedTasks.length
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar tarefas concluídas:', error);
+    res.status(500).json({ error: 'Erro ao buscar tarefas concluídas', details: error.message });
+  }
+});
+
 // PATCH /:id - Atualizar task
 // PATCH /:id - Atualizar task
 router.patch('/:id', authenticateToken, (req: any, res) => {

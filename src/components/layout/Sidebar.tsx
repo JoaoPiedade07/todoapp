@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     },
     {
       name: '🏷️ Tarefas Concluídas',
-      path: '/task-types', 
+      path: '/completed-tasks', 
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
