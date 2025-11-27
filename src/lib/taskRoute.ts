@@ -197,7 +197,11 @@ router.get('/completed/:programmerId', authenticateToken, (req: any, res) => {
     }
 
     const { programmerId } = req.params;
+    console.log('🔍 Buscando tarefas concluídas para programador:', programmerId);
+    
     const completedTasks = taskQueries.getCompletedTasksByProgrammer(programmerId);
+    console.log('✅ Tarefas encontradas:', completedTasks.length);
+    console.log('📋 Dados das tarefas:', JSON.stringify(completedTasks, null, 2));
     
     res.json({
       success: true,

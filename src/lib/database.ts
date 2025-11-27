@@ -372,9 +372,12 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
 
       getCompletedTasksByProgrammer: (programmerId: string) => {
         const stmt = db.prepare(`
-          SELECT * FROM tasks 
-          WHERE assigned_to = ? AND status = 'done'
-          ORDER BY completed_at DESC
+          SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
+          FROM tasks t
+          LEFT JOIN users u ON t.assigned_to = u.id
+          LEFT JOIN task_types tt ON t.task_type_id = tt.id
+          WHERE t.assigned_to = ? AND t.status = 'done'
+          ORDER BY t.completed_at DESC
         `);
         return stmt.all(programmerId);
       },
