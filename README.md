@@ -10,7 +10,7 @@ Uma aplicação web moderna de gestão de tarefas com interface Kanban, sistema 
 
 ## 🎯 Descrição
 
-odoApp é uma aplicação full-stack desenvolvida para gestão de projetos e tarefas, com foco em equipas de desenvolvimento. A aplicação oferece uma interface Kanban intuitiva, sistema de autenticação, gestão de utilizadores (gestores e programadores), e um algoritmo inteligente de predição de tempo baseado em dados históricos.
+TodoApp é uma aplicação full-stack desenvolvida para gestão de projetos e tarefas, com foco em equipas de desenvolvimento. A aplicação oferece uma interface Kanban intuitiva, sistema de autenticação, gestão de utilizadores (gestores e programadores), e um algoritmo inteligente de predição de tempo baseado em dados históricos.
 
 ## ✨ Funcionalidades Principais
 
