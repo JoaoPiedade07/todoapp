@@ -1,12 +1,45 @@
-import Database from "better-sqlite3";
+import { Pool, QueryResult } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
-const dbPath = path.join(process.cwd(), 'database.sqlite3');
-export const db = new Database(dbPath);
+// Check if DATABASE_URL is set
+if (!process.env.DATABASE_URL) {
+  console.error('\n❌ ERROR: DATABASE_URL environment variable is not set!');
+  console.error('\n📋 To fix this:');
+  console.error('1. Create a .env file in the project root');
+  console.error('2. Add: DATABASE_URL=postgresql://user:password@host:5432/database');
+  console.error('3. For a free database, go to https://supabase.com');
+  console.error('\n📖 See QUICK_START.md for detailed instructions\n');
+  process.exit(1);
+}
 
-// Habilitar foreign keys
-db.pragma('foreign_keys = ON');
+// Initialize PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle PostgreSQL client', err);
+});
+
+// Helper function to execute queries and return all rows
+export async function query(text: string, params?: any[]): Promise<any[]> {
+  const result: QueryResult = await pool.query(text, params);
+  return result.rows;
+}
+
+// Helper function for single row queries
+export async function queryOne(text: string, params?: any[]): Promise<any> {
+  const result: QueryResult = await pool.query(text, params);
+  return result.rows[0];
+}
+
+// Helper function for execute (no return, for INSERT/UPDATE/DELETE)
+export async function execute(text: string, params?: any[]): Promise<QueryResult> {
+  return await pool.query(text, params);
+}
 
 // Função para logging
 function log(message: string, data?: any) {
@@ -21,108 +54,139 @@ function log(message: string, data?: any) {
 }
 
 // Criar tabelas se não existirem
-export function initDatabase() {
-    // Tabela de utilizadores (já existe)
-    db.exec(`
+export async function initDatabase() {
+    try {
+        // Test connection first
+        await pool.query('SELECT NOW()');
+        console.log('✅ Connected to PostgreSQL database');
+    } catch (error: any) {
+        console.error('\n❌ Failed to connect to PostgreSQL database!');
+        console.error('Error:', error.message);
+        if (error.code === 'ECONNREFUSED') {
+            console.error('\n💡 This usually means:');
+            console.error('   - PostgreSQL is not running (if using local database)');
+            console.error('   - DATABASE_URL is incorrect');
+            console.error('   - Database server is not accessible\n');
+            console.error('📖 See QUICK_START.md for setup instructions\n');
+        }
+        throw error;
+    }
+    
+    try {
+        // Tabela de utilizadores
+        await execute(`
         CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          username TEXT UNIQUE NOT NULL,
-          name TEXT NOT NULL,
-          email TEXT UNIQUE NOT NULL,
+          id VARCHAR(255) PRIMARY KEY,
+          username VARCHAR(255) UNIQUE NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
-          type TEXT CHECK(type IN ('gestor', 'programador')) NOT NULL,
-          department TEXT NOT NULL,
-          manager_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          type VARCHAR(50) CHECK(type IN ('gestor', 'programador')) NOT NULL,
+          department VARCHAR(255) NOT NULL,
+          manager_id VARCHAR(255),
+          experience_level VARCHAR(50) DEFAULT 'junior',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
         )
     `);
 
+    // Add experience_level column if it doesn't exist
     try {
-        const addExperienceLevelColumn = db.prepare(`
-            ALTER TABLE users ADD COLUMN experience_level TEXT DEFAULT 'junior'
+        await execute(`
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'experience_level'
+                ) THEN
+                    ALTER TABLE users ADD COLUMN experience_level VARCHAR(50) DEFAULT 'junior';
+                END IF;
+            END $$;
         `);
-        addExperienceLevelColumn.run();
-        console.log('✅ Coluna experience_level adicionada com sucesso');
+        console.log('✅ Coluna experience_level verificada');
     } catch (error: any) {
-        if (error.message.includes('duplicate column name')) {
-            console.log('ℹ️ Coluna experience_level já existe');
-        } else {
-            console.log('⚠️ Erro ao adicionar coluna experience_level:', error.message);
-        }
+        console.log('ℹ️ Coluna experience_level já existe ou erro:', error.message);
     }
     
     // Tabela de tipos de tarefas
-    db.exec(`
+    await execute(`
         CREATE TABLE IF NOT EXISTS task_types (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
           description TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
     // Tabela de tarefas
-    db.exec(`
+    await execute(`
         CREATE TABLE IF NOT EXISTS tasks (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
           description TEXT,
-          status TEXT CHECK(status IN ('todo', 'inprogress', 'done')) NOT NULL DEFAULT 'todo',
-          \`order\` INTEGER NOT NULL DEFAULT 0,
+          status VARCHAR(50) CHECK(status IN ('todo', 'inprogress', 'done')) NOT NULL DEFAULT 'todo',
+          "order" INTEGER NOT NULL DEFAULT 0,
           story_points INTEGER,
-          assigned_to TEXT,
-          task_type_id TEXT,
-          assigned_at DATETIME,
-          created_by TEXT REFERENCES users(id),
-          completed_at DATETIME,
+          assigned_to VARCHAR(255),
+          task_type_id VARCHAR(255),
+          assigned_at TIMESTAMP,
+          created_by VARCHAR(255) REFERENCES users(id),
+          completed_at TIMESTAMP,
           estimated_hours DECIMAL(10,2),
           actual_hours DECIMAL(10,2),
           confidence_level DECIMAL(3,2),
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
           FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
         )
     `);
     
-    db.exec(`
+    await execute(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
-        ON tasks(assigned_to, status, \`order\`)
+        ON tasks(assigned_to, status, "order")
     `);
+    
+        console.log('✅ Database schema initialized successfully');
+    } catch (error: any) {
+        console.error('❌ Error initializing database schema:', error.message);
+        throw error;
+    }
 }
 
-initDatabase();
+// Initialize database on module load (but make it async-safe)
+let initPromise: Promise<void> | null = null;
+export function ensureDatabaseInitialized(): Promise<void> {
+    if (!initPromise) {
+        initPromise = initDatabase();
+    }
+    return initPromise;
+}
 
 // Função para os utilizadores
 export const userQueries = {
-    getAll: () => {
-        const stmt = db.prepare('SELECT * FROM users ORDER BY created_at DESC');
-        return stmt.all();
+    getAll: async () => {
+        return await query('SELECT * FROM users ORDER BY created_at DESC');
     },
     
-    getById: (id: string) => {
-        const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-        return stmt.get(id);
+    getById: async (id: string) => {
+        return await queryOne('SELECT * FROM users WHERE id = $1', [id]);
     },
 
-    getProgrammers: () => {
-        const stmt = db.prepare("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
-        return stmt.all();
+    getProgrammers: async () => {
+        return await query("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
     },
 
-    getManagers: () => {
-        const stmt = db.prepare("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
-        return stmt.all();
+    getManagers: async () => {
+        return await query("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
     },
 
-    getByManagerId: (managerId: string) => {
-        const stmt = db.prepare("SELECT * FROM users WHERE manager_id = ? ORDER BY name");
-        return stmt.all(managerId);
+    getByManagerId: async (managerId: string) => {
+        return await query("SELECT * FROM users WHERE manager_id = $1 ORDER BY name", [managerId]);
     },
     
-    create: (user: {
+    create: async (user: {
         id: string;
         username: string;
         name: string;
@@ -133,11 +197,11 @@ export const userQueries = {
         manager_id?: string;
         experience_level?: string;
     }) => {
-        const stmt = db.prepare(`
+        await execute(`
             INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id, experience_level)
-            VALUES(?,?,?,?,?,?,?,?,?)
-        `);
-        return stmt.run(user.id,
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `, [
+            user.id,
             user.username,
             user.name,
             user.email,
@@ -145,11 +209,11 @@ export const userQueries = {
             user.type,
             user.department,
             user.manager_id || null,
-            user.experience_level || 'junior' // default value
-        );
+            user.experience_level || 'junior'
+        ]);
     },
     
-    update: (id: string, user: Partial<{
+    update: async (id: string, user: Partial<{
         username: string;
         name: string;
         email: string;
@@ -158,129 +222,116 @@ export const userQueries = {
         manager_id: string;
         experience_level: string;
     }>) => {
-        const fields = Object.keys(user).map(key => {
-            if (key === 'manager_id') return 'manager_id = ?';
-            if (key === 'experience_level') return 'experience_level = ?';
-            return `${key} = ?`;
-        }).join(', ');
-
+        const fields = Object.keys(user).map((key, index) => `${key} = $${index + 1}`).join(', ');
         const values = Object.values(user);
-        const stmt = db.prepare(`UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
-        return stmt.run(...values, id);
+        await execute(
+            `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1}`,
+            [...values, id]
+        );
     },
     
-    delete: (id: string) => {
-        const stmt = db.prepare('DELETE FROM users WHERE id = ?');
-        return stmt.run(id);
+    delete: async (id: string) => {
+        await execute('DELETE FROM users WHERE id = $1', [id]);
     }
 };
 
 // Função para os tipos de tarefas
 export const taskTypeQueries = {
-    getAll: () => {
-        const stmt = db.prepare('SELECT * FROM task_types ORDER BY created_at DESC');
-        return stmt.all();
+    getAll: async () => {
+        return await query('SELECT * FROM task_types ORDER BY created_at DESC');
     },
 
-    getById: (id: string) => {
-        const stmt = db.prepare('SELECT * FROM task_types WHERE id = ?');
-        return stmt.get(id);
+    getById: async (id: string) => {
+        return await queryOne('SELECT * FROM task_types WHERE id = $1', [id]);
     },
 
-    create: (taskType: { id: string, name: string, description: string}) => {
-        const stmt = db.prepare(`
+    create: async (taskType: { id: string, name: string, description: string}) => {
+        await execute(`
             INSERT INTO task_types (id, name, description)
-            VALUES (?,?,?)
-        `);
-        return stmt.run(taskType.id, taskType.name, taskType.description);
+            VALUES ($1, $2, $3)
+        `, [taskType.id, taskType.name, taskType.description]);
     },
     
-    update: (id: string, taskType: Partial<{ name: string, description: string}>) => {
-        const fields = Object.keys(taskType).map(key => `${key} = ?`).join(', ');
+    update: async (id: string, taskType: Partial<{ name: string, description: string}>) => {
+        const fields = Object.keys(taskType).map((key, index) => `${key} = $${index + 1}`).join(', ');
         const values = Object.values(taskType);
-        const stmt = db.prepare(`UPDATE task_types SET ${fields} WHERE id = ?`);
-        return stmt.run(...values, id);
+        await execute(
+            `UPDATE task_types SET ${fields} WHERE id = $${values.length + 1}`,
+            [...values, id]
+        );
     },
 
-    delete: (id: string) => {
-        const stmt = db.prepare('DELETE FROM task_types WHERE id = ?');
-        return stmt.run(id);
+    delete: async (id: string) => {
+        await execute('DELETE FROM task_types WHERE id = $1', [id]);
     }
 };
 
 // Função para tarefas
 export const taskQueries = {
-    getAll: () => {
-        const stmt = db.prepare(`
+    getAll: async () => {
+        return await query(`
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
-            ORDER BY t.\`order\` ASC, t.created_at DESC
+            ORDER BY t."order" ASC, t.created_at DESC
         `);
-        return stmt.all();
     },
 
-    getDoingTasksCount: (assignedTo: string): number => {
-        const stmt = db.prepare(`
-          SELECT COUNT(*) as count 
+    getDoingTasksCount: async (assignedTo: string): Promise<number> => {
+        const result = await queryOne(`
+          SELECT COUNT(*)::int as count 
           FROM tasks 
-          WHERE assigned_to = ? AND status = 'inprogress'
-        `);
-        const result = stmt.get(assignedTo) as { count: number };
-        return result.count;
-      },
+          WHERE assigned_to = $1 AND status = 'inprogress'
+        `, [assignedTo]);
+        return result?.count || 0;
+    },
 
-      canAssignToDoing: (assignedTo: string): boolean => {
-        const doingCount = taskQueries.getDoingTasksCount(assignedTo);
+    canAssignToDoing: async (assignedTo: string): Promise<boolean> => {
+        const doingCount = await taskQueries.getDoingTasksCount(assignedTo);
         return doingCount < 2; // Máximo 2 tarefas em Doing
-      },
+    },
 
-
-
-    getById: (id: string) => {
-        const stmt = db.prepare(`
+    getById: async (id: string) => {
+        return await queryOne(`
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
-            WHERE t.id = ?
-        `);
-        return stmt.get(id);
+            WHERE t.id = $1
+        `, [id]);
     },
 
-    getByStatus: (status: 'todo' | 'inprogress' | 'done') => {
-        const stmt = db.prepare(`
+    getByStatus: async (status: 'todo' | 'inprogress' | 'done') => {
+        return await query(`
             SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
-            WHERE t.status = ?
-            ORDER BY t.\`order\` ASC, t.created_at DESC
-        `);
-        return stmt.all(status);
+            WHERE t.status = $1
+            ORDER BY t."order" ASC, t.created_at DESC
+        `, [status]);
     },
 
-    create: (task: {
-    id: string;
-    title: string;
-    description?: string;
-    status?: 'todo' | 'inprogress' | 'done';
-    order?: number;
-    storyPoints?: number;
-    assignedTo?: string;
-    taskTypeId?: string;
-    createdBy: string;
-  }) => {
-    console.log('📥 Dados recebidos na database create:', task);
+    create: async (task: {
+        id: string;
+        title: string;
+        description?: string;
+        status?: 'todo' | 'inprogress' | 'done';
+        order?: number;
+        storyPoints?: number;
+        assignedTo?: string;
+        taskTypeId?: string;
+        createdBy: string;
+    }) => {
+        console.log('📥 Dados recebidos na database create:', task);
 
-    if (task.status === 'inprogress' && task.assignedTo) {
-        const canAssign = taskQueries.canAssignToDoing(task.assignedTo);
-        if (!canAssign) {
-          throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+        if (task.status === 'inprogress' && task.assignedTo) {
+            const canAssign = await taskQueries.canAssignToDoing(task.assignedTo);
+            if (!canAssign) {
+                throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+            }
         }
-      }
-    
 
         let finalAssignedTo = task.assignedTo;
         if(!finalAssignedTo) {
@@ -292,7 +343,7 @@ export const taskQueries = {
         let confidenceLevel = null;
 
         if (task.storyPoints && task.storyPoints > 0) {
-            const prediction = predictionQueries.predictTaskTime(
+            const prediction = await predictionQueries.predictTaskTime(
                 task.storyPoints, 
                 task.assignedTo, 
                 task.taskTypeId
@@ -307,26 +358,21 @@ export const taskQueries = {
         const shouldSetAssignedAt = task.assignedTo && resolvedStatus === 'inprogress';
 
         if (task.assignedTo) {
-            const getMaxStmt = db.prepare(`
-                SELECT COALESCE(MAX(\`order\`), -1) as maxOrder
+            const row = await queryOne(`
+                SELECT COALESCE(MAX("order"), -1)::int as "maxOrder"
                 FROM tasks
-                WHERE assigned_to = ? AND status = ?
-            `);
-            const row = getMaxStmt.get(task.assignedTo, resolvedStatus) as { maxOrder: number };
+                WHERE assigned_to = $1 AND status = $2
+            `, [task.assignedTo, resolvedStatus]);
             const nextOrder = (row?.maxOrder ?? -1) + 1;
             if (typeof task.order !== 'number') {
                 resolvedOrder = nextOrder;
             }
         }
 
-        
-
-        const stmt = db.prepare(`
-            INSERT INTO tasks (id, title, description, status, \`order\`, story_points, assigned_to, task_type_id, created_by, assigned_at, estimated_hours, confidence_level)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-        `);
-        
-        const result = stmt.run(
+        await execute(`
+            INSERT INTO tasks (id, title, description, status, "order", story_points, assigned_to, task_type_id, created_by, assigned_at, estimated_hours, confidence_level)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `, [
             task.id,
             task.title,
             task.description || null,
@@ -339,103 +385,92 @@ export const taskQueries = {
             shouldSetAssignedAt ? new Date().toISOString() : null,
             estimatedHours,
             confidenceLevel
-        );
+        ]);
 
         console.log('Task criada. Criador:', task.createdBy, 'Responsável:', finalAssignedTo);
-
         console.log('✅ Task criada com sucesso no banco de dados');
-        return result;
     },
-// No database.ts, procure esta função e adicione a verificação:
-validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): boolean => {
-    // Só aplicar validação de ordem quando mover para "inprogress"
-    if (newStatus === 'inprogress') {
-      const task = taskQueries.getById(taskId) as any; // ✅ ADICIONAR 'as any' para evitar erro de tipo
-      if (!task) return true;
-  
-      const blockingTasksStmt = db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM tasks 
-        WHERE status = 'todo' 
-        AND \`order\` < (SELECT \`order\` FROM tasks WHERE id = ?)
-        AND assigned_to = ?
-      `);
-      const result = blockingTasksStmt.get(taskId, (task as any).assigned_to) as { count: number };
-      
-      if (result.count > 0) {
-        throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
-      }
-    }
-        
-    return true;
-  },
 
-      getCompletedTasksByProgrammer: (programmerId: string) => {
-        const stmt = db.prepare(`
+    validateExecutionOrder: async (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): Promise<boolean> => {
+        // Só aplicar validação de ordem quando mover para "inprogress"
+        if (newStatus === 'inprogress') {
+            const task = await taskQueries.getById(taskId) as any;
+            if (!task) return true;
+      
+            const result = await queryOne(`
+                SELECT COUNT(*)::int as count 
+                FROM tasks 
+                WHERE status = 'todo' 
+                AND "order" < (SELECT "order" FROM tasks WHERE id = $1)
+                AND assigned_to = $2
+            `, [taskId, task.assigned_to]);
+            
+            if (result?.count > 0) {
+                throw new Error('Existem tarefas com ordem superior que precisam ser concluídas primeiro');
+            }
+        }
+            
+        return true;
+    },
+
+    getCompletedTasksByProgrammer: async (programmerId: string) => {
+        return await query(`
           SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
           FROM tasks t
           LEFT JOIN users u ON t.assigned_to = u.id
           LEFT JOIN task_types tt ON t.task_type_id = tt.id
-          WHERE t.assigned_to = ? AND t.status = 'done'
+          WHERE t.assigned_to = $1 AND t.status = 'done'
           ORDER BY t.completed_at DESC
-        `);
-        return stmt.all(programmerId);
-      },
-    
-      getProgrammerStats: (programmerId: string) => {
-        const stmt = db.prepare(`
+        `, [programmerId]);
+    },
+  
+    getProgrammerStats: async (programmerId: string) => {
+        return await queryOne(`
           SELECT 
-            COUNT(*) as total_tasks,
-            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as completed_tasks,
-            SUM(CASE WHEN status = 'inprogress' THEN 1 ELSE 0 END) as doing_tasks,
-            SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) as todo_tasks,
-            AVG(story_points) as avg_story_points,
-            AVG((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24) as avg_completion_hours
+            COUNT(*)::int as total_tasks,
+            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END)::int as completed_tasks,
+            SUM(CASE WHEN status = 'inprogress' THEN 1 ELSE 0 END)::int as doing_tasks,
+            SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END)::int as todo_tasks,
+            ROUND(AVG(story_points)::numeric, 2) as avg_story_points,
+            ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_completion_hours
           FROM tasks 
-          WHERE assigned_to = ?
-        `);
-        return stmt.get(programmerId);
-      },
+          WHERE assigned_to = $1
+        `, [programmerId]);
+    },
 
-      updateStatus: (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
-        taskQueries.validateExecutionOrder(id, status);
+    updateStatus: async (id: string, status: 'todo' | 'inprogress' | 'done', assignedTo?: string) => {
+        await taskQueries.validateExecutionOrder(id, status);
     
         if (status === 'inprogress' && assignedTo) {
-          const canAssign = taskQueries.canAssignToDoing(assignedTo);
-          if (!canAssign) {
-            throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
-          }
-        }
-
-        if (status === 'inprogress' && assignedTo) {
-          const canAssign = taskQueries.canAssignToDoing(assignedTo);
-          if (!canAssign) {
-            throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
-          }
+            const canAssign = await taskQueries.canAssignToDoing(assignedTo);
+            if (!canAssign) {
+                throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
+            }
         }
     
-        let query = `UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP`;
+        let queryText = `UPDATE tasks SET status = $1, updated_at = CURRENT_TIMESTAMP`;
         const params: any[] = [status];
+        let paramIndex = 2;
     
         if(status === 'inprogress' && assignedTo) {
-          query += `, assigned_to = ?, assigned_at = datetime('now')`;
-          params.push(assignedTo);
+            queryText += `, assigned_to = $${paramIndex}, assigned_at = NOW()`;
+            params.push(assignedTo);
+            paramIndex++;
         }
         else if(status === 'done') {
-          query += `, completed_at = datetime('now')`;
+            queryText += `, completed_at = NOW()`;
         }
         else if(status === 'todo') {
-          query += `, assigned_at = NULL, completed_at = NULL`;
+            queryText += `, assigned_at = NULL, completed_at = NULL`;
         }
     
-        query += ` WHERE id = ?`;
+        queryText += ` WHERE id = $${paramIndex}`;
         params.push(id);
     
-        const stmt = db.prepare(query);
-        return stmt.run(...params);
-      },
+        await execute(queryText, params);
+    },
 
-    update: (id: string, task: Partial<{
+    update: async (id: string, task: Partial<{
         title: string,
         description: string;
         status: 'todo' | 'inprogress' | 'done';
@@ -444,10 +479,11 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
         assignedTo: string;
         taskTypeId: string;
     }>) => {
-        const currentTask = taskQueries.getById(id) as any;
+        const currentTask = await taskQueries.getById(id) as any;
 
         let additionalUpdates = '';
         const params: any[] = [];
+        let paramIndex = 1;
 
         // ✅ CORREÇÃO: Normalizar valores null e strings vazias para foreign keys
         const normalizedTask: any = { ...task };
@@ -463,46 +499,53 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
 
         const fields = Object.keys(normalizedTask).map(key => {
             if (key === 'status' && normalizedTask.status) {
-                if(normalizedTask.status === 'inprogress' && normalizedTask.assignedTo && !currentTask.assigned_at ) {
-                    additionalUpdates += `, assigned_at = datetime('now')`;
+                if(normalizedTask.status === 'inprogress' && normalizedTask.assignedTo && !currentTask?.assigned_at ) {
+                    additionalUpdates += `, assigned_at = NOW()`;
                 }
-                else if(normalizedTask.status === 'done' && !currentTask.completed_at ) {
-                    additionalUpdates += `, completed_at = datetime('now')`;
+                else if(normalizedTask.status === 'done' && !currentTask?.completed_at ) {
+                    additionalUpdates += `, completed_at = NOW()`;
                 }
                 else if(normalizedTask.status === 'todo' ) {
                     additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
                 }
             }
 
-            if (key === 'assignedTo' && normalizedTask.assignedTo && normalizedTask.status === 'inprogress' && !currentTask.assigned_at) {
-                additionalUpdates += `, assigned_at = datetime('now')`;
+            if (key === 'assignedTo' && normalizedTask.assignedTo && normalizedTask.status === 'inprogress' && !currentTask?.assigned_at) {
+                additionalUpdates += `, assigned_at = NOW()`;
             }
 
-            if (key === 'storyPoints') return 'story_points = ?';
-            if (key === 'assignedTo') return 'assigned_to = ?';
-            if (key === 'taskTypeId') return 'task_type_id = ?';
-            if (key === 'order') return '`order` = ?';
-            return `${key} = ?`;
+            if (key === 'storyPoints') return `story_points = $${paramIndex++}`;
+            if (key === 'assignedTo') return `assigned_to = $${paramIndex++}`;
+            if (key === 'taskTypeId') return `task_type_id = $${paramIndex++}`;
+            if (key === 'order') return `"order" = $${paramIndex++}`;
+            return `${key} = $${paramIndex++}`;
         }).join(', ');
 
         const values = Object.values(normalizedTask);
-        const stmt = db.prepare(`UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
-        return stmt.run(...values, id);
+        await execute(
+            `UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`,
+            [...values, id]
+        );
     },
 
-    delete: (id: string) => {
-        const stmt = db.prepare(`DELETE FROM tasks WHERE id = ?`);
-        return stmt.run(id);
+    delete: async (id: string) => {
+        await execute(`DELETE FROM tasks WHERE id = $1`, [id]);
     },
 
-    updateOrder: (tasks: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
-        const getInfoStmt = db.prepare('SELECT assigned_to FROM tasks WHERE id = ?');
+    updateOrder: async (tasks: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
+        // Get assigned_to for each task
+        const taskIds = tasks.map(t => t.id);
+        const assignees = await query(`
+            SELECT id, assigned_to FROM tasks WHERE id = ANY($1::varchar[])
+        `, [taskIds]);
+
+        const assigneeMap = new Map(assignees.map((a: any) => [a.id, a.assigned_to]));
 
         type Item = { id: string; order: number; status: 'todo' | 'inprogress' | 'done'; assigned_to: string | null };
-        const withAssignee: Item[] = tasks.map(t => {
-            const row = getInfoStmt.get(t.id) as { assigned_to: string | null } | undefined;
-            return { ...t, assigned_to: row ? row.assigned_to : null };
-        });
+        const withAssignee: Item[] = tasks.map(t => ({
+            ...t,
+            assigned_to: assigneeMap.get(t.id) || null
+        }));
 
         const groups = new Map<string, Item[]>();
         for (const t of withAssignee) {
@@ -517,34 +560,42 @@ validateExecutionOrder: (taskId: string, newStatus: 'todo' | 'inprogress' | 'don
             list.forEach((t: Item, idx: number) => normalized.push({ id: t.id, order: idx, status: t.status }));
         });
 
-        const stmt = db.prepare('UPDATE tasks SET `order` = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-        const tx = db.transaction((arr: { id: string; order: number; status: 'todo' | 'inprogress' | 'done' }[]) => {
-            for (const t of arr) stmt.run(t.order, t.status, t.id);
-        });
-
-        return tx(normalized);
+        // Use a transaction for batch updates
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            for (const t of normalized) {
+                await client.query(
+                    'UPDATE tasks SET "order" = $1, status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+                    [t.order, t.status, t.id]
+                );
+            }
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
-
-    
 };
 
 export const timeCalculationQueries = {
-    getTimeSinceAssignment: (taskId: string) => {
-        const stmt = db.prepare(`
+    getTimeSinceAssignment: async (taskId: string) => {
+        return await queryOne(`
             SELECT
                 assigned_at,
                 completed_at,
                 CASE
                     WHEN assigned_at IS NULL THEN 'Nao atribuido'
                     WHEN completed_at IS NOT NULL THEN 
-                        'Concluido em ' || ROUND((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 * 60) || ' minutos'
+                        'Concluido em ' || ROUND(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 60)::int || ' minutos'
                     ELSE
-                        'Em andamento há ' || ROUND((JULIANDAY(datetime('now')) - JULIANDAY(assigned_at)) * 24 * 60) || ' minutos'
+                        'Em andamento há ' || ROUND(EXTRACT(EPOCH FROM (NOW() - assigned_at)) / 60)::int || ' minutos'
                 END as time_info
             FROM tasks
-            WHERE id = ?
-        `);
-        return stmt.get(taskId);
+            WHERE id = $1
+        `, [taskId]);
     },
 };
 
@@ -583,74 +634,67 @@ const calculateSprintDays = (totalHours: number): number => {
     return Math.max(sprintDays, 1);
 };
 
-
-
 export const predictionQueries = {
-    calculateTeamVelocity: (userId?: string, weeks: number = 8) => {
-        let query = `
+    calculateTeamVelocity: async (userId?: string, weeks: number = 8) => {
+        let queryText = `
             SELECT 
                 ${userId ? 'u.id as user_id, u.name as user_name,' : ''}
-                COUNT(t.id) as completed_tasks,
-                SUM(t.story_points) as total_story_points,
-                ROUND(SUM(t.story_points) * 1.0 / ?, 2) as velocity_per_week,
-                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24), 2) as avg_hours_per_task,
-                ROUND(AVG(t.story_points), 2) as avg_story_points
+                COUNT(t.id)::int as completed_tasks,
+                SUM(t.story_points)::int as total_story_points,
+                ROUND((SUM(t.story_points)::numeric / $1), 2) as velocity_per_week,
+                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours_per_task,
+                ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points
             FROM tasks t
             ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
             WHERE t.completed_at IS NOT NULL
             AND t.assigned_at IS NOT NULL
             AND t.story_points IS NOT NULL
             AND t.story_points > 0
-            AND t.completed_at >= datetime('now', '-' || ? || ' days')
+            AND t.completed_at >= NOW() - INTERVAL '${weeks * 7} days'
         `;
 
-        const params: any[] = [weeks, weeks * 7];
+        const params: any[] = [weeks];
 
         if(userId) {
-            query += ` AND t.assigned_to = ? GROUP BY u.id, u.name`;
+            queryText += ` AND t.assigned_to = $2 GROUP BY u.id, u.name`;
             params.push(userId);
         }
-        // Quando não há userId, não precisamos de GROUP BY - é uma agregação geral
 
-        const stmt = db.prepare(query);
-        return userId ? stmt.get(...params) : stmt.get(...params);
+        return userId ? await queryOne(queryText, params) : await queryOne(queryText, params);
     }, 
 
-    calculatePointsToHoursRatio: (userId?: string) => {
-        let query = `
+    calculatePointsToHoursRatio: async (userId?: string) => {
+        let queryText = `
             SELECT 
                 ${userId ? 'u.id as user_id, u.name as user_name,' : ''}
-                COUNT(t.id) as sample_size,
-                ROUND(AVG(t.story_points), 2) as avg_story_points,
-                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24), 2) as avg_hours,
-                ROUND(AVG((JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) * 24) / AVG(t.story_points), 2) as hours_per_point
+                COUNT(t.id)::int as sample_size,
+                ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points,
+                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours,
+                ROUND((AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600) / AVG(t.story_points))::numeric, 2) as hours_per_point
             FROM tasks t
             ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
             WHERE t.completed_at IS NOT NULL 
             AND t.assigned_at IS NOT NULL
             AND t.story_points IS NOT NULL
             AND t.story_points > 0
-            AND (JULIANDAY(t.completed_at) - JULIANDAY(t.assigned_at)) > 0
+            AND (t.completed_at - t.assigned_at) > INTERVAL '0'
         `;
         
         if (userId) {
-            query += ' AND t.assigned_to = ? GROUP BY u.id, u.name';
-            const stmt = db.prepare(query);
-            return stmt.get(userId);
+            queryText += ' AND t.assigned_to = $1 GROUP BY u.id, u.name';
+            return await queryOne(queryText, [userId]);
         } else {
-            // Quando não há userId, não precisamos de GROUP BY - é uma agregação geral
-            const stmt = db.prepare(query);
-            return stmt.get();
+            return await queryOne(queryText);
         }
     },
 
-    predictTaskTime: (storyPoints: number, userId?: string, taskTypeId?: string) => {
+    predictTaskTime: async (storyPoints: number, userId?: string, taskTypeId?: string) => {
         // Primeiro, buscar a média e outros dados básicos
         let baseQuery = `
             SELECT 
-                ROUND(AVG((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24), 2) as avg_hours,
-                ROUND(AVG(story_points), 2) as avg_points,
-                COUNT(*) as sample_size
+                ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
+                ROUND(AVG(story_points)::numeric, 2) as avg_points,
+                COUNT(*)::int as sample_size
             FROM tasks 
             WHERE completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
@@ -661,17 +705,16 @@ export const predictionQueries = {
         const params: any[] = [];
 
         if(userId) {
-            baseQuery += ' AND assigned_to = ?';
+            baseQuery += ' AND assigned_to = $1';
             params.push(userId);
         }
 
         if (taskTypeId) {
-            baseQuery += ' AND task_type_id = ?';
+            baseQuery += ` AND task_type_id = $${params.length + 1}`;
             params.push(taskTypeId);
         }
 
-        const stmt = db.prepare(baseQuery);
-        const basicData = stmt.get(...params) as {
+        const basicData = await queryOne(baseQuery, params) as {
             avg_hours: number;
             avg_points: number;
             sample_size: number;
@@ -686,10 +729,10 @@ export const predictionQueries = {
             };
         }
 
-        // Calcular desvio padrão manualmente (SQLite não tem STDEV)
+        // Calcular desvio padrão (PostgreSQL tem STDDEV)
         let stdDevQuery = `
             SELECT 
-                ROUND(SQRT(AVG(POWER((JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 - ?, 2))), 2) as std_dev_hours
+                ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as std_dev_hours
             FROM tasks 
             WHERE completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
@@ -697,20 +740,19 @@ export const predictionQueries = {
             AND story_points > 0
         `;
         
-        const stdDevParams: any[] = [basicData.avg_hours];
+        const stdDevParams: any[] = [];
 
         if(userId) {
-            stdDevQuery += ' AND assigned_to = ?';
+            stdDevQuery += ' AND assigned_to = $1';
             stdDevParams.push(userId);
         }
 
         if (taskTypeId) {
-            stdDevQuery += ' AND task_type_id = ?';
+            stdDevQuery += ` AND task_type_id = $${stdDevParams.length + 1}`;
             stdDevParams.push(taskTypeId);
         }
 
-        const stdDevStmt = db.prepare(stdDevQuery);
-        const stdDevResult = stdDevStmt.get(...stdDevParams) as {
+        const stdDevResult = await queryOne(stdDevQuery, stdDevParams) as {
             std_dev_hours: number;
         } | undefined;
 
@@ -743,9 +785,11 @@ export const predictionQueries = {
         };
     },
 
-    predictMultipleTasks: (tasks: Array<{storyPoints: number, userId?: string, taskTypeId?: string}>) => {
-        const predictions = tasks.map(task => 
-            predictionQueries.predictTaskTime(task.storyPoints, task.userId, task.taskTypeId)
+    predictMultipleTasks: async (tasks: Array<{storyPoints: number, userId?: string, taskTypeId?: string}>) => {
+        const predictions = await Promise.all(
+            tasks.map(task => 
+                predictionQueries.predictTaskTime(task.storyPoints, task.userId, task.taskTypeId)
+            )
         );
 
         const totalEstimated = predictions.reduce((sum, pred) => sum + pred.estimated_hours, 0);
@@ -761,30 +805,27 @@ export const predictionQueries = {
         };
     },
 
-    updatePredictionModel: (taskId: string) => {
-        const taskStmt = db.prepare(`
+    updatePredictionModel: async (taskId: string) => {
+        const task = await queryOne(`
             SELECT 
                 story_points,
                 assigned_to,
                 task_type_id,
-                (JULIANDAY(completed_at) - JULIANDAY(assigned_at)) * 24 as actual_hours
+                EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600 as actual_hours
             FROM tasks 
-            WHERE id = ? AND completed_at IS NOT NULL AND assigned_at IS NOT NULL
-        `);
-        
-        const task = taskStmt.get(taskId) as {
+            WHERE id = $1 AND completed_at IS NOT NULL AND assigned_at IS NOT NULL
+        `, [taskId]) as {
             story_points: number;
             assigned_to: string;
             task_type_id: string;
             actual_hours: number;
-        };
+        } | undefined;
 
         if (!task) return null;
 
-        const updateStmt = db.prepare(`
-            UPDATE tasks SET actual_hours = ? WHERE id = ?
-        `);
-        updateStmt.run(task.actual_hours, taskId);
+        await execute(`
+            UPDATE tasks SET actual_hours = $1 WHERE id = $2
+        `, [task.actual_hours, taskId]);
 
         return {
             task_id: taskId,
@@ -794,14 +835,14 @@ export const predictionQueries = {
         };
     },
 
-    analyzePredictionAccuracy: (userId?: string) => {
-        let query = `
+    analyzePredictionAccuracy: async (userId?: string) => {
+        let queryText = `
             SELECT 
-                COUNT(*) as total_tasks,
-                AVG(estimated_hours) as avg_estimated,
-                AVG(actual_hours) as avg_actual,
-                ROUND(AVG(ABS(actual_hours - estimated_hours)), 2) as avg_absolute_error,
-                ROUND(AVG(ABS(actual_hours - estimated_hours) / actual_hours * 100), 2) as avg_percentage_error
+                COUNT(*)::int as total_tasks,
+                ROUND(AVG(estimated_hours)::numeric, 2) as avg_estimated,
+                ROUND(AVG(actual_hours)::numeric, 2) as avg_actual,
+                ROUND(AVG(ABS(actual_hours - estimated_hours))::numeric, 2) as avg_absolute_error,
+                ROUND(AVG(ABS(actual_hours - estimated_hours) / actual_hours * 100)::numeric, 2) as avg_percentage_error
             FROM tasks
             WHERE completed_at IS NOT NULL 
             AND estimated_hours IS NOT NULL 
@@ -812,13 +853,12 @@ export const predictionQueries = {
         const params: any[] = [];
         
         if (userId) {
-            query += ' AND assigned_to = ?';
+            queryText += ' AND assigned_to = $1';
             params.push(userId);
         }
 
-        const stmt = db.prepare(query);
-        return stmt.get(...params);
+        return await queryOne(queryText, params);
     }
 };
 
-export default db;
+export default pool;

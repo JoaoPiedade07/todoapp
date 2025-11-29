@@ -9,7 +9,7 @@ router.get('/completed-tasks', authenticateToken, async (req: any, res) => {
   try {
     const programmerId = req.user.id;
     
-    const completedTasks = taskQueries.getCompletedTasksByProgrammer(programmerId);
+    const completedTasks = await taskQueries.getCompletedTasksByProgrammer(programmerId);
     
     res.json({
       success: true,
@@ -26,7 +26,7 @@ router.get('/stats', authenticateToken, async (req: any, res) => {
   try {
     const programmerId = req.user.id;
     
-    const stats = taskQueries.getProgrammerStats(programmerId);
+    const stats = await taskQueries.getProgrammerStats(programmerId);
     
     res.json({
       success: true,

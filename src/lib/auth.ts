@@ -41,12 +41,12 @@ export class AuthService {
   }
 
   static async register(userData: CreateUserData): Promise<{ user: User; token: string }> {
-    const existingUserByEmail = UserModel.findByEmail(userData.email);
+    const existingUserByEmail = await UserModel.findByEmail(userData.email);
     if (existingUserByEmail) {
       throw new Error('Email já está em uso');
     }
 
-    const existingUserByUsername = UserModel.findByUsername(userData.username);
+    const existingUserByUsername = await UserModel.findByUsername(userData.username);
     if (existingUserByUsername) {
       throw new Error('Username já está em uso')
     }
@@ -63,7 +63,7 @@ export class AuthService {
 
     // Validar que o gestor existe e é do type correto
     if (userData.type === 'programador' && userData.manager_id) {
-      const manager = UserModel.findById(userData.manager_id);
+      const manager = await UserModel.findById(userData.manager_id);
       if (!manager) {
         throw new Error('Gestor responsável não encontrado');
       }
@@ -77,7 +77,7 @@ export class AuthService {
     }
 
     const passwordHash = await this.hashPassword(userData.password);
-    const user = UserModel.create({
+    const user = await UserModel.create({
       ...userData,
       password: passwordHash
     });
@@ -88,7 +88,7 @@ export class AuthService {
   }
 
   static async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    const user = UserModel.findByEmail(email);
+    const user = await UserModel.findByEmail(email);
     if (!user) {
       throw new Error('Credenciais inválidas');
     }
@@ -104,7 +104,7 @@ export class AuthService {
   }
 
   static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    const user = UserModel.findById(userId);
+    const user = await UserModel.findById(userId);
     if (!user) {
       throw new Error('Usuário não encontrado');
     }
@@ -115,6 +115,6 @@ export class AuthService {
     }
 
     const newPasswordHash = await this.hashPassword(newPassword);
-    UserModel.updatePassword(userId, newPasswordHash);
+    await UserModel.updatePassword(userId, newPasswordHash);
   }
 }

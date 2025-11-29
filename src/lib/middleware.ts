@@ -6,7 +6,7 @@ export interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -16,7 +16,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 
   try {
     const decoded = AuthService.verifyToken(token);
-    const user = UserModel.findById(decoded.userId);
+    const user = await UserModel.findById(decoded.userId);
     
     if (!user) {
       return res.status(401).json({ error: 'Usuário não encontrado' });
@@ -32,14 +32,14 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   }
 };
 
-export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (token) {
     try {
       const decoded = AuthService.verifyToken(token);
-      const user = UserModel.findById(decoded.userId);
+      const user = await UserModel.findById(decoded.userId);
       
       if (user) {
         const { password_hash, ...userWithoutPassword } = user;

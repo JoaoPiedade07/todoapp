@@ -1,0 +1,181 @@
+// Example PostgreSQL database adapter
+// Rename this file to database.postgres.ts and update your imports when ready to migrate
+
+import { Pool, QueryResult } from 'pg';
+
+// Initialize PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Helper function to execute queries
+async function query(text: string, params?: any[]): Promise<any[]> {
+  const result: QueryResult = await pool.query(text, params);
+  return result.rows;
+}
+
+// Helper function for single row queries
+async function queryOne(text: string, params?: any[]): Promise<any> {
+  const result: QueryResult = await pool.query(text, params);
+  return result.rows[0];
+}
+
+// Helper function for execute (no return)
+async function execute(text: string, params?: any[]): Promise<void> {
+  await pool.query(text, params);
+}
+
+// Initialize database schema
+export async function initDatabase() {
+  // Note: PostgreSQL uses different syntax than SQLite
+  // TEXT -> VARCHAR or TEXT
+  // DATETIME -> TIMESTAMP
+  // INTEGER -> INTEGER (same)
+  // DECIMAL -> DECIMAL (same)
+  
+  await execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(255) PRIMARY KEY,
+      username VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      type VARCHAR(50) CHECK(type IN ('gestor', 'programador')) NOT NULL,
+      department VARCHAR(255) NOT NULL,
+      manager_id VARCHAR(255),
+      experience_level VARCHAR(50) DEFAULT 'junior',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Add experience_level column if it doesn't exist
+  try {
+    await execute(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_level VARCHAR(50) DEFAULT 'junior'
+    `);
+  } catch (error: any) {
+    console.log('ℹ️ Coluna experience_level já existe ou erro:', error.message);
+  }
+
+  await execute(`
+    CREATE TABLE IF NOT EXISTS task_types (
+      id VARCHAR(255) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await execute(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id VARCHAR(255) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      status VARCHAR(50) CHECK(status IN ('todo', 'inprogress', 'done')) NOT NULL DEFAULT 'todo',
+      "order" INTEGER NOT NULL DEFAULT 0,
+      story_points INTEGER,
+      assigned_to VARCHAR(255),
+      task_type_id VARCHAR(255),
+      assigned_at TIMESTAMP,
+      created_by VARCHAR(255) REFERENCES users(id),
+      completed_at TIMESTAMP,
+      estimated_hours DECIMAL(10,2),
+      actual_hours DECIMAL(10,2),
+      confidence_level DECIMAL(3,2),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+      FOREIGN KEY (task_type_id) REFERENCES task_types(id) ON DELETE SET NULL
+    )
+  `);
+
+  await execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_assigned_status_order
+    ON tasks(assigned_to, status, "order")
+  `);
+}
+
+// Example user queries (PostgreSQL version)
+export const userQueries = {
+  getAll: async () => {
+    return await query('SELECT * FROM users ORDER BY created_at DESC');
+  },
+  
+  getById: async (id: string) => {
+    return await queryOne('SELECT * FROM users WHERE id = $1', [id]);
+  },
+
+  getProgrammers: async () => {
+    return await query("SELECT * FROM users WHERE type = 'programador' ORDER BY name");
+  },
+
+  getManagers: async () => {
+    return await query("SELECT * FROM users WHERE type = 'gestor' ORDER BY name");
+  },
+
+  getByManagerId: async (managerId: string) => {
+    return await query("SELECT * FROM users WHERE manager_id = $1 ORDER BY name", [managerId]);
+  },
+  
+  create: async (user: {
+    id: string;
+    username: string;
+    name: string;
+    email: string;
+    password_hash: string;
+    type: string;
+    department: string;
+    manager_id?: string;
+    experience_level?: string;
+  }) => {
+    await execute(`
+      INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id, experience_level)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [
+      user.id,
+      user.username,
+      user.name,
+      user.email,
+      user.password_hash,
+      user.type,
+      user.department,
+      user.manager_id || null,
+      user.experience_level || 'junior'
+    ]);
+  },
+  
+  update: async (id: string, user: Partial<{
+    username: string;
+    name: string;
+    email: string;
+    type: string;
+    department: string;
+    manager_id: string;
+    experience_level: string;
+  }>) => {
+    const fields = Object.keys(user).map((key, index) => `${key} = $${index + 1}`).join(', ');
+    const values = Object.values(user);
+    await execute(
+      `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1}`,
+      [...values, id]
+    );
+  },
+  
+  delete: async (id: string) => {
+    await execute('DELETE FROM users WHERE id = $1', [id]);
+  }
+};
+
+// Note: You'll need to convert all other queries similarly
+// Key differences:
+// - SQLite uses ? for parameters, PostgreSQL uses $1, $2, etc.
+// - SQLite uses DATETIME, PostgreSQL uses TIMESTAMP
+// - SQLite uses TEXT, PostgreSQL uses VARCHAR or TEXT
+// - SQLite uses `order`, PostgreSQL uses "order" (double quotes)
+// - All queries need to be async/await
+
+export default pool;
+
