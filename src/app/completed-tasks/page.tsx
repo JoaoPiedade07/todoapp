@@ -247,6 +247,11 @@ export default function CompletedTasksPage() {
                                           SP: {task.story_points}
                                         </span>
                                       )}
+                                      {task.order !== undefined && (
+                                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                          Ordem: {task.order}
+                                        </span>
+                                      )}
                                       {task.completed_at && (
                                         <span>
                                           Concluída em: {new Date(task.completed_at).toLocaleDateString('pt-PT', {

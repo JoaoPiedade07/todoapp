@@ -89,6 +89,12 @@ export const ProgrammerCompletedTasks: React.FC<ProgrammerCompletedTasksProps> =
               {stats.avg_story_points ? Math.round(stats.avg_story_points * 100) / 100 : 0}
             </div>
           </div>
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="text-purple-800 font-semibold">Ordem</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.avg_order_points ? Math.round(stats.avg_order_points * 100) / 100 : 0}
+            </div>
+          </div>
         </div>
       )}
 
@@ -119,9 +125,12 @@ export const ProgrammerCompletedTasks: React.FC<ProgrammerCompletedTasksProps> =
                     </div>
                     <div className="text-right text-sm text-gray-500">
                       <div>SP: {task.story_points || 'N/A'}</div>
+                    </div>
+                    <div className="text-right text-sm text-gray-500">
                       <div>Ordem: #{task.order}</div>
                     </div>
                   </div>
+                  
                   
                   <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
                     <span>
