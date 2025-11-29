@@ -1,7 +1,10 @@
+// Load environment variables FIRST, before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
@@ -11,12 +14,14 @@ import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
 import programmerRoutes from './src/lib/programmerRoutes';
 
-dotenv.config();
-
 const server = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
-initDatabase();
+// Initialize database asynchronously
+initDatabase().catch((error) => {
+  console.error('❌ Erro ao inicializar base de dados:', error);
+  process.exit(1);
+});
 
 server.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://10.0.97.104:3000'],

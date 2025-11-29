@@ -26,7 +26,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
 
 router.get('/', authenticateToken, async (req:any, res) => {
     try {
-        const taskType = taskTypeQueries.getAll();
+        const taskType = await taskTypeQueries.getAll();
         res.json(taskType);
     } catch (error){
         console.error('Erro ao buscar tasksType:', error);

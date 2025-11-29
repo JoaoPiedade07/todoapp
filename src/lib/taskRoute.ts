@@ -51,14 +51,14 @@ router.post('/', authenticateToken, async (req: any, res) => {
     let taskTypeId: string | undefined = undefined;
     if (taskData.task_type && taskData.task_type.trim() !== '') {
       // Buscar o ID do tipo de tarefa pelo nome
-      const taskTypes = taskTypeQueries.getAll() as Array<{ id: string; name: string; description?: string }>;
+      const taskTypes = await taskTypeQueries.getAll() as Array<{ id: string; name: string; description?: string }>;
       const taskType = taskTypes.find((tt) => tt.name === taskData.task_type);
       if (taskType) {
         taskTypeId = taskType.id;
       } else {
         // Se não existir, criar um novo tipo
         const newTaskTypeId = `task_type_${Date.now()}`;
-        taskTypeQueries.create({
+        await taskTypeQueries.create({
           id: newTaskTypeId,
           name: taskData.task_type,
           description: `Tipo de tarefa: ${taskData.task_type}`
@@ -82,10 +82,10 @@ router.post('/', authenticateToken, async (req: any, res) => {
 
     console.log('🔄 Dados convertidos para criar task:', taskToCreate);
 
-    const result = taskQueries.create(taskToCreate);
+    await taskQueries.create(taskToCreate);
     
     // Buscar a task criada para retornar com os dados completos
-    const createdTask = taskQueries.getById(taskToCreate.id);
+    const createdTask = await taskQueries.getById(taskToCreate.id);
     
     console.log('✅ Task criada com sucesso no banco de dados');
     res.status(201).json(createdTask);
@@ -115,7 +115,7 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
       updateData.assignedTo = updates.assigned_to === '' || updates.assigned_to === null ? null : updates.assigned_to;
       // Validar se o ID existe se não for null
       if (updateData.assignedTo) {
-        const user = userQueries.getById(updateData.assignedTo);
+        const user = await userQueries.getById(updateData.assignedTo);
         if (!user) {
           return res.status(400).json({ error: 'Programador não encontrado' });
         }
@@ -126,7 +126,7 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
       updateData.taskTypeId = updates.task_type_id === '' || updates.task_type_id === null ? null : updates.task_type_id;
       // Validar se o ID existe se não for null
       if (updateData.taskTypeId) {
-        const taskType = taskTypeQueries.getById(updateData.taskTypeId);
+        const taskType = await taskTypeQueries.getById(updateData.taskTypeId);
         if (!taskType) {
           return res.status(400).json({ error: 'Tipo de tarefa não encontrado' });
         }
@@ -135,8 +135,8 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
     
     if (updates.order !== undefined) updateData.order = updates.order;
 
-    const result = taskQueries.update(id, updateData);
-    const updatedTask = taskQueries.getById(id);
+    await taskQueries.update(id, updateData);
+    const updatedTask = await taskQueries.getById(id);
     
     res.json({ 
       success: true, 
@@ -157,17 +157,16 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
     console.log('🗑️ Eliminando task:', id);
 
     // Verificar se a task existe
-    const task = taskQueries.getById(id);
+    const task = await taskQueries.getById(id);
     if (!task) {
       return res.status(404).json({ error: 'Task não encontrada' });
     }
 
-    const result = taskQueries.delete(id);
+    await taskQueries.delete(id);
     
     res.json({ 
       success: true, 
-      message: 'Task eliminada com sucesso', 
-      data: result 
+      message: 'Task eliminada com sucesso'
     });
   } catch (error: any) {
     console.error('❌ Erro ao eliminar task:', error);
@@ -176,9 +175,9 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
 });
 
 // GET / - Buscar todas as tasks
-router.get('/', authenticateToken, (req: any, res) => {
+router.get('/', authenticateToken, async (req: any, res) => {
   try {
-    const tasks = taskQueries.getAll();
+    const tasks = await taskQueries.getAll();
     res.json(tasks);
   } catch (error) {
     console.error('❌ Erro ao buscar tasks:', error);
@@ -187,7 +186,7 @@ router.get('/', authenticateToken, (req: any, res) => {
 });
 
 // GET /completed/:programmerId - Obter tarefas concluídas de um programador (apenas gestores)
-router.get('/completed/:programmerId', authenticateToken, (req: any, res) => {
+router.get('/completed/:programmerId', authenticateToken, async (req: any, res) => {
   try {
     // Verificar se o utilizador é gestor
     if (req.user.type !== 'gestor') {
@@ -199,7 +198,7 @@ router.get('/completed/:programmerId', authenticateToken, (req: any, res) => {
     const { programmerId } = req.params;
     console.log('🔍 Buscando tarefas concluídas para programador:', programmerId);
     
-    const completedTasks = taskQueries.getCompletedTasksByProgrammer(programmerId);
+    const completedTasks = await taskQueries.getCompletedTasksByProgrammer(programmerId);
     console.log('✅ Tarefas encontradas:', completedTasks.length);
     console.log('📋 Dados das tarefas:', JSON.stringify(completedTasks, null, 2));
     
@@ -215,8 +214,7 @@ router.get('/completed/:programmerId', authenticateToken, (req: any, res) => {
 });
 
 // PATCH /:id - Atualizar task
-// PATCH /:id - Atualizar task
-router.patch('/:id', authenticateToken, (req: any, res) => {
+router.patch('/:id', authenticateToken, async (req: any, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -241,8 +239,8 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
 
     console.log('📝 Dados convertidos para update:', updateData);
 
-    const result = taskQueries.update(id, updateData);
-    const updatedTask = taskQueries.getById(id);
+    await taskQueries.update(id, updateData);
+    const updatedTask = await taskQueries.getById(id);
     
     console.log('✅ Task atualizada com sucesso:', updatedTask);
     
@@ -254,10 +252,10 @@ router.patch('/:id', authenticateToken, (req: any, res) => {
 });
 
 // GET /:id - Buscar task por ID
-router.get('/:id', authenticateToken, (req: any, res) => {
+router.get('/:id', authenticateToken, async (req: any, res) => {
   try {
     const { id } = req.params;
-    const task = taskQueries.getById(id);
+    const task = await taskQueries.getById(id);
     
     if (!task) {
       return res.status(404).json({ error: 'Task não encontrada' });
@@ -270,28 +268,10 @@ router.get('/:id', authenticateToken, (req: any, res) => {
   }
 });
 
-// DELETE /:id - Eliminar task
-router.delete('/:id', authenticateToken, (req: any, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Verificar se o utilizador é gestor
-    if (req.user.type !== 'gestor') {
-      return res.status(403).json({ 
-        error: 'Apenas gestores podem eliminar tarefas' 
-      });
-    }
-
-    const result = taskQueries.delete(id);
-    res.json({ success: true, message: 'Task eliminada', data: result });
-  } catch (error) {
-    console.error('❌ Erro ao eliminar task:', error);
-    res.status(500).json({ error: 'Erro ao eliminar task' });
-  }
-});
+// DELETE /:id - Eliminar task (duplicate route handler - keeping the one above)
 
 // GET /predict - Obter predição de tempo para uma tarefa
-router.get('/predict', authenticateToken, (req: any, res) => {
+router.get('/predict', authenticateToken, async (req: any, res) => {
   try {
     const { story_points, user_id, task_type_id } = req.query;
     
@@ -307,7 +287,7 @@ router.get('/predict', authenticateToken, (req: any, res) => {
     const userId = user_id as string | undefined;
     const taskTypeId = task_type_id as string | undefined;
 
-    const prediction = predictionQueries.predictTaskTime(storyPoints, userId, taskTypeId);
+    const prediction = await predictionQueries.predictTaskTime(storyPoints, userId, taskTypeId);
     
     res.json({
       success: true,

@@ -8,7 +8,7 @@ const router = express.Router();
 // Obter todos os utilizadores
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const users = userQueries.getAll();
+    const users = await userQueries.getAll();
     res.json(users);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -18,7 +18,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Obter todos os gestores
 router.get('/managers', authenticateToken, async (req, res) => {
   try {
-    const managers = userQueries.getManagers();
+    const managers = await userQueries.getManagers();
     res.json(managers);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -28,7 +28,7 @@ router.get('/managers', authenticateToken, async (req, res) => {
 // Obter todos os programadores
 router.get('/programmers', authenticateToken, async (req, res) => {
   try {
-    const programmers = userQueries.getProgrammers();
+    const programmers = await userQueries.getProgrammers();
     res.json(programmers);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -39,7 +39,7 @@ router.get('/programmers', authenticateToken, async (req, res) => {
 router.get('/by-manager/:managerId', authenticateToken, async (req, res) => {
   try {
     const { managerId } = req.params;
-    const users = userQueries.getByManagerId(managerId);
+    const users = await userQueries.getByManagerId(managerId);
     res.json(users);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -49,7 +49,7 @@ router.get('/by-manager/:managerId', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = userQueries.getById(id);
+    const user = await userQueries.getById(id);
     
     if (!user) {
       return res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -68,19 +68,18 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     console.log('🗑️ [DELETE] Eliminando utilizador:', id);
 
     // Verificar se o utilizador existe
-    const user = userQueries.getById(id);
+    const user = await userQueries.getById(id);
     if (!user) {
       return res.status(404).json({ error: 'Utilizador não encontrado' });
     }
 
-    const result = userQueries.delete(id);
+    await userQueries.delete(id);
     
     console.log('✅ Utilizador eliminado com sucesso:', id);
     
     res.json({ 
       success: true, 
-      message: 'Utilizador eliminado com sucesso', 
-      data: result 
+      message: 'Utilizador eliminado com sucesso'
     });
   } catch (error: any) {
     console.error('❌ Erro ao eliminar utilizador:', error);
@@ -109,8 +108,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     console.log('📝 Campos filtrados para update:', filteredUpdates);
 
-    const result = userQueries.update(id, filteredUpdates);
-    const updatedUser = userQueries.getById(id);
+    await userQueries.update(id, filteredUpdates);
+    const updatedUser = await userQueries.getById(id);
     
     res.json({ 
       success: true, 
@@ -143,8 +142,8 @@ router.patch('/:id', authenticateToken, async (req, res) => {
 
     console.log('📝 Campos filtrados para update:', filteredUpdates);
 
-    const result = userQueries.update(id, filteredUpdates);
-    const updatedUser = userQueries.getById(id);
+    await userQueries.update(id, filteredUpdates);
+    const updatedUser = await userQueries.getById(id);
     
     res.json({ 
       success: true, 
