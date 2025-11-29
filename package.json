@@ -6,12 +6,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "server": "ts-node --project tsconfig.server.json start.ts"
+    "server": "ts-node --project tsconfig.server.json start.ts",
+    "migrate:export": "ts-node --project tsconfig.server.json scripts/migrate-to-postgres.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@types/pg": "^8.15.6",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
@@ -19,6 +21,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^16.0.0",
+    "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
