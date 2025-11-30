@@ -27,10 +27,25 @@ export const RegisterForm: React.FC = () => {
   // Carregar gestores quando o tipo for programador
   useEffect(() => {
     if(userType === 'programador') {
-      fetch(`${API_BASE_URL}/users/managers`)
-      .then(res => res.json())
-      .then(data => setAvailableManagers(data))
-      .catch(err => console.error('Erro ao carregar gestores: ', err));
+      fetch(`${API_BASE_URL}/auth/managers`)
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) {
+          console.error('Erro na resposta:', data);
+          throw new Error(data.error || 'Erro ao carregar gestores');
+        }
+        return data;
+      })
+      .then(data => {
+        // Garantir que data é um array
+        const managers = Array.isArray(data) ? data : [];
+        console.log('Gestores carregados:', managers);
+        setAvailableManagers(managers);
+      })
+      .catch(err => {
+        console.error('Erro ao carregar gestores: ', err);
+        setAvailableManagers([]);
+      });
     } else {
       setAvailableManagers([]);
       setManagerId(''); // Limpar seleção ao mudar para gestor
@@ -178,13 +193,13 @@ export const RegisterForm: React.FC = () => {
                       required
                     >
                       <option value="">Selecione um gestor</option>
-                      {availableManagers.map((manager: any) => (
+                      {Array.isArray(availableManagers) && availableManagers.map((manager: any) => (
                         <option key={manager.id} value={manager.id}>
                           {manager.name} ({manager.username})
                         </option>
                       ))}
                     </select>
-                    {availableManagers.length === 0 && (
+                    {(!Array.isArray(availableManagers) || availableManagers.length === 0) && (
                       <p className="text-xs text-gray-500">
                         Não há gestores disponíveis. Crie uma conta de gestor primeiro.
                       </p>
