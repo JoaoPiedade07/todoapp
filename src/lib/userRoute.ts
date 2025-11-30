@@ -4,6 +4,20 @@ import { authenticateToken } from './middleware';
 
 const router = express.Router();
 
+// IMPORTANTE: Rotas específicas devem vir ANTES de rotas com parâmetros dinâmicos
+
+// Obter todos os gestores (público para registro - SEM autenticação)
+router.get('/managers', async (req, res) => {
+  try {
+    console.log('📋 [GET] /users/managers - Rota pública chamada');
+    const managers = await userQueries.getManagers();
+    console.log(`✅ Retornando ${managers.length} gestores`);
+    res.json(managers);
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar gestores:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 // Obter todos os utilizadores
 router.get('/', authenticateToken, async (req, res) => {
@@ -13,10 +27,10 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
-})
+});
 
-// Obter todos os gestores
-router.get('/managers', authenticateToken, async (req, res) => {
+// Rota autenticada alternativa (se necessário)
+router.get('/managers/authenticated', authenticateToken, async (req, res) => {
   try {
     const managers = await userQueries.getManagers();
     res.json(managers);
