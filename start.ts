@@ -13,6 +13,7 @@ import userRoute from './src/lib/userRoute';
 import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
 import programmerRoutes from './src/lib/programmerRoutes';
+import analyticsRoute from './src/lib/analyticsRoute';
 
 const server = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
@@ -24,7 +25,37 @@ initDatabase().catch((error) => {
 });
 
 server.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://10.0.97.104:3000'],
+  origin: (origin, callback) => {
+    // Lista de origens permitidas
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://10.0.97.104:3000',
+      'http://192.168.1.202:3000'
+    ];
+    
+    // Permite requisições sem origem (ex: Postman, mobile apps)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Verifica se a origem está na lista
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Permite qualquer IP na rede local 192.168.x.x na porta 3000
+    if (/^http:\/\/192\.168\.\d+\.\d+:3000$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Permite qualquer IP na rede local 10.x.x.x na porta 3000
+    if (/^http:\/\/10\.\d+\.\d+\.\d+:3000$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -44,6 +75,7 @@ server.use('/users', userRoute);
 server.use('/tasks', taskRoute);
 server.use('/task-type', taskTypeRoute);
 server.use('/programmer', programmerRoutes);
+server.use('/analytics', analyticsRoute);
 
 // Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {
