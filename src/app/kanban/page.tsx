@@ -8,6 +8,7 @@ import { TaskDetails } from '@/components/kanban/TaskDetails';
 import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { EditTaskModal } from '@/components/kanban/EditTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { TaskStatus, UserType } from '@/constants/enums';
 
 export default function KanbanPage() {
@@ -288,10 +289,7 @@ export default function KanbanPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Carregando..." />
       </div>
     );
   }
@@ -338,8 +336,7 @@ export default function KanbanPage() {
       {loading ? (
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Carregando tarefas...</p>
+            <LoadingSpinner size="md" text="Carregando tarefas..." />
           </div>
         </div>
       ) : (

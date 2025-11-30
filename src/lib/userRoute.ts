@@ -1,6 +1,7 @@
 import express from 'express';
 import { userQueries } from '../lib/database';
 import { authenticateToken } from './middleware';
+import { validateUserData, sanitizeString } from './validators';
 
 const router = express.Router();
 
@@ -81,10 +82,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     
     console.log('🗑️ [DELETE] Eliminando utilizador:', id);
 
+    // Validar ID
+    if (!id || !id.trim()) {
+      return res.status(400).json({ error: 'ID é obrigatório' });
+    }
+
     // Verificar se o utilizador existe
     const user = await userQueries.getById(id);
     if (!user) {
       return res.status(404).json({ error: 'Utilizador não encontrado' });
+    }
+
+    // Proteção: não permitir eliminar o utilizador principal
+    if (id === '1' || id === 'admin') {
+      return res.status(403).json({ error: 'Não é permitido eliminar o utilizador principal' });
     }
 
     await userQueries.delete(id);
@@ -97,7 +108,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error: any) {
     console.error('❌ Erro ao eliminar utilizador:', error);
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'Erro ao eliminar utilizador', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -109,18 +123,42 @@ router.put('/:id', authenticateToken, async (req, res) => {
     
     console.log('🔄 [PUT] Atualizando utilizador:', { id, updates });
 
+    // Validar ID
+    if (!id || !id.trim()) {
+      return res.status(400).json({ error: 'ID é obrigatório' });
+    }
+
+    // Validar dados usando validators
+    const validation = validateUserData(updates);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos',
+        details: validation.errors
+      });
+    }
+
     // Filtrar apenas os campos que existem e são permitidos
-    // No userRouteComplete.ts, nas rotas PUT e PATCH, atualize:
-    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id', 'experience_level'];;
+    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id', 'experience_level'];
     const filteredUpdates: any = {};
     
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
-        filteredUpdates[field] = updates[field];
+        // Sanitizar strings
+        if (typeof updates[field] === 'string') {
+          filteredUpdates[field] = sanitizeString(updates[field]);
+        } else {
+          filteredUpdates[field] = updates[field];
+        }
       }
     });
 
     console.log('📝 Campos filtrados para update:', filteredUpdates);
+
+    // Verificar se o utilizador existe
+    const existingUser = await userQueries.getById(id);
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Utilizador não encontrado' });
+    }
 
     await userQueries.update(id, filteredUpdates);
     const updatedUser = await userQueries.getById(id);
@@ -132,7 +170,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error: any) {
     console.error('❌ Erro ao atualizar utilizador:', error);
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'Erro ao atualizar utilizador', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -144,15 +185,40 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     
     console.log('🔧 [PATCH] Atualizando utilizador:', { id, updates });
 
+    // Validar ID
+    if (!id || !id.trim()) {
+      return res.status(400).json({ error: 'ID é obrigatório' });
+    }
+
+    // Verificar se o utilizador existe
+    const existingUser = await userQueries.getById(id);
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Utilizador não encontrado' });
+    }
+
     // Filtrar apenas os campos que existem e são permitidos
-    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id'];
+    const allowedFields = ['username', 'email', 'name', 'type', 'department', 'manager_id', 'experience_level'];
     const filteredUpdates: any = {};
     
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
-        filteredUpdates[field] = updates[field];
+        // Sanitizar strings
+        if (typeof updates[field] === 'string') {
+          filteredUpdates[field] = sanitizeString(updates[field]);
+        } else {
+          filteredUpdates[field] = updates[field];
+        }
       }
     });
+
+    // Validar dados atualizados
+    const validation = validateUserData({ ...existingUser, ...filteredUpdates });
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos',
+        details: validation.errors
+      });
+    }
 
     console.log('📝 Campos filtrados para update:', filteredUpdates);
 
@@ -166,7 +232,10 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error: any) {
     console.error('❌ Erro ao atualizar utilizador:', error);
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'Erro ao atualizar utilizador', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

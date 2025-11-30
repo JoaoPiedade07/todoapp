@@ -14,11 +14,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user }) => {
     <div className="min-h-screen bg-gray-50">
       <Header user={user} />
       
-      <div className="flex">
+      <div className="flex flex-col md:flex-row">
         <Sidebar user={user} />
         
-        <main className="flex-1">
-          <div className="py-6">
+        <main className="flex-1 md:ml-0">
+          <div className="py-4 md:py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {children}
             </div>

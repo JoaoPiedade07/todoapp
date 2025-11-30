@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { User } from '@/types';
 import { UserType } from '@/constants/enums';
 import { isManager, normalizeUserFromAPI } from '@/lib/userUtils';
@@ -137,10 +138,7 @@ export default function CompletedTasksPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Carregando..." />
       </div>
     );
   }
@@ -162,7 +160,7 @@ export default function CompletedTasksPage() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <LoadingSpinner size="md" text="Carregando programadores..." />
             </div>
           ) : programmers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -179,15 +177,17 @@ export default function CompletedTasksPage() {
                   <div key={programmer.id} className="border border-gray-200 rounded-lg">
                     <button
                       onClick={() => toggleProgrammer(programmer.id)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                      aria-expanded={isExpanded}
+                      aria-controls={`tasks-${programmer.id}`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm md:text-base flex-shrink-0">
                           {programmer.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="text-left">
-                          <p className="font-medium text-gray-900">{programmer.name}</p>
-                          <p className="text-sm text-gray-500">{programmer.email}</p>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 text-sm md:text-base truncate">{programmer.name}</p>
+                          <p className="text-xs md:text-sm text-gray-500 truncate">{programmer.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -215,10 +215,10 @@ export default function CompletedTasksPage() {
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      <div className="border-t border-gray-200 p-3 md:p-4 bg-gray-50">
                         {isLoading ? (
                           <div className="flex justify-center py-4">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            <LoadingSpinner size="sm" text="Carregando tarefas..." />
                           </div>
                         ) : tasks.length === 0 ? (
                           <div className="text-center py-4 text-gray-500">
@@ -229,7 +229,8 @@ export default function CompletedTasksPage() {
                             {tasks.map((task) => (
                               <div
                                 key={task.id}
-                                className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                                className="bg-white p-3 md:p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                                id={`tasks-${programmer.id}`}
                               >
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">

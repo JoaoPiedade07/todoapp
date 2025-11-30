@@ -45,12 +45,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   };
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
-      <div className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+    <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen fixed left-0 top-0 z-40 md:relative md:z-auto">
+      <div className="p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-semibold text-gray-900">Menu</h2>
       </div>
       
-      <nav className="mt-4">
+      <nav className="mt-2 md:mt-4">
         <ul className="space-y-1">
           {menuItems.map((item) => {
             if (!item.accessible) return null;
@@ -59,11 +59,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
               <li key={item.path}>
                 <button
                   onClick={() => router.push(item.path)}
-                  className={`w-full text-left px-6 py-3 text-sm font-medium transition-colors ${
+                  className={`w-full text-left px-4 md:px-6 py-2 md:py-3 text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                     isActive(item.path)
                       ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
+                  aria-current={isActive(item.path) ? 'page' : undefined}
                 >
                   {item.name}
                 </button>

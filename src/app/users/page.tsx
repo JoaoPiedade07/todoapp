@@ -6,6 +6,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { User } from '@/types';
 import { UserType, Department, NivelExperiencia } from '@/constants/enums';
 import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUtils';
@@ -322,10 +323,7 @@ export default function UsersPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Carregando..." />
       </div>
     );
   }
@@ -356,15 +354,15 @@ export default function UsersPage() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <LoadingSpinner size="md" text="Carregando utilizadores..." />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               Nenhum utilizador encontrado
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Nome</th>

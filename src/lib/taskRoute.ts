@@ -1,5 +1,6 @@
 import { authenticateToken } from './middleware';
 import { taskQueries, taskTypeQueries, predictionQueries, userQueries, timeCalculationQueries, analyticsQueries } from './database';
+import { validateTaskData, sanitizeString, validateStoryPoints, validateOrder } from './validators';
 import express from 'express';
 
 const router = express.Router();
@@ -20,25 +21,20 @@ router.post('/', authenticateToken, async (req: any, res) => {
     console.log('🔍 Body completo:', JSON.stringify(taskData, null, 2));
     console.log('👤 User que está a criar:', req.user);
 
-    if (!taskData.title || taskData.title.trim() === '') {
-      console.error('❌ ERRO CRÍTICO: Title está vazio!');
-      return res.status(400).json({ error: 'Title é obrigatório' });
-    }
+    // Validação completa usando validators
+    const validation = validateTaskData({
+      title: taskData.title,
+      description: taskData.description,
+      story_points: taskData.story_points,
+      order: taskData.order,
+      status: taskData.status
+    });
 
-    // Validação de story_points
-    if (taskData.story_points) {
-      const storyPoints = parseInt(taskData.story_points);
-      if (isNaN(storyPoints) || storyPoints <= 0) {
-        return res.status(400).json({ error: 'Story Points deve ser um número positivo' });
-      }
-    }
-
-    // Validação de order
-    if (taskData.order !== undefined && taskData.order !== null) {
-      const order = typeof taskData.order === 'number' ? taskData.order : parseInt(taskData.order);
-      if (isNaN(order) || order < 0) {
-        return res.status(400).json({ error: 'Order deve ser um número não-negativo' });
-      }
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos',
+        details: validation.errors
+      });
     }
 
     // Converter status do frontend para o formato do banco
@@ -67,14 +63,22 @@ router.post('/', authenticateToken, async (req: any, res) => {
       }
     }
 
+    // Validar e obter valores
+    const spValidation = validateStoryPoints(taskData.story_points);
+    const orderValidation = validateOrder(taskData.order);
+    
+    if (!spValidation.isValid || !spValidation.value) {
+      return res.status(400).json({ error: spValidation.error || 'Story Points inválido' });
+    }
+    
     // Converter campos de snake_case para camelCase (formato esperado pelo database.ts)
     const taskToCreate = {
       id: taskData.id || `task_${Date.now()}`,
-      title: taskData.title.trim(),
-      description: taskData.description || undefined,
+      title: sanitizeString(taskData.title),
+      description: taskData.description ? sanitizeString(taskData.description) : undefined,
       status: status as 'todo' | 'inprogress' | 'done',
-      order: taskData.order || 0,
-      storyPoints: taskData.story_points ? parseInt(taskData.story_points) : undefined,
+      order: orderValidation.value ?? 0,
+      storyPoints: spValidation.value,
       assignedTo: taskData.assigned_to || undefined,
       taskTypeId: taskTypeId,
       createdBy: taskData.createdBy || req.user.id

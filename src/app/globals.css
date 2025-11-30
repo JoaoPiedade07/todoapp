@@ -1,3 +1,80 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Melhorias de Responsividade e UX */
+@layer utilities {
+  /* Animações suaves */
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Melhorias para mobile */
+  @media (max-width: 640px) {
+    .mobile-full-width {
+      width: 100%;
+    }
+    
+    .mobile-text-sm {
+      font-size: 0.875rem;
+    }
+    
+    .mobile-p-2 {
+      padding: 0.5rem;
+    }
+  }
+
+  /* Melhorias de acessibilidade */
+  .focus-visible:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Loading states */
+  .loading-shimmer {
+    background: linear-gradient(
+      90deg,
+      #f0f0f0 25%,
+      #e0e0e0 50%,
+      #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Scroll suave */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Melhorias de toque em mobile */
+  @media (hover: none) {
+    button:hover {
+      background-color: initial;
+    }
+    
+    button:active {
+      opacity: 0.8;
+    }
+  }
+}

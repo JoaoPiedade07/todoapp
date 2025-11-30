@@ -5,6 +5,7 @@ import { TaskStatus, UserType } from '@/constants/enums';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { validateTaskData, validateStoryPoints, validateTaskTitle, validateDescription } from '@/lib/validators';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -156,16 +157,22 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   }, [formData.story_points, formData.assigned_to, API_BASE_URL]);
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const validation = validateTaskData({
+      title: formData.title,
+      description: formData.description,
+      story_points: formData.story_points,
+      order: formData.order,
+      status: formData.status
+    });
     
-    if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
-    if (!formData.story_points) newErrors.story_points = 'Story Points são obrigatórios';
+    // Validações adicionais específicas do formulário
     if (userType === UserType.MANAGER && !formData.assigned_to) {
-      newErrors.assigned_to = 'Deve atribuir a um programador';
+      validation.errors.assigned_to = 'Deve atribuir a um programador';
+      validation.isValid = false;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(validation.errors);
+    return validation.isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,12 +180,19 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     
     if (!validateForm()) return;
 
+    // Validar e obter valores validados
+    const spValidation = validateStoryPoints(formData.story_points);
+    if (!spValidation.isValid || !spValidation.value) {
+      setErrors({ story_points: spValidation.error || 'Story Points inválido' });
+      return;
+    }
+
     const taskData = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
       status: formData.status,
-      order: formData.order,
-      story_points: parseInt(formData.story_points),
+      order: formData.order || 0,
+      story_points: spValidation.value,
       assigned_to: formData.assigned_to || null,
       task_type: formData.task_type || null, // Enviar nome do tipo, não ID
     };
