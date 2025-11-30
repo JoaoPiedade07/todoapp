@@ -203,47 +203,54 @@ export default function ReportsPage() {
   return (
     <MainLayout user={user}>
       <div className="mb-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">📊 Relatórios e Análises</h1>
             <p className="text-gray-600">Estatísticas e análises do seu time</p>
           </div>
-          <div className="flex gap-2">
+          
+          {/* Botões de Export - Melhorados para mobile */}
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
               onClick={() => exportToCSV('all')} 
-              className="bg-white border border-gray-300 text-black hover:bg-gray-50"
+              className="bg-white border border-gray-300 text-black hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
+              size="sm"
             >
-              📥 Exportar Tudo (CSV)
+              <span className="sm:hidden">📥 Tudo</span>
+              <span className="hidden sm:inline">📥 Exportar Tudo (CSV)</span>
             </Button>
             <Button 
               onClick={() => exportToCSV('completed')} 
-              className="bg-white border border-gray-300 text-black hover:bg-gray-50"
+              className="bg-white border border-gray-300 text-black hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
+              size="sm"
             >
-              📥 Exportar Concluídas (CSV)
+              <span className="sm:hidden">📥 Concluídas</span>
+              <span className="hidden sm:inline">📥 Exportar Concluídas (CSV)</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Melhoradas para mobile */}
       <div className="mb-6 border-b border-gray-200">
-        <nav className="flex space-x-8">
+        <nav className="flex space-x-2 sm:space-x-8 overflow-x-auto">
           {[
-            { id: 'overview', label: '📋 Visão Geral' },
-            { id: 'productivity', label: '⚡ Produtividade' },
-            { id: 'delays', label: '⏱️ Atrasos' },
-            { id: 'trends', label: '📈 Tendências' }
+            { id: 'overview', label: '📋 Visão Geral', mobileLabel: '📋 Geral' },
+            { id: 'productivity', label: '⚡ Produtividade', mobileLabel: '⚡ Produt.' },
+            { id: 'delays', label: '⏱️ Atrasos', mobileLabel: '⏱️ Atrasos' },
+            { id: 'trends', label: '📈 Tendências', mobileLabel: '📈 Tend.' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {tab.label}
+              <span className="sm:hidden">{tab.mobileLabel}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -258,31 +265,31 @@ export default function ReportsPage() {
           {/* Visão Geral */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Estatísticas Gerais */}
+              {/* Estatísticas Gerais - Melhoradas para mobile */}
               {statistics && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="text-2xl font-bold text-blue-600">{statistics.total_tasks || 0}</div>
-                      <div className="text-sm text-gray-600 mt-1">Total de Tarefas</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                  <Card className="sm:min-w-0">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="text-xl sm:text-2xl font-bold text-blue-600">{statistics.total_tasks || 0}</div>
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Tarefas</div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="text-2xl font-bold text-green-600">{statistics.completed_tasks || 0}</div>
-                      <div className="text-sm text-gray-600 mt-1">Concluídas</div>
+                  <Card className="sm:min-w-0">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">{statistics.completed_tasks || 0}</div>
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">Concluídas</div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="text-2xl font-bold text-yellow-600">{statistics.in_progress_tasks || 0}</div>
-                      <div className="text-sm text-gray-600 mt-1">Em Progresso</div>
+                  <Card className="sm:min-w-0">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="text-xl sm:text-2xl font-bold text-yellow-600">{statistics.in_progress_tasks || 0}</div>
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">Em Progresso</div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="text-2xl font-bold text-red-600">{statistics.delayed_tasks || 0}</div>
-                      <div className="text-sm text-gray-600 mt-1">Atrasadas</div>
+                  <Card className="sm:min-w-0">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="text-xl sm:text-2xl font-bold text-red-600">{statistics.delayed_tasks || 0}</div>
+                      <div className="text-xs sm:text-sm text-gray-600 mt-1">Atrasadas</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -290,10 +297,10 @@ export default function ReportsPage() {
 
               {/* Tarefas em Curso Ordenadas */}
               <Card>
-                <CardHeader>
+                <CardHeader className="px-4 sm:px-6 py-4">
                   <h2 className="text-lg font-semibold">🔄 Tarefas em Curso (Ordenadas)</h2>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   {inProgressTasks.length === 0 ? (
                     <p className="text-gray-500">Nenhuma tarefa em progresso</p>
                   ) : (
@@ -301,21 +308,21 @@ export default function ReportsPage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ordem</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Ordem</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {inProgressTasks.map((task: any) => (
                             <tr key={task.id}>
-                              <td className="px-4 py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
-                              <td className="px-4 py-3 text-sm font-medium">{task.title}</td>
-                              <td className="px-4 py-3 text-sm">{task.story_points || '-'}</td>
-                              <td className="px-4 py-3 text-sm">{task.task_type_name || '-'}</td>
-                              <td className="px-4 py-3 text-sm">{task.order}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium">{task.title}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.story_points || '-'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.task_type_name || '-'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.order}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -327,10 +334,10 @@ export default function ReportsPage() {
 
               {/* Tarefas Concluídas do Gestor */}
               <Card>
-                <CardHeader>
+                <CardHeader className="px-4 sm:px-6 py-4">
                   <h2 className="text-lg font-semibold">✅ Tarefas Concluídas do Time</h2>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   {completedTasks.length === 0 ? (
                     <p className="text-gray-500">Nenhuma tarefa concluída</p>
                   ) : (
@@ -338,19 +345,19 @@ export default function ReportsPage() {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concluída Em</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Concluída Em</th>
+                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {completedTasks.slice(0, 10).map((task: any) => (
                             <tr key={task.id}>
-                              <td className="px-4 py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
-                              <td className="px-4 py-3 text-sm font-medium">{task.title}</td>
-                              <td className="px-4 py-3 text-sm">{task.completed_at ? new Date(task.completed_at).toLocaleDateString('pt-PT') : '-'}</td>
-                              <td className="px-4 py-3 text-sm">{task.story_points || '-'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium">{task.title}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.completed_at ? new Date(task.completed_at).toLocaleDateString('pt-PT') : '-'}</td>
+                              <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.story_points || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -368,10 +375,10 @@ export default function ReportsPage() {
           {/* Produtividade */}
           {activeTab === 'productivity' && (
             <Card>
-              <CardHeader>
+              <CardHeader className="px-4 sm:px-6 py-4">
                 <h2 className="text-lg font-semibold">⚡ Produtividade por Programador</h2>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6">
                 {productivity.length === 0 ? (
                   <p className="text-gray-500">Nenhum dado disponível</p>
                 ) : (
@@ -379,23 +386,23 @@ export default function ReportsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nível</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concluídas</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Em Progresso</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio (h)</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Nível</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Concluídas</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Em Progresso</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio (h)</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {productivity.map((p: any) => (
                           <tr key={p.id}>
-                            <td className="px-4 py-3 text-sm font-medium">{p.name}</td>
-                            <td className="px-4 py-3 text-sm">{p.experience_level || '-'}</td>
-                            <td className="px-4 py-3 text-sm">{p.completed_tasks || 0}</td>
-                            <td className="px-4 py-3 text-sm">{p.in_progress_tasks || 0}</td>
-                            <td className="px-4 py-3 text-sm">{p.completed_story_points || 0}</td>
-                            <td className="px-4 py-3 text-sm">{p.avg_completion_hours ? p.avg_completion_hours.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium">{p.name}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.experience_level || '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.completed_tasks || 0}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.in_progress_tasks || 0}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.completed_story_points || 0}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.avg_completion_hours ? p.avg_completion_hours.toFixed(2) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -409,10 +416,10 @@ export default function ReportsPage() {
           {/* Atrasos */}
           {activeTab === 'delays' && (
             <Card>
-              <CardHeader>
+              <CardHeader className="px-4 sm:px-6 py-4">
                 <h2 className="text-lg font-semibold">⏱️ Tarefas com Atraso</h2>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6">
                 {delayedTasks.length === 0 ? (
                   <p className="text-gray-500">Nenhuma tarefa atrasada! 🎉</p>
                 ) : (
@@ -420,21 +427,21 @@ export default function ReportsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estimado (h)</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Decorrido (h)</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Atraso (h)</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Programador</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Estimado (h)</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Decorrido (h)</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Atraso (h)</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {delayedTasks.map((task: any) => (
                           <tr key={task.id} className="bg-red-50">
-                            <td className="px-4 py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
-                            <td className="px-4 py-3 text-sm font-medium">{task.title}</td>
-                            <td className="px-4 py-3 text-sm">{task.estimated_hours || '-'}</td>
-                            <td className="px-4 py-3 text-sm">{task.hours_elapsed ? task.hours_elapsed.toFixed(2) : '-'}</td>
-                            <td className="px-4 py-3 text-sm font-bold text-red-600">
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium">{task.title}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.estimated_hours || '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.hours_elapsed ? task.hours_elapsed.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-red-600">
                               {task.delay_hours ? `+${task.delay_hours.toFixed(2)}` : '-'}
                             </td>
                           </tr>
@@ -450,10 +457,10 @@ export default function ReportsPage() {
           {/* Tendências */}
           {activeTab === 'trends' && (
             <Card>
-              <CardHeader>
+              <CardHeader className="px-4 sm:px-6 py-4">
                 <h2 className="text-lg font-semibold">📈 Tendências (Últimos 30 dias)</h2>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6">
                 {trends.length === 0 ? (
                   <p className="text-gray-500">Nenhum dado disponível</p>
                 ) : (
@@ -461,19 +468,19 @@ export default function ReportsPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarefas Concluídas</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio (h)</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarefas Concluídas</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Story Points</th>
+                          <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio (h)</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {trends.map((trend: any, index: number) => (
                           <tr key={index}>
-                            <td className="px-4 py-3 text-sm">{new Date(trend.date).toLocaleDateString('pt-PT')}</td>
-                            <td className="px-4 py-3 text-sm">{trend.completed_count || 0}</td>
-                            <td className="px-4 py-3 text-sm">{trend.total_story_points || 0}</td>
-                            <td className="px-4 py-3 text-sm">{trend.avg_hours ? trend.avg_hours.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{new Date(trend.date).toLocaleDateString('pt-PT')}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.completed_count || 0}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.total_story_points || 0}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.avg_hours ? trend.avg_hours.toFixed(2) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -488,4 +495,3 @@ export default function ReportsPage() {
     </MainLayout>
   );
 }
-
