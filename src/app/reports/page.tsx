@@ -136,7 +136,7 @@ export default function ReportsPage() {
       console.error('Erro ao buscar tendências:', error);
     }
   };
-
+  
   const fetchInProgressTasks = async () => {
     try {
       const token = localStorage.getItem('token');
