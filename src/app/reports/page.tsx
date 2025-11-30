@@ -213,7 +213,7 @@ export default function ReportsPage() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
               onClick={() => exportToCSV('all')} 
-              className="bg-white border border-gray-300 text-black hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
+              className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
               size="sm"
             >
               <span className="sm:hidden">📥 Tudo</span>
@@ -221,7 +221,7 @@ export default function ReportsPage() {
             </Button>
             <Button 
               onClick={() => exportToCSV('completed')} 
-              className="bg-white border border-gray-300 text-black hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
+              className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
               size="sm"
             >
               <span className="sm:hidden">📥 Concluídas</span>
