@@ -1,6 +1,7 @@
 import express from 'express';
 import { AuthService } from '../lib/auth';
 import { authenticateToken, AuthenticatedRequest } from '../lib/middleware';
+import { userQueries } from '../lib/database';
 
 const router = express.Router();
 
@@ -76,6 +77,16 @@ router.post('/change-password', authenticateToken, async (req: AuthenticatedRequ
 
 router.get('/me', authenticateToken, (req: AuthenticatedRequest, res) => {
   res.json({ user: req.user });
+});
+
+// Rota pública para obter gestores (usado no formulário de registro)
+router.get('/managers', async (req, res) => {
+  try {
+    const managers = await userQueries.getManagers();
+    res.json(managers);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 export default router;
