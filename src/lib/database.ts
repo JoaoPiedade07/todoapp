@@ -423,6 +423,45 @@ export const taskQueries = {
           ORDER BY t.completed_at DESC
         `, [programmerId]);
     },
+
+    // Lista de tarefas concluídas do gestor (todos os programadores que ele gerencia)
+    getCompletedTasksByManager: async (managerId: string) => {
+        return await query(`
+          SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+          FROM tasks t
+          LEFT JOIN users u ON t.assigned_to = u.id
+          LEFT JOIN task_types tt ON t.task_type_id = tt.id
+          WHERE t.status = 'done'
+          AND u.manager_id = $1
+          ORDER BY t.completed_at DESC, u.name ASC
+        `, [managerId]);
+    },
+
+    // Lista de tarefas em curso ordenadas
+    getInProgressTasksOrdered: async (managerId?: string) => {
+        if (managerId) {
+            // Tarefas em curso dos programadores do gestor, ordenadas
+            return await query(`
+              SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+              FROM tasks t
+              LEFT JOIN users u ON t.assigned_to = u.id
+              LEFT JOIN task_types tt ON t.task_type_id = tt.id
+              WHERE t.status = 'inprogress'
+              AND u.manager_id = $1
+              ORDER BY u.name ASC, t."order" ASC, t.assigned_at ASC
+            `, [managerId]);
+        } else {
+            // Todas as tarefas em curso ordenadas
+            return await query(`
+              SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+              FROM tasks t
+              LEFT JOIN users u ON t.assigned_to = u.id
+              LEFT JOIN task_types tt ON t.task_type_id = tt.id
+              WHERE t.status = 'inprogress'
+              ORDER BY u.name ASC, t."order" ASC, t.assigned_at ASC
+            `);
+        }
+    },
   
     getProgrammerStats: async (programmerId: string) => {
         return await queryOne(`
@@ -596,6 +635,89 @@ export const timeCalculationQueries = {
             FROM tasks
             WHERE id = $1
         `, [taskId]);
+    },
+
+    // Calcular atrasos (tarefas que excederam o tempo estimado)
+    getDelayedTasks: async (managerId?: string) => {
+        if (managerId) {
+            return await query(`
+                SELECT 
+                    t.*,
+                    u.name as assigned_user_name,
+                    tt.name as task_type_name,
+                    t.estimated_hours,
+                    EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 as hours_elapsed,
+                    CASE 
+                        WHEN t.estimated_hours IS NOT NULL AND t.estimated_hours > 0 THEN
+                            EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 - t.estimated_hours
+                        ELSE NULL
+                    END as delay_hours
+                FROM tasks t
+                LEFT JOIN users u ON t.assigned_to = u.id
+                LEFT JOIN task_types tt ON t.task_type_id = tt.id
+                WHERE t.status = 'inprogress'
+                AND u.manager_id = $1
+                AND t.estimated_hours IS NOT NULL
+                AND EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 > t.estimated_hours
+                ORDER BY delay_hours DESC
+            `, [managerId]);
+        } else {
+            return await query(`
+                SELECT 
+                    t.*,
+                    u.name as assigned_user_name,
+                    tt.name as task_type_name,
+                    t.estimated_hours,
+                    EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 as hours_elapsed,
+                    CASE 
+                        WHEN t.estimated_hours IS NOT NULL AND t.estimated_hours > 0 THEN
+                            EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 - t.estimated_hours
+                        ELSE NULL
+                    END as delay_hours
+                FROM tasks t
+                LEFT JOIN users u ON t.assigned_to = u.id
+                LEFT JOIN task_types tt ON t.task_type_id = tt.id
+                WHERE t.status = 'inprogress'
+                AND t.estimated_hours IS NOT NULL
+                AND EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 > t.estimated_hours
+                ORDER BY delay_hours DESC
+            `);
+        }
+    },
+
+    // Calcular tempo médio de conclusão
+    getAverageCompletionTime: async (managerId?: string, days: number = 30) => {
+        if (managerId) {
+            return await queryOne(`
+                SELECT 
+                    COUNT(*)::int as total_tasks,
+                    ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
+                    ROUND(MIN(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as min_hours,
+                    ROUND(MAX(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as max_hours,
+                    ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as stddev_hours
+                FROM tasks t
+                JOIN users u ON t.assigned_to = u.id
+                WHERE t.status = 'done'
+                AND t.completed_at IS NOT NULL
+                AND t.assigned_at IS NOT NULL
+                AND u.manager_id = $1
+                AND t.completed_at >= NOW() - INTERVAL '${days} days'
+            `, [managerId]);
+        } else {
+            return await queryOne(`
+                SELECT 
+                    COUNT(*)::int as total_tasks,
+                    ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
+                    ROUND(MIN(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as min_hours,
+                    ROUND(MAX(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as max_hours,
+                    ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as stddev_hours
+                FROM tasks
+                WHERE status = 'done'
+                AND completed_at IS NOT NULL
+                AND assigned_at IS NOT NULL
+                AND completed_at >= NOW() - INTERVAL '${days} days'
+            `);
+        }
     },
 };
 
@@ -859,6 +981,120 @@ export const predictionQueries = {
 
         return await queryOne(queryText, params);
     }
+};
+
+// Análise estatística
+export const analyticsQueries = {
+    // Estatísticas gerais do gestor
+    getManagerStatistics: async (managerId: string, days: number = 30) => {
+        return await queryOne(`
+            SELECT 
+                COUNT(DISTINCT t.id)::int as total_tasks,
+                COUNT(DISTINCT CASE WHEN t.status = 'done' THEN t.id END)::int as completed_tasks,
+                COUNT(DISTINCT CASE WHEN t.status = 'inprogress' THEN t.id END)::int as in_progress_tasks,
+                COUNT(DISTINCT CASE WHEN t.status = 'todo' THEN t.id END)::int as todo_tasks,
+                COUNT(DISTINCT u.id)::int as total_programmers,
+                ROUND(SUM(CASE WHEN t.status = 'done' THEN t.story_points ELSE 0 END)::numeric, 2) as completed_story_points,
+                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
+                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points,
+                COUNT(DISTINCT CASE WHEN t.status = 'inprogress' 
+                    AND t.estimated_hours IS NOT NULL 
+                    AND EXTRACT(EPOCH FROM (NOW() - t.assigned_at)) / 3600 > t.estimated_hours 
+                    THEN t.id END)::int as delayed_tasks
+            FROM users u
+            LEFT JOIN tasks t ON t.assigned_to = u.id
+            WHERE u.manager_id = $1
+            AND (t.created_at >= NOW() - INTERVAL '${days} days' OR t.created_at IS NULL)
+        `, [managerId]);
+    },
+
+    // Produtividade por programador
+    getProductivityByProgrammer: async (managerId: string, days: number = 30) => {
+        return await query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.experience_level,
+                COUNT(DISTINCT CASE WHEN t.status = 'done' THEN t.id END)::int as completed_tasks,
+                COUNT(DISTINCT CASE WHEN t.status = 'inprogress' THEN t.id END)::int as in_progress_tasks,
+                SUM(CASE WHEN t.status = 'done' THEN t.story_points ELSE 0 END)::numeric as completed_story_points,
+                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
+                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                ROUND(AVG(CASE WHEN t.status = 'done' THEN t.story_points ELSE NULL END)::numeric, 2) as avg_story_points_per_task
+            FROM users u
+            LEFT JOIN tasks t ON t.assigned_to = u.id
+            WHERE u.manager_id = $1
+            AND u.type = 'programador'
+            AND (t.created_at >= NOW() - INTERVAL '${days} days' OR t.created_at IS NULL)
+            GROUP BY u.id, u.name, u.experience_level
+            ORDER BY completed_tasks DESC, u.name ASC
+        `, [managerId]);
+    },
+
+    // Estatísticas por tipo de tarefa
+    getStatisticsByTaskType: async (managerId: string, days: number = 30) => {
+        return await query(`
+            SELECT 
+                tt.id,
+                tt.name as task_type_name,
+                COUNT(DISTINCT t.id)::int as total_tasks,
+                COUNT(DISTINCT CASE WHEN t.status = 'done' THEN t.id END)::int as completed_tasks,
+                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
+                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                ROUND(AVG(CASE WHEN t.status = 'done' THEN t.story_points ELSE NULL END)::numeric, 2) as avg_story_points
+            FROM task_types tt
+            LEFT JOIN tasks t ON t.task_type_id = tt.id
+            LEFT JOIN users u ON t.assigned_to = u.id
+            WHERE (u.manager_id = $1 OR t.created_by = $1)
+            AND (t.created_at >= NOW() - INTERVAL '${days} days' OR t.created_at IS NULL)
+            GROUP BY tt.id, tt.name
+            HAVING COUNT(DISTINCT t.id) > 0
+            ORDER BY total_tasks DESC
+        `, [managerId]);
+    },
+
+    // Tendências ao longo do tempo
+    getTaskTrends: async (managerId: string, days: number = 30) => {
+        return await query(`
+            SELECT 
+                DATE(t.completed_at) as date,
+                COUNT(*)::int as completed_count,
+                SUM(t.story_points)::numeric as total_story_points,
+                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours
+            FROM tasks t
+            JOIN users u ON t.assigned_to = u.id
+            WHERE t.status = 'done'
+            AND u.manager_id = $1
+            AND t.completed_at >= NOW() - INTERVAL '${days} days'
+            GROUP BY DATE(t.completed_at)
+            ORDER BY date DESC
+        `, [managerId]);
+    },
+
+    // Taxa de conclusão vs estimativa
+    getEstimationAccuracy: async (managerId: string, days: number = 30) => {
+        return await queryOne(`
+            SELECT 
+                COUNT(*)::int as total_tasks,
+                ROUND(AVG(ABS(t.actual_hours - t.estimated_hours))::numeric, 2) as avg_absolute_error,
+                ROUND(AVG(CASE WHEN t.actual_hours > 0 
+                    THEN ABS(t.actual_hours - t.estimated_hours) / t.actual_hours * 100 
+                    ELSE NULL END)::numeric, 2) as avg_percentage_error,
+                COUNT(CASE WHEN t.actual_hours <= t.estimated_hours THEN 1 END)::int as on_time_tasks,
+                COUNT(CASE WHEN t.actual_hours > t.estimated_hours THEN 1 END)::int as delayed_tasks
+            FROM tasks t
+            JOIN users u ON t.assigned_to = u.id
+            WHERE t.status = 'done'
+            AND t.estimated_hours IS NOT NULL
+            AND t.actual_hours IS NOT NULL
+            AND u.manager_id = $1
+            AND t.completed_at >= NOW() - INTERVAL '${days} days'
+        `, [managerId]);
+    },
 };
 
 export default pool;
