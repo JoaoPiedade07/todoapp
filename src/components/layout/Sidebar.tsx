@@ -58,17 +58,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   return (
     <>
       {/* Mobile Menu Button */}
-      <button
-        onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
-        aria-label="Toggle menu"
-      >
-        <div className="w-6 h-6 flex flex-col justify-center space-y-1">
-          <span className={`block h-0.5 w-6 bg-gray-600 transition-all ${isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-          <span className={`block h-0.5 w-6 bg-gray-600 transition-all ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-          <span className={`block h-0.5 w-6 bg-gray-600 transition-all ${isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-        </div>
-      </button>
+{/* Mobile Menu Button - SEM ANIMAÇÃO PARA X */}
+    <button
+      onClick={toggleMobileMenu}
+      className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
+      aria-label="Toggle menu"
+    >
+      <div className="w-6 h-6 flex flex-col justify-center space-y-1">
+        {/* 🟩 SEMPRE 3 TRAÇOS, SEM VIRAR X */}
+        <span className="block h-0.5 w-6 bg-gray-600"></span>
+        <span className="block h-0.5 w-6 bg-gray-600"></span>
+        <span className="block h-0.5 w-6 bg-gray-600"></span>
+      </div>
+    </button>
 
       {/* Overlay para mobile */}
       {isMobileMenuOpen && (
