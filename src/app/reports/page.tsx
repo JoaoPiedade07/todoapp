@@ -216,7 +216,7 @@ export default function ReportsPage() {
               className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
               size="sm"
             >
-              <span className="sm:hidden">📥 Tudo</span>
+              <span className="sm:hidden">📥 Exportar Tudo</span>
               <span className="hidden sm:inline">📥 Exportar Tudo (CSV)</span>
             </Button>
             <Button 
@@ -224,7 +224,7 @@ export default function ReportsPage() {
               className="bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 text-sm py-2 px-3 sm:px-4"
               size="sm"
             >
-              <span className="sm:hidden">📥 Concluídas</span>
+              <span className="sm:hidden">📥 Exportar Concluídas </span>
               <span className="hidden sm:inline">📥 Exportar Concluídas (CSV)</span>
             </Button>
           </div>
