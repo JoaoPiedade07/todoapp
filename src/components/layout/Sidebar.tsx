@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   const handleNavigation = (path: string) => {
     router.push(path);
-    setIsMobileMenuOpen(false); // ✅ CORRIGIDO: era setIsMobileMenu
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       {isMobileMenuOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsMobileMenuOpen(false)} // ✅ CORRIGIDO: era setIsMobileMenu
+          onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
@@ -85,21 +85,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Header do Sidebar */}
+        {/* Header do Sidebar - REMOVIDO o botão X que estava aqui */}
         <div className="p-4 lg:p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <h2 className="text-base lg:text-lg font-semibold text-gray-900">Menu</h2>
-            
-            {/* Botão de fechar no mobile */}
-            <button
-              onClick={() => setIsMobileMenuOpen(false)} // ✅ CORRIGIDO: era setIsMobileMenu
-              className="lg:hidden p-1 rounded-md hover:bg-gray-100"
-              aria-label="Fechar menu"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {/* REMOVIDO: Botão de fechar que estava aqui */}
           </div>
 
           {/* User Info no Mobile - Agora no header */}
@@ -114,6 +104,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                   {getUserTypeLabel()}
                 </p>
               </div>
+              
+              {/* Botão X menor no canto direito - ESTE É O QUE FICA */}
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1 rounded-md hover:bg-gray-100 text-gray-500"
+                aria-label="Fechar menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
