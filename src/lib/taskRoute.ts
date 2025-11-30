@@ -1,5 +1,5 @@
 import { authenticateToken } from './middleware';
-import { taskQueries, taskTypeQueries, predictionQueries, userQueries } from './database';
+import { taskQueries, taskTypeQueries, predictionQueries, userQueries, timeCalculationQueries, analyticsQueries } from './database';
 import express from 'express';
 
 const router = express.Router();
@@ -296,6 +296,149 @@ router.get('/predict', authenticateToken, async (req: any, res) => {
   } catch (error: any) {
     console.error('❌ Erro ao calcular predição:', error);
     res.status(500).json({ error: 'Erro ao calcular predição', details: error.message });
+  }
+});
+
+// GET /manager/completed - Lista de tarefas concluídas do gestor
+router.get('/manager/completed', authenticateToken, async (req: any, res) => {
+  try {
+    if (req.user.type !== 'gestor') {
+      return res.status(403).json({ error: 'Apenas gestores podem acessar esta rota' });
+    }
+
+    const completedTasks = await taskQueries.getCompletedTasksByManager(req.user.id);
+    
+    res.json({
+      success: true,
+      data: completedTasks,
+      count: completedTasks.length
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar tarefas concluídas do gestor:', error);
+    res.status(500).json({ error: 'Erro ao buscar tarefas concluídas', details: error.message });
+  }
+});
+
+// GET /in-progress/ordered - Lista de tarefas em curso ordenadas
+router.get('/in-progress/ordered', authenticateToken, async (req: any, res) => {
+  try {
+    const managerId = req.user.type === 'gestor' ? req.user.id : undefined;
+    const inProgressTasks = await taskQueries.getInProgressTasksOrdered(managerId);
+    
+    res.json({
+      success: true,
+      data: inProgressTasks,
+      count: inProgressTasks.length
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar tarefas em curso:', error);
+    res.status(500).json({ error: 'Erro ao buscar tarefas em curso', details: error.message });
+  }
+});
+
+// GET /delayed - Tarefas com atraso
+router.get('/delayed', authenticateToken, async (req: any, res) => {
+  try {
+    const managerId = req.user.type === 'gestor' ? req.user.id : undefined;
+    const delayedTasks = await timeCalculationQueries.getDelayedTasks(managerId);
+    
+    res.json({
+      success: true,
+      data: delayedTasks,
+      count: delayedTasks.length
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar tarefas atrasadas:', error);
+    res.status(500).json({ error: 'Erro ao buscar tarefas atrasadas', details: error.message });
+  }
+});
+
+// GET /time/average - Tempo médio de conclusão
+router.get('/time/average', authenticateToken, async (req: any, res) => {
+  try {
+    const { days } = req.query;
+    const daysParam = days ? parseInt(days as string) : 30;
+    const managerId = req.user.type === 'gestor' ? req.user.id : undefined;
+    
+    const avgTime = await timeCalculationQueries.getAverageCompletionTime(managerId, daysParam);
+    
+    res.json({
+      success: true,
+      data: avgTime
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao calcular tempo médio:', error);
+    res.status(500).json({ error: 'Erro ao calcular tempo médio', details: error.message });
+  }
+});
+
+// GET /export/csv - Exportar tarefas para CSV
+router.get('/export/csv', authenticateToken, async (req: any, res) => {
+  try {
+    if (req.user.type !== 'gestor') {
+      return res.status(403).json({ error: 'Apenas gestores podem exportar dados' });
+    }
+
+    const { status, startDate, endDate } = req.query;
+    let tasks;
+
+    if (status) {
+      tasks = await taskQueries.getByStatus(status as 'todo' | 'inprogress' | 'done');
+    } else {
+      tasks = await taskQueries.getAll();
+    }
+
+    // Filtrar por data se fornecido
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate as string) : null;
+      const end = endDate ? new Date(endDate as string) : null;
+      
+      tasks = tasks.filter((task: any) => {
+        const taskDate = task.created_at ? new Date(task.created_at) : null;
+        if (!taskDate) return false;
+        if (start && taskDate < start) return false;
+        if (end && taskDate > end) return false;
+        return true;
+      });
+    }
+
+    // Converter para CSV
+    const headers = ['ID', 'Título', 'Descrição', 'Status', 'Ordem', 'Story Points', 'Programador', 'Tipo de Tarefa', 'Criado Por', 'Atribuído Em', 'Concluído Em', 'Horas Estimadas', 'Horas Reais', 'Criado Em'];
+    const rows = tasks.map((task: any) => [
+      task.id || '',
+      task.title || '',
+      task.description || '',
+      task.status || '',
+      task.order || 0,
+      task.story_points || '',
+      task.assigned_user_name || '',
+      task.task_type_name || '',
+      task.created_by || '',
+      task.assigned_at || '',
+      task.completed_at || '',
+      task.estimated_hours || '',
+      task.actual_hours || '',
+      task.created_at || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row: any[]) => row.map(cell => {
+        const cellStr = String(cell);
+        // Escapar vírgulas e aspas
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(','))
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=tasks_export_${new Date().toISOString().split('T')[0]}.csv`);
+    res.send('\ufeff' + csvContent); // BOM para Excel
+  } catch (error: any) {
+    console.error('❌ Erro ao exportar CSV:', error);
+    res.status(500).json({ error: 'Erro ao exportar CSV', details: error.message });
   }
 });
 
