@@ -4,7 +4,7 @@ import { analyticsQueries } from './database';
 
 const router = express.Router();
 
-// GET /analytics/statistics - Estatísticas gerais do gestor
+//Estatísticas gerais do gestor
 router.get('/statistics', authenticateToken, async (req: any, res) => {
   try {
     if (req.user.type !== 'gestor') {
@@ -27,7 +27,7 @@ router.get('/statistics', authenticateToken, async (req: any, res) => {
   }
 });
 
-// GET /analytics/productivity - Produtividade por programador
+//Produtividade por programador
 router.get('/productivity', authenticateToken, async (req: any, res) => {
   try {
     if (req.user.type !== 'gestor') {
@@ -50,7 +50,7 @@ router.get('/productivity', authenticateToken, async (req: any, res) => {
   }
 });
 
-// GET /analytics/task-types - Estatísticas por tipo de tarefa
+//Estatísticas por tipo de tarefa
 router.get('/task-types', authenticateToken, async (req: any, res) => {
   try {
     if (req.user.type !== 'gestor') {
@@ -73,7 +73,7 @@ router.get('/task-types', authenticateToken, async (req: any, res) => {
   }
 });
 
-// GET /analytics/trends - Tendências ao longo do tempo
+//Tendências ao longo do tempo
 router.get('/trends', authenticateToken, async (req: any, res) => {
   try {
     if (req.user.type !== 'gestor') {
@@ -96,7 +96,7 @@ router.get('/trends', authenticateToken, async (req: any, res) => {
   }
 });
 
-// GET /analytics/estimation-accuracy - Precisão das estimativas
+//Precisão das estimativas
 router.get('/estimation-accuracy', authenticateToken, async (req: any, res) => {
   try {
     if (req.user.type !== 'gestor') {

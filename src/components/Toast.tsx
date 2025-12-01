@@ -11,10 +11,6 @@ interface ToastProps {
   onClose: () => void;
 }
 
-/**
- * Componente de Toast para feedback ao usuário
- * Substitui alerts por uma UX mais moderna
- */
 export const Toast: React.FC<ToastProps> = ({ 
   message, 
   type, 

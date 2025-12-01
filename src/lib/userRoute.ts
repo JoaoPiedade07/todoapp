@@ -5,7 +5,7 @@ import { validateUserData, sanitizeString } from './validators';
 
 const router = express.Router();
 
-// IMPORTANTE: Rotas específicas devem vir ANTES de rotas com parâmetros dinâmicos
+// Rotas específicas devem vir ANTES de rotas com parâmetros dinâmicos
 
 // Obter todos os gestores (público para registro - SEM autenticação)
 router.get('/managers', async (req, res) => {

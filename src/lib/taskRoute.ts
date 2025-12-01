@@ -114,7 +114,7 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
     if (updates.status !== undefined) updateData.status = updates.status;
     if (updates.story_points !== undefined) updateData.storyPoints = updates.story_points;
     
-    // ✅ CORREÇÃO: Converter strings vazias para null para foreign keys
+    // Converter strings vazias para null para foreign keys
     if (updates.assigned_to !== undefined) {
       updateData.assignedTo = updates.assigned_to === '' || updates.assigned_to === null ? null : updates.assigned_to;
       // Validar se o ID existe se não for null

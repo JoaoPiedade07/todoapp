@@ -4,7 +4,7 @@ import { authenticateToken } from './middleware';
 
 const router = express.Router();
 
-// GET /programmer/completed-tasks - Lista de tarefas concluídas do programador
+// Lista de tarefas concluídas do programador
 router.get('/completed-tasks', authenticateToken, async (req: any, res) => {
   try {
     const programmerId = req.user.id;
@@ -21,7 +21,7 @@ router.get('/completed-tasks', authenticateToken, async (req: any, res) => {
   }
 });
 
-// GET /programmer/stats - Estatísticas do programador
+// Estatísticas do programador
 router.get('/stats', authenticateToken, async (req: any, res) => {
   try {
     const programmerId = req.user.id;

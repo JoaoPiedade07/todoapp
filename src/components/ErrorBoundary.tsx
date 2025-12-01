@@ -12,10 +12,6 @@ interface State {
   error: Error | null;
 }
 
-/**
- * Error Boundary para capturar erros de renderização
- * Protege a aplicação contra crashes
- */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -34,7 +30,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary capturou um erro:', error, errorInfo);
-    // Aqui você pode enviar o erro para um serviço de logging
   }
 
   handleReset = () => {

@@ -2,7 +2,6 @@ import { Pool, QueryResult } from 'pg';
 import path from 'path';
 import fs from 'fs';
 
-// Check if DATABASE_URL is set
 if (!process.env.DATABASE_URL) {
   console.error('\n❌ ERROR: DATABASE_URL environment variable is not set!');
   console.error('\n📋 To fix this:');
@@ -13,13 +12,13 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Initialize PostgreSQL connection pool
+// Inicializa PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Handle pool errors
+//Erros
 pool.on('error', (err) => {
   console.error('❌ Unexpected error on idle PostgreSQL client', err);
 });
@@ -524,7 +523,7 @@ export const taskQueries = {
         const params: any[] = [];
         let paramIndex = 1;
 
-        // ✅ CORREÇÃO: Normalizar valores null e strings vazias para foreign keys
+        // Normalizar valores null e strings vazias para foreign keys
         const normalizedTask: any = { ...task };
         if (normalizedTask.assignedTo === '' || normalizedTask.assignedTo === undefined) {
             normalizedTask.assignedTo = null;

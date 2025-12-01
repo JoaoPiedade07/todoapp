@@ -6,10 +6,6 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
 }
 
-/**
- * Componente de loading reutilizável
- * Melhora a UX com feedback visual consistente
- */
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
   size = 'md', 
   text,

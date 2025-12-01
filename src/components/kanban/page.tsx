@@ -124,7 +124,7 @@ export default function KanbanPage() {
     setTasks(mockTasks);
   };
 
-  // ✅ FUNÇÃO para SALVAR as edições (chamada pelo modal)
+  // Func para salvar as edições (chamada pelo modal)
   const handleSaveTask = async (taskId: string, updates: any) => {
     try {
       const token = localStorage.getItem('token');
@@ -151,7 +151,7 @@ export default function KanbanPage() {
     }
   };
 
-  // ✅ FUNÇÃO para eliminar tarefa
+  // Func para eliminar tarefa
   const handleDeleteTask = async (taskId: string) => {
     try {
       const token = localStorage.getItem('token');
@@ -176,7 +176,7 @@ export default function KanbanPage() {
     }
   };
 
-  // ✅ FUNÇÃO para criar tarefa
+  // Func para criar tarefa
   const handleCreateTask = async (taskData: any) => {
     try {
       const token = localStorage.getItem('token');
@@ -206,7 +206,7 @@ export default function KanbanPage() {
     }
   };
 
-  // ✅ FUNÇÃO para mover tarefa (drag and drop)
+  // Func para mover tarefa (drag and drop)
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
       return;
@@ -262,7 +262,6 @@ const openEditModal = (task: Task) => {
   setShowEditModal(true);
 };
 
-// Adicione este log no return do componente (antes do return):
 console.log('🟡 DEBUG 5 - Estado atual do componente:', {
   showEditModal,
   editingTask: editingTask?.id,
@@ -332,7 +331,7 @@ console.log('🟡 DEBUG 5 - Estado atual do componente:', {
           tasks={tasks}
           onTaskMove={handleTaskMove}
           onViewDetails={handleViewDetails}
-          onEditTask={user.type === UserType.MANAGER ? openEditModal : undefined} // ✅ DEVE SER openEditModal
+          onEditTask={user.type === UserType.MANAGER ? openEditModal : undefined}
           onDeleteTask={user.type === UserType.MANAGER ? handleDeleteTask : undefined}
           userType={user.type}
           currentUser={user}

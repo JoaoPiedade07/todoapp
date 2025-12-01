@@ -1,4 +1,3 @@
-// src/components/kanban/TaskCard.tsx
 'use client';
 
 import { Task } from '@/types';
