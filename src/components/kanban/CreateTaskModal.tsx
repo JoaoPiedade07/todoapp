@@ -128,7 +128,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         }
 
         // Nota: task_type_id precisaria ser obtido do nome, mas por agora vamos sem
-        // Pode ser melhorado depois se necessário
 
         const response = await fetch(`${API_BASE_URL}/tasks/predict?${params.toString()}`, {
           headers: {

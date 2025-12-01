@@ -9,7 +9,7 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
-  onEditTask?: (task: Task) => void; // ✅ ADICIONAR
+  onEditTask?: (task: Task) => void; 
   onDeleteTask?: (taskId: string) => void;
   userType: UserType;
   currentUser: any;

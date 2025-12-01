@@ -46,10 +46,9 @@ export const LoginForm: React.FC = () => {
 
       const data = await response.json();
       
-      // DEBUG: Ver o que está a vir do backend
+      // Debug teste
       console.log('Dados do login:', data.user);
       
-      // CORREÇÃO: Garantir que o type está nos formatos corretos
       const userData = {
         ...data.user,
         type: data.user.type === 'gestor' || data.user.type === 'programador' 
@@ -89,8 +88,8 @@ export const LoginForm: React.FC = () => {
             )}
             
             <Input
-              label="Email" // MUDAR: de "Username" para "Email"
-              type="email" // MUDAR: para type="email"
+              label="Email"
+              type="email"
               placeholder="Digite seu email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

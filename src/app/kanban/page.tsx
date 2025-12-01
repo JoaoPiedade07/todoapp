@@ -80,12 +80,10 @@ export default function KanbanPage() {
     }
   };
 
-  // ✅ CORREÇÃO: Função para abrir modal de edição
   const handleEditTaskWrapper = (task: Task) => {
     openEditModal(task);
   };
 
-  // ✅ CORREÇÃO: Renomear função original
   const handleEditTaskOriginal = async (taskId: string, updates: any) => {
     try {
       const token = localStorage.getItem('token');
@@ -100,7 +98,7 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
-        closeEditModal(); // ✅ Fechar modal após salvar
+        closeEditModal();
         alert('Tarefa atualizada com sucesso!');
       } else {
         const errorText = await response.text();
@@ -125,7 +123,7 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
-        closeEditModal(); // ✅ Fechar modal após eliminar
+        closeEditModal();
         alert('Tarefa eliminada com sucesso!');
       } else {
         const errorText = await response.text();

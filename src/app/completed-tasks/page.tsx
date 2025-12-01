@@ -32,7 +32,6 @@ export default function CompletedTasksPage() {
     
     const userObj = JSON.parse(userData);
     
-    // Verificar se é gestor
     if (!isManager(userObj.type)) {
       router.push('/kanban');
       return;

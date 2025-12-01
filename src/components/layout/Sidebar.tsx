@@ -52,14 +52,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   const handleNavigation = (path: string) => {
     router.push(path);
-    setIsMobileMenuOpen(false); // ✅ CORRIGIDO: era setIsMobileMenu
+    setIsMobileMenuOpen(false);
   };
 
   return (
     <>
-      {/* Mobile Menu Button */}
-{/* Mobile Menu Button - SEM ANIMAÇÃO PARA X */}
-{/* Mobile Menu Button - DESAPARECE QUANDO MENU ESTÁ ABERTO */}
 {!isMobileMenuOpen && (
   <button
     onClick={toggleMobileMenu}
@@ -78,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       {isMobileMenuOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsMobileMenuOpen(false)} // ✅ CORRIGIDO: era setIsMobileMenu
+          onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
@@ -96,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
             
             {/* Botão de fechar no mobile */}
             <button
-              onClick={() => setIsMobileMenuOpen(false)} // ✅ CORRIGIDO: era setIsMobileMenu
+              onClick={() => setIsMobileMenuOpen(false)}
               className="lg:hidden p-1 rounded-md hover:bg-gray-100"
               aria-label="Fechar menu"
             >

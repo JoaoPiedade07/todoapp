@@ -103,9 +103,6 @@ export const RegisterForm: React.FC = () => {
 
       const data = await response.json();
 
-
-      
-      // Salva o usuário no localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       

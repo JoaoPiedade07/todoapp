@@ -1,4 +1,3 @@
-// Load environment variables FIRST, before any other imports
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -8,7 +7,6 @@ import cors from 'cors';
 import { initDatabase } from './src/lib/database';
 import authRoutes from './src/lib/authRoute';
 import { authenticateToken } from './src/lib/middleware';
-//import userRoute from './src/lib/userRouteComplete';
 import userRoute from './src/lib/userRoute';
 import taskRoute from './src/lib/taskRoute';
 import taskTypeRoute from './src/lib/taskTypeRoute';
@@ -18,7 +16,6 @@ import analyticsRoute from './src/lib/analyticsRoute';
 const server = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
-// Initialize database asynchronously
 initDatabase().catch((error) => {
   console.error('❌ Erro ao inicializar base de dados:', error);
   process.exit(1);
@@ -26,7 +23,6 @@ initDatabase().catch((error) => {
 
 server.use(cors({
   origin: (origin, callback) => {
-    // Lista de origens permitidas
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
@@ -34,22 +30,18 @@ server.use(cors({
       'http://192.168.1.202:3000'
     ];
     
-    // Permite requisições sem origem (ex: Postman, mobile apps)
     if (!origin) {
       return callback(null, true);
     }
     
-    // Verifica se a origem está na lista
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
-    // Permite qualquer IP na rede local 192.168.x.x na porta 3000
     if (/^http:\/\/192\.168\.\d+\.\d+:3000$/.test(origin)) {
       return callback(null, true);
     }
     
-    // Permite qualquer IP na rede local 10.x.x.x na porta 3000
     if (/^http:\/\/10\.\d+\.\d+\.\d+:3000$/.test(origin)) {
       return callback(null, true);
     }
@@ -77,7 +69,6 @@ server.use('/task-type', taskTypeRoute);
 server.use('/programmer', programmerRoutes);
 server.use('/analytics', analyticsRoute);
 
-// Rota protegida de exemplo
 server.get('/protected', authenticateToken, (req: any, res) => {
   res.json({ 
     message: 'Esta é uma rota protegida',

@@ -51,7 +51,6 @@ export default function ReportsPage() {
         'Content-Type': 'application/json'
       };
 
-      // Carregar dados baseado na aba ativa
       switch (activeTab) {
         case 'overview':
           await Promise.all([

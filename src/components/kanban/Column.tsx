@@ -63,7 +63,6 @@ export const Column: React.FC<ColumnProps> = ({
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    // Só remove o estado se o mouse saiu do container principal
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
