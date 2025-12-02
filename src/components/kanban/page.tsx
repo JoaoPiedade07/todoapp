@@ -255,14 +255,15 @@ export default function KanbanPage() {
     setShowEditModal(false);
   };
 
+  //debug test
 const openEditModal = (task: Task) => {
-  console.log('🔴 DEBUG 1 - openEditModal CHAMADA! Task:', task);
+  console.log('DEBUG 1 - openEditModal CHAMADA! Task:', task);
   alert('Modal deve abrir agora! Task: ' + task.title);
   setEditingTask(task);
   setShowEditModal(true);
 };
-
-console.log('🟡 DEBUG 5 - Estado atual do componente:', {
+  //debug test
+console.log('DEBUG 5 - Estado atual do componente:', {
   showEditModal,
   editingTask: editingTask?.id,
   userType: user?.type,

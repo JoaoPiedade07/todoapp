@@ -61,7 +61,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const handleDragStart = (e: React.DragEvent) => {
     if (task.status === TaskStatus.DONE) {
       e.preventDefault();
-      console.log('❌ Tentativa de arrastar tarefa concluída bloqueada');
+      console.log('Tentativa de arrastar tarefa concluída bloqueada');
       return;
     }
 
@@ -75,7 +75,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     e.dataTransfer.setData('currentStatus', task.status);
     e.dataTransfer.effectAllowed = 'move';
     
-    console.log('🚀 DRAG START:', { 
+    console.log('DRAG START:', { 
       taskId: task.id, 
       currentStatus: task.status,
       isDraggable: isDraggable 
@@ -94,16 +94,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     onViewDetails(task);
   };
 
+  
+//debugs test
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('🔵 DEBUG 6 - Botão editar clicado no TaskCard');
-    console.log('🔵 DEBUG 7 - onEditTask existe?', !!onEditTask);
-    console.log('🔵 DEBUG 8 - Task:', task);
+    console.log('DEBUG 6 - Botão editar clicado no TaskCard');
+    console.log('DEBUG 7 - onEditTask existe?', !!onEditTask);
+    console.log('DEBUG 8 - Task:', task);
     if (onEditTask) {
       onEditTask(task);
-      console.log('🔵 DEBUG 9 - onEditTask chamado');
+      console.log('DEBUG 9 - onEditTask chamado');
     } else {
-      console.log('🔵 DEBUG 10 - onEditTask é undefined');
+      console.log('DEBUG 10 - onEditTask é undefined');
     }
   };
 
@@ -188,7 +190,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           )}
           {task.estimated_hours && (
             <div className="flex items-center gap-1">
-              <span className="font-medium">⏱️:</span>
+              <span className="font-medium">:</span>
               <span className="text-blue-600">{task.estimated_hours}h</span>
             </div>
           )}
@@ -207,12 +209,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <span>Atualizado: {formatUpdatedAt()}</span>
           <div className="flex gap-2">
             {isDraggable ? (
-              <span className="text-blue-500 font-medium">🔄 Arrastável</span>
+              <span className="text-blue-500 font-medium">Arrastável</span>
             ) : (
-              <span className="text-gray-400 font-medium">🔒 Bloqueado</span>
+              <span className="text-gray-400 font-medium">Bloqueado</span>
             )}
             {canEditDelete && (
-              <span className="text-green-500 font-medium">👑 Gestor</span>
+              <span className="text-green-500 font-medium">Gestor</span>
             )}
           </div>
         </div>

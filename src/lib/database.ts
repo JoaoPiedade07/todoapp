@@ -3,12 +3,12 @@ import path from 'path';
 import fs from 'fs';
 
 if (!process.env.DATABASE_URL) {
-  console.error('\n❌ ERROR: DATABASE_URL environment variable is not set!');
-  console.error('\n📋 To fix this:');
+  console.error('\nERROR: DATABASE_URL environment variable is not set!');
+  console.error('\nTo fix this:');
   console.error('1. Create a .env file in the project root');
   console.error('2. Add: DATABASE_URL=postgresql://user:password@host:5432/database');
   console.error('3. For a free database, go to https://supabase.com');
-  console.error('\n📖 See QUICK_START.md for detailed instructions\n');
+  console.error('\nSee QUICK_START.md for detailed instructions\n');
   process.exit(1);
 }
 
@@ -20,7 +20,7 @@ const pool = new Pool({
 
 //Erros
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle PostgreSQL client', err);
+  console.error('Unexpected error on idle PostgreSQL client', err);
 });
 
 // Helper function to execute queries and return all rows
@@ -57,16 +57,16 @@ export async function initDatabase() {
     try {
         // Test connection first
         await pool.query('SELECT NOW()');
-        console.log('✅ Connected to PostgreSQL database');
+        console.log('Connected to PostgreSQL database');
     } catch (error: any) {
-        console.error('\n❌ Failed to connect to PostgreSQL database!');
+        console.error('\nFailed to connect to PostgreSQL database!');
         console.error('Error:', error.message);
         if (error.code === 'ECONNREFUSED') {
-            console.error('\n💡 This usually means:');
+            console.error('\nThis usually means:');
             console.error('   - PostgreSQL is not running (if using local database)');
             console.error('   - DATABASE_URL is incorrect');
             console.error('   - Database server is not accessible\n');
-            console.error('📖 See QUICK_START.md for setup instructions\n');
+            console.error('See QUICK_START.md for setup instructions\n');
         }
         throw error;
     }
@@ -103,9 +103,9 @@ export async function initDatabase() {
                 END IF;
             END $$;
         `);
-        console.log('✅ Coluna experience_level verificada');
+        console.log('Coluna experience_level verificada');
     } catch (error: any) {
-        console.log('ℹ️ Coluna experience_level já existe ou erro:', error.message);
+        console.log('Coluna experience_level já existe ou erro:', error.message);
     }
     
     // Tabela de tipos de tarefas
@@ -147,9 +147,9 @@ export async function initDatabase() {
         ON tasks(assigned_to, status, "order")
     `);
     
-        console.log('✅ Database schema initialized successfully');
+        console.log('Database schema initialized successfully');
     } catch (error: any) {
-        console.error('❌ Error initializing database schema:', error.message);
+        console.error('Error initializing database schema:', error.message);
         throw error;
     }
 }
@@ -323,7 +323,7 @@ export const taskQueries = {
         taskTypeId?: string;
         createdBy: string;
     }) => {
-        console.log('📥 Dados recebidos na database create:', task);
+        console.log('Dados recebidos na database create:', task);
 
         if (task.status === 'inprogress' && task.assignedTo) {
             const canAssign = await taskQueries.canAssignToDoing(task.assignedTo);
@@ -334,7 +334,7 @@ export const taskQueries = {
 
         let finalAssignedTo = task.assignedTo;
         if(!finalAssignedTo) {
-            console.log('🔄 Auto-atribuindo tarefa ao criador:', task.createdBy);
+            console.log('Auto-atribuindo tarefa ao criador:', task.createdBy);
             finalAssignedTo = task.createdBy;
         }
 
@@ -387,7 +387,7 @@ export const taskQueries = {
         ]);
 
         console.log('Task criada. Criador:', task.createdBy, 'Responsável:', finalAssignedTo);
-        console.log('✅ Task criada com sucesso no banco de dados');
+        console.log('Task criada com sucesso no banco de dados');
     },
 
     validateExecutionOrder: async (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): Promise<boolean> => {

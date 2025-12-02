@@ -22,7 +22,7 @@ router.get('/statistics', authenticateToken, async (req: any, res) => {
       period_days: daysParam
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar estatísticas:', error);
+    console.error('Erro ao buscar estatísticas:', error);
     res.status(500).json({ error: 'Erro ao buscar estatísticas', details: error.message });
   }
 });
@@ -45,7 +45,7 @@ router.get('/productivity', authenticateToken, async (req: any, res) => {
       period_days: daysParam
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar produtividade:', error);
+    console.error('Erro ao buscar produtividade:', error);
     res.status(500).json({ error: 'Erro ao buscar produtividade', details: error.message });
   }
 });
@@ -68,7 +68,7 @@ router.get('/task-types', authenticateToken, async (req: any, res) => {
       period_days: daysParam
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar estatísticas por tipo:', error);
+    console.error('Erro ao buscar estatísticas por tipo:', error);
     res.status(500).json({ error: 'Erro ao buscar estatísticas por tipo', details: error.message });
   }
 });
@@ -91,7 +91,7 @@ router.get('/trends', authenticateToken, async (req: any, res) => {
       period_days: daysParam
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar tendências:', error);
+    console.error('Erro ao buscar tendências:', error);
     res.status(500).json({ error: 'Erro ao buscar tendências', details: error.message });
   }
 });
@@ -114,7 +114,7 @@ router.get('/estimation-accuracy', authenticateToken, async (req: any, res) => {
       period_days: daysParam
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar precisão de estimativas:', error);
+    console.error('Erro ao buscar precisão de estimativas:', error);
     res.status(500).json({ error: 'Erro ao buscar precisão de estimativas', details: error.message });
   }
 });

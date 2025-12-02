@@ -15,22 +15,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   const menuItems = [
     {
-      name: '📋 Kanban Board',
+      name: 'Kanban Board',
       path: '/kanban',
       accessible: true
     },
     {
-      name: '👥 Gestão de Utilizadores',
+      name: 'Gestão de Utilizadores',
       path: '/users',
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
-      name: '🏷️ Tarefas Concluídas',
+      name: 'Tarefas Concluídas',
       path: '/completed-tasks', 
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     },
     {
-      name: '📊 Relatórios',
+      name: 'Relatórios',
       path: '/reports',
       accessible: user.type === UserType.MANAGER || user.type === 'gestor'
     }

@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      📋 Kanban Board
+                      Kanban Board
                     </button>
 
                     {user.type === 'manager' && (
@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                           }}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          👥 Gestão de Utilizadores
+                          Gestão de Utilizadores
                         </button>
                         <button
                           onClick={() => {
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                           }}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          🏷️ Tipos de Tarefa
+                          Tipos de Tarefa
                         </button>
                       </>
                     )}
@@ -120,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        🚪 Terminar Sessão
+                        Terminar Sessão
                       </button>
                     </div>
                   </div>
