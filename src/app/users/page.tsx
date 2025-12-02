@@ -39,7 +39,7 @@ export default function UsersPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Adicione esta função para testar a API
+  // Função para testar a API
   const testAPI = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -56,12 +56,12 @@ export default function UsersPage() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ API Users data:', data);
+        console.log('API Users data:', data);
       } else {
-        console.log('❌ API Error:', response.status, response.statusText);
+        console.log('API Error:', response.status, response.statusText);
       }
     } catch (error) {
-      console.log('❌ API Connection error:', error);
+      console.log('API Connection error:', error);
     }
   };
 
@@ -173,7 +173,7 @@ export default function UsersPage() {
       const token = localStorage.getItem('token');
       console.log('🔑 Token:', token);
       
-      // Preparar dados para a API (INCLUIR experience_level)
+      // Preparar dados para a API
       const userData = {
         username: formData.username,
         email: formData.email,
@@ -185,12 +185,12 @@ export default function UsersPage() {
         manager_id: formData.type === UserType.PROGRAMMER ? formData.manager_id : undefined
       };
 
-      console.log('📤 Dados enviados para API:', userData);
+      console.log('Dados enviados para API:', userData);
 
       const url = editingUser ? `${API_BASE_URL}/users/${editingUser.id}` : `${API_BASE_URL}/auth/register`;
       const method = editingUser ? 'PUT' : 'POST';
 
-      console.log('🌐 Chamando API:', method, url);
+      console.log('Chamando API:', method, url);
 
       const response = await fetch(url, {
         method,
@@ -201,23 +201,23 @@ export default function UsersPage() {
         body: JSON.stringify(userData),
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Sucesso:', result);
+        console.log('Sucesso:', result);
         
         fetchUsers();
         handleCloseModal();
         alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
       } else {
         const errorText = await response.text();
-        console.log('❌ Erro da API:', errorText);
+        console.log('Erro da API:', errorText);
         setErrors({ submit: errorText || 'Erro ao processar pedido' });
       }
     } catch (error) {
-      console.error('❌ Erro de conexão completo:', error);
+      console.error('Erro de conexão completo:', error);
       setErrors({ submit: 'Erro de conexão: ' + (error as Error).message });
     }
   };
@@ -236,11 +236,11 @@ export default function UsersPage() {
         },
       });
 
-      console.log('📡 DELETE Response status:', response.status);
-      console.log('📡 DELETE Response ok:', response.ok);
+      console.log('DELETE Response status:', response.status);
+      console.log('DELETE Response ok:', response.ok);
 
       if (response.ok) {
-        console.log('✅ Utilizador eliminado com sucesso');
+        console.log('Utilizador eliminado com sucesso');
         // Atualizar a lista localmente primeiro para feedback imediato
         setUsers(prev => prev.filter(user => user.id !== userId));
         setShowDeleteConfirm(null);
@@ -250,11 +250,11 @@ export default function UsersPage() {
         setTimeout(() => fetchUsers(), 100);
       } else {
         const errorText = await response.text();
-        console.log('❌ Erro ao eliminar utilizador:', errorText);
+        console.log('Erro ao eliminar utilizador:', errorText);
         alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
       }
     } catch (error) {
-      console.error('❌ Erro de conexão:', error);
+      console.error('Erro de conexão:', error);
       alert('Erro de conexão ao eliminar utilizador');
     }
   };

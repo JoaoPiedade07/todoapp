@@ -82,16 +82,16 @@ export default function CompletedTasksPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Dados recebidos:', data);
-        console.log('📋 Tarefas:', data.data);
-        console.log('📊 Número de tarefas:', data.data?.length || 0);
+        console.log('Dados recebidos:', data);
+        console.log('Tarefas:', data.data);
+        console.log('Número de tarefas:', data.data?.length || 0);
         
         // Garantir que temos um array válido
         const tasksArray = Array.isArray(data.data) ? data.data : [];
-        console.log('✅ Array de tarefas processado:', tasksArray.length, 'tarefas');
+        console.log('Array de tarefas processado:', tasksArray.length, 'tarefas');
         
         if (tasksArray.length > 0) {
-          console.log('📝 Primeira tarefa:', tasksArray[0]);
+          console.log('Primeira tarefa:', tasksArray[0]);
         }
         
         setCompletedTasks(prev => ({
@@ -100,14 +100,14 @@ export default function CompletedTasksPage() {
         }));
       } else {
         const errorText = await response.text();
-        console.error('❌ Erro ao buscar tarefas concluídas:', response.status, errorText);
+        console.error('Erro ao buscar tarefas concluídas:', response.status, errorText);
         setCompletedTasks(prev => ({
           ...prev,
           [programmerId]: []
         }));
       }
     } catch (error) {
-      console.error('❌ Erro ao buscar tarefas concluídas:', error);
+      console.error('Erro ao buscar tarefas concluídas:', error);
       setCompletedTasks(prev => ({
         ...prev,
         [programmerId]: []

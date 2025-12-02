@@ -43,14 +43,14 @@ export default function KanbanPage() {
       type: userObj.type === 'gestor' ? UserType.MANAGER : UserType.PROGRAMMER
     };
     
-    console.log('🔄 Converted user:', convertedUser);
-    console.log('🎯 User type after conversion:', convertedUser.type);
+    console.log('Converted user:', convertedUser);
+    console.log('User type after conversion:', convertedUser.type);
     
     setUser(convertedUser);
     fetchTasks();
 
     if (convertedUser.type === UserType.MANAGER) {
-      console.log('📥 Loading available users for manager');
+      console.log('Loading available users for manager');
       fetchAvailableUsers();
     }
   }, [router]);
@@ -189,11 +189,11 @@ export default function KanbanPage() {
 
   const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     if (user?.type !== UserType.PROGRAMMER && user?.type !== UserType.MANAGER) {
-      console.log('❌ Usuário não autorizado a mover tarefas:', user?.type);
+      console.log('Usuário não autorizado a mover tarefas:', user?.type);
       return;
     }
 
-    console.log('🔄 Movendo tarefa:', { taskId, newStatus, userType: user?.type });
+    console.log('Movendo tarefa:', { taskId, newStatus, userType: user?.type });
 
     try {
       const token = localStorage.getItem('token');
@@ -209,7 +209,7 @@ export default function KanbanPage() {
       });
 
       if (response.ok) {
-        console.log('✅ Tarefa movida com sucesso no servidor');
+        console.log('Tarefa movida com sucesso no servidor');
         setTasks(prevTasks =>
           prevTasks.map(task =>
             task.id === taskId ? { ...task, status: newStatus } : task
@@ -217,18 +217,18 @@ export default function KanbanPage() {
         );
       } else {
         const errorText = await response.text();
-        console.error('❌ Erro ao mover tarefa no servidor:', errorText);
+        console.error('Erro ao mover tarefa no servidor:', errorText);
         alert('Erro ao mover tarefa: ' + errorText);
       }
     } catch (error) {
-      console.error('❌ Erro de conexão ao mover tarefa:', error);
+      console.error('Erro de conexão ao mover tarefa:', error);
       alert('Erro de conexão ao mover tarefa');
     }
   };
 
   const handleCreateTask = async (taskData: any) => {
     try {
-      console.log('🎯 KanbanPage - Criando task:', taskData);
+      console.log('KanbanPage - Criando task:', taskData);
       
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks`, {
@@ -244,22 +244,22 @@ export default function KanbanPage() {
         }),
       });
 
-      console.log('📡 Response status:', response.status);
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const newTask = await response.json();
-        console.log('✅ KanbanPage - Task criada com sucesso:', newTask);
+        console.log('KanbanPage - Task criada com sucesso:', newTask);
         
         setShowCreateModal(false);
         await fetchTasks();
         
       } else {
         const errorText = await response.text();
-        console.error('❌ KanbanPage - Erro do servidor:', errorText);
+        console.error('KanbanPage - Erro do servidor:', errorText);
         alert('Erro ao criar tarefa: ' + errorText);
       }
     } catch (error) {
-      console.error('❌ KanbanPage - Erro de conexão:', error);
+      console.error('KanbanPage - Erro de conexão:', error);
       alert('Erro de conexão ao criar tarefa');
     }
   };

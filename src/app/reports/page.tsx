@@ -204,7 +204,7 @@ export default function ReportsPage() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📊 Relatórios e Análises</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Relatórios e Análises</h1>
             <p className="text-gray-600">Estatísticas e análises do seu time</p>
           </div>
           
@@ -216,8 +216,8 @@ export default function ReportsPage() {
               style={{ color: 'black' }}
               size="sm"
             >
-              <span className="sm:hidden">📥 Tudo</span>
-              <span className="hidden sm:inline">📥 Exportar Tudo (CSV)</span>
+              <span className="sm:hidden">Tudo</span>
+              <span className="hidden sm:inline">Exportar Tudo (CSV)</span>
             </Button>
             <Button 
               onClick={() => exportToCSV('completed')} 
@@ -225,8 +225,8 @@ export default function ReportsPage() {
               style={{ color: 'black' }}
               size="sm"
             >
-              <span className="sm:hidden">📥 Concluídas</span>
-              <span className="hidden sm:inline">📥 Exportar Concluídas (CSV)</span>
+              <span className="sm:hidden">Concluídas</span>
+              <span className="hidden sm:inline">Exportar Concluídas (CSV)</span>
             </Button>
           </div>
         </div>
@@ -236,10 +236,10 @@ export default function ReportsPage() {
       <div className="mb-6 border-b border-gray-200">
         <nav className="flex space-x-2 sm:space-x-8 overflow-x-auto">
           {[
-            { id: 'overview', label: '📋 Visão Geral', mobileLabel: '📋 Geral' },
+            { id: 'overview', label: 'Visão Geral', mobileLabel: 'Geral' },
             { id: 'productivity', label: '⚡ Produtividade', mobileLabel: '⚡ Produt.' },
-            { id: 'delays', label: '⏱️ Atrasos', mobileLabel: '⏱️ Atrasos' },
-            { id: 'trends', label: '📈 Tendências', mobileLabel: '📈 Tend.' }
+            { id: 'delays', label: 'Atrasos', mobileLabel: 'Atrasos' },
+            { id: 'trends', label: 'Tendências', mobileLabel: 'Tend.' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -299,7 +299,7 @@ export default function ReportsPage() {
               {/* Tarefas em Curso Ordenadas */}
               <Card>
                 <CardHeader className="px-4 sm:px-6 py-4">
-                  <h2 className="text-lg font-semibold">🔄 Tarefas em Curso (Ordenadas)</h2>
+                  <h2 className="text-lg font-semibold">Tarefas em Curso (Ordenadas)</h2>
                 </CardHeader>
                 <CardContent className="px-4 sm:px-6">
                   {inProgressTasks.length === 0 ? (
@@ -418,11 +418,11 @@ export default function ReportsPage() {
           {activeTab === 'delays' && (
             <Card>
               <CardHeader className="px-4 sm:px-6 py-4">
-                <h2 className="text-lg font-semibold">⏱️ Tarefas com Atraso</h2>
+                <h2 className="text-lg font-semibold">Tarefas com Atraso</h2>
               </CardHeader>
               <CardContent className="px-4 sm:px-6">
                 {delayedTasks.length === 0 ? (
-                  <p className="text-gray-500">Nenhuma tarefa atrasada! 🎉</p>
+                  <p className="text-gray-500">Nenhuma tarefa atrasada! </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
