@@ -17,7 +17,7 @@ const server = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 initDatabase().catch((error) => {
-  console.error('❌ Erro ao inicializar base de dados:', error);
+  console.error('Erro ao inicializar base de dados:', error);
   process.exit(1);
 });
 
@@ -54,9 +54,9 @@ server.use(cors({
 }));
 
 server.use((req, res, next) => {
-  console.log('🔍 Request:', req.method, req.url);
-  console.log('🔍 Headers:', req.headers);
-  console.log('🔍 Body:', req.body);
+  console.log('Request:', req.method, req.url);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
   next();
 });
 
@@ -76,9 +76,9 @@ server.get('/protected', authenticateToken, (req: any, res) => {
   });
 });
 
-console.log('🔄 Carregando rotas...');
-console.log('📁 userRoute:', Object.keys(userRoute));
-console.log('🔗 Rotas em userRoute:');
+console.log('Carregando rotas...');
+console.log('userRoute:', Object.keys(userRoute));
+console.log('Rotas em userRoute:');
 userRoute.stack.forEach((layer: any) => {
   if (layer.route) {
     const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
