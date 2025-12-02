@@ -136,13 +136,12 @@ export const RegisterForm: React.FC = () => {
               </div>
             )}
 
-            {/* Botão Switch com animação suave */}
+            {/* Botão Switch */}
             <div className="flex flex-col space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Tipo de Conta
               </label>
               <div className="relative inline-flex bg-gray-100 rounded-lg p-1">
-                {/* Indicador de seleção com animação */}
                 <div 
                   className={`absolute top-1 bottom-1 rounded-md bg-blue-600 shadow-sm transition-all duration-300 ease-in-out ${
                     userType === 'programador' 
@@ -177,7 +176,7 @@ export const RegisterForm: React.FC = () => {
               </div>
             </div>
 
-            {/* ⬅️ Seleção de gestor (apenas para programadores) */}
+            {/* Seleção de gestor (apenas para programadores) */}
                 {userType === 'programador' && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">

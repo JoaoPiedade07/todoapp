@@ -338,7 +338,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     ) : prediction ? (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-semibold text-blue-900">⏱️ Predição:</span>
+                          <span className="text-xs font-semibold text-blue-900"> Predição:</span>
                           <span className="text-sm font-bold text-blue-700">
                             {prediction.estimated_hours}h
                           </span>

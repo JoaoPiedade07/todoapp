@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Melhorias de Responsividade e UX */
 @layer utilities {
-  /* Animações suaves */
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }
@@ -35,13 +33,11 @@
     }
   }
 
-  /* Melhorias de acessibilidade */
   .focus-visible:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
   }
 
-  /* Loading states */
   .loading-shimmer {
     background: linear-gradient(
       90deg,
@@ -62,12 +58,10 @@
     }
   }
 
-  /* Scroll suave */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Melhorias de toque em mobile */
   @media (hover: none) {
     button:hover {
       background-color: initial;

@@ -52,13 +52,13 @@ export const Column: React.FC<ColumnProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
-    console.log('🔄 DRAG OVER coluna:', title);
+    console.log('DRAG OVER coluna:', title);
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-    console.log('🚪 DRAG ENTER coluna:', title);
+    console.log('DRAG ENTER coluna:', title);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -66,7 +66,7 @@ export const Column: React.FC<ColumnProps> = ({
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
-    console.log('🚪 DRAG LEAVE coluna:', title);
+    console.log('DRAG LEAVE coluna:', title);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -76,32 +76,32 @@ export const Column: React.FC<ColumnProps> = ({
     const taskId = e.dataTransfer.getData('taskId');
     const currentStatus = e.dataTransfer.getData('currentStatus') as TaskStatus;
     
-    console.log('🎯 DROP EVENT DETECTADO na coluna:', title);
-    console.log('📦 Dados transferidos:', { taskId, currentStatus });
-    console.log('🎯 Estado destino:', status);
-    console.log('👤 Tipo de usuário:', userType);
-    console.log('🔍 onTaskMove function:', typeof onTaskMove);
+    console.log('Drop Event Detectado na coluna:', title);
+    console.log('Dados transferidos:', { taskId, currentStatus });
+    console.log('Estado destino:', status);
+    console.log('Tipo de usuário:', userType);
+    console.log('onTaskMove function:', typeof onTaskMove);
       
     if (!taskId) {
-      console.log('❌ taskId não encontrado no dataTransfer');
+      console.log('taskId não encontrado no dataTransfer');
       return;
     }
 
     if (currentStatus === TaskStatus.DONE) {
-      console.log('❌ Não pode mover tarefas concluídas');
+      console.log('Não pode mover tarefas concluídas');
       alert('Tarefas concluídas não podem ser movidas!');
       return;
     }
     
     // Permitir que tanto programadores quanto gestores movam tarefas
     if (userType !== UserType.PROGRAMMER && userType !== UserType.MANAGER) {
-      console.log('❌ Apenas programadores e gestores podem mover tarefas');
+      console.log('Apenas programadores e gestores podem mover tarefas');
       return;
     }
     
     // Não permitir mover para o mesmo estado
     if (currentStatus === status) {
-      console.log('❌ Já está nesta coluna');
+      console.log('Já está nesta coluna');
       return;
     }
     
@@ -116,11 +116,11 @@ export const Column: React.FC<ColumnProps> = ({
     }
     
     if (isValidMove) {
-      console.log('✅ Movimento válido!');
-      console.log('📞 Chamando onTaskMove...');
+      console.log('Movimento válido!');
+      console.log('Chamando onTaskMove...');
       onTaskMove(taskId, status);
     } else {
-      console.log('❌ Movimento inválido:', { 
+      console.log('Movimento inválido:', { 
         de: currentStatus, 
         para: status,
         userType: userType
@@ -167,7 +167,7 @@ export const Column: React.FC<ColumnProps> = ({
             style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <div>
-              <p>{isDragOver ? '🎯 Solte aqui!' : '🔄 Arraste tarefas para aqui'}</p>
+              <p>{isDragOver ? 'Solte aqui!' : 'Arraste tarefas para aqui'}</p>
               <p className="text-xs mt-1">{isDragOver ? 'Libere para mover' : 'Solte para mover'}</p>
             </div>
           </div>
