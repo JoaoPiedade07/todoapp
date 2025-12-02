@@ -17,9 +17,9 @@ router.post('/', authenticateToken, async (req: any, res) => {
 
     const taskData = req.body;
     
-    console.log('📥 Dados recebidos para criar task:');
-    console.log('🔍 Body completo:', JSON.stringify(taskData, null, 2));
-    console.log('👤 User que está a criar:', req.user);
+    console.log('Dados recebidos para criar task:');
+    console.log('Body completo:', JSON.stringify(taskData, null, 2));
+    console.log('User que está a criar:', req.user);
 
     // Validação completa usando validators
     const validation = validateTaskData({
@@ -84,17 +84,17 @@ router.post('/', authenticateToken, async (req: any, res) => {
       createdBy: taskData.createdBy || req.user.id
     };
 
-    console.log('🔄 Dados convertidos para criar task:', taskToCreate);
+    console.log('Dados convertidos para criar task:', taskToCreate);
 
     await taskQueries.create(taskToCreate);
     
     // Buscar a task criada para retornar com os dados completos
     const createdTask = await taskQueries.getById(taskToCreate.id);
     
-    console.log('✅ Task criada com sucesso no banco de dados');
+    console.log('Task criada com sucesso no banco de dados');
     res.status(201).json(createdTask);
   } catch (error: any) {
-    console.error('❌ Erro ao criar tarefa:', error);
+    console.error('Erro ao criar tarefa:', error);
     res.status(500).json({ error: 'Erro ao criar tarefa', details: error.message });
   }
 });
@@ -105,7 +105,7 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log('🔄 Editando task:', { id, updates });
+    console.log('Editando task:', { id, updates });
 
     // Converter campos se necessário
     const updateData: any = {};
@@ -148,7 +148,7 @@ router.put('/:id', authenticateToken, async (req: any, res) => {
       data: updatedTask 
     });
   } catch (error: any) {
-    console.error('❌ Erro ao editar task:', error);
+    console.error('Erro ao editar task:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -158,7 +158,7 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
   try {
     const { id } = req.params;
     
-    console.log('🗑️ Eliminando task:', id);
+    console.log('Eliminando task:', id);
 
     // Verificar se a task existe
     const task = await taskQueries.getById(id);
@@ -173,7 +173,7 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
       message: 'Task eliminada com sucesso'
     });
   } catch (error: any) {
-    console.error('❌ Erro ao eliminar task:', error);
+    console.error('Erro ao eliminar task:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -184,7 +184,7 @@ router.get('/', authenticateToken, async (req: any, res) => {
     const tasks = await taskQueries.getAll();
     res.json(tasks);
   } catch (error) {
-    console.error('❌ Erro ao buscar tasks:', error);
+    console.error('Erro ao buscar tasks:', error);
     res.status(500).json({ error: 'Erro ao buscar tasks' });
   }
 });
@@ -200,11 +200,11 @@ router.get('/completed/:programmerId', authenticateToken, async (req: any, res) 
     }
 
     const { programmerId } = req.params;
-    console.log('🔍 Buscando tarefas concluídas para programador:', programmerId);
+    console.log('Buscando tarefas concluídas para programador:', programmerId);
     
     const completedTasks = await taskQueries.getCompletedTasksByProgrammer(programmerId);
-    console.log('✅ Tarefas encontradas:', completedTasks.length);
-    console.log('📋 Dados das tarefas:', JSON.stringify(completedTasks, null, 2));
+    console.log('Tarefas encontradas:', completedTasks.length);
+    console.log('Dados das tarefas:', JSON.stringify(completedTasks, null, 2));
     
     res.json({
       success: true,
@@ -212,7 +212,7 @@ router.get('/completed/:programmerId', authenticateToken, async (req: any, res) 
       count: completedTasks.length
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar tarefas concluídas:', error);
+    console.error('Erro ao buscar tarefas concluídas:', error);
     res.status(500).json({ error: 'Erro ao buscar tarefas concluídas', details: error.message });
   }
 });
@@ -223,7 +223,7 @@ router.patch('/:id', authenticateToken, async (req: any, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log('🔄 Atualizando task:', { id, updates });
+    console.log('Atualizando task:', { id, updates });
 
     // Converter campos se necessário
     const updateData: any = {};
@@ -241,16 +241,16 @@ router.patch('/:id', authenticateToken, async (req: any, res) => {
     if (updates.title !== undefined) updateData.title = updates.title;
     if (updates.description !== undefined) updateData.description = updates.description;
 
-    console.log('📝 Dados convertidos para update:', updateData);
+    console.log('Dados convertidos para update:', updateData);
 
     await taskQueries.update(id, updateData);
     const updatedTask = await taskQueries.getById(id);
     
-    console.log('✅ Task atualizada com sucesso:', updatedTask);
+    console.log('Task atualizada com sucesso:', updatedTask);
     
     res.json({ success: true, message: 'Task atualizada', data: updatedTask });
   } catch (error: any) {
-    console.error('❌ Erro ao atualizar task:', error);
+    console.error('Erro ao atualizar task:', error);
     res.status(500).json({ error: 'Erro ao atualizar task', details: error.message });
   }
 });
@@ -267,7 +267,7 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
     
     res.json(task);
   } catch (error) {
-    console.error('❌ Erro ao buscar task:', error);
+    console.error('Erro ao buscar task:', error);
     res.status(500).json({ error: 'Erro ao buscar task' });
   }
 });
@@ -298,7 +298,7 @@ router.get('/predict', authenticateToken, async (req: any, res) => {
       prediction
     });
   } catch (error: any) {
-    console.error('❌ Erro ao calcular predição:', error);
+    console.error('Erro ao calcular predição:', error);
     res.status(500).json({ error: 'Erro ao calcular predição', details: error.message });
   }
 });
@@ -318,7 +318,7 @@ router.get('/manager/completed', authenticateToken, async (req: any, res) => {
       count: completedTasks.length
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar tarefas concluídas do gestor:', error);
+    console.error('Erro ao buscar tarefas concluídas do gestor:', error);
     res.status(500).json({ error: 'Erro ao buscar tarefas concluídas', details: error.message });
   }
 });
@@ -335,7 +335,7 @@ router.get('/in-progress/ordered', authenticateToken, async (req: any, res) => {
       count: inProgressTasks.length
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar tarefas em curso:', error);
+    console.error('Erro ao buscar tarefas em curso:', error);
     res.status(500).json({ error: 'Erro ao buscar tarefas em curso', details: error.message });
   }
 });
@@ -352,7 +352,7 @@ router.get('/delayed', authenticateToken, async (req: any, res) => {
       count: delayedTasks.length
     });
   } catch (error: any) {
-    console.error('❌ Erro ao buscar tarefas atrasadas:', error);
+    console.error('Erro ao buscar tarefas atrasadas:', error);
     res.status(500).json({ error: 'Erro ao buscar tarefas atrasadas', details: error.message });
   }
 });
@@ -371,7 +371,7 @@ router.get('/time/average', authenticateToken, async (req: any, res) => {
       data: avgTime
     });
   } catch (error: any) {
-    console.error('❌ Erro ao calcular tempo médio:', error);
+    console.error('Erro ao calcular tempo médio:', error);
     res.status(500).json({ error: 'Erro ao calcular tempo médio', details: error.message });
   }
 });
@@ -441,7 +441,7 @@ router.get('/export/csv', authenticateToken, async (req: any, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=tasks_export_${new Date().toISOString().split('T')[0]}.csv`);
     res.send('\ufeff' + csvContent); // BOM para Excel
   } catch (error: any) {
-    console.error('❌ Erro ao exportar CSV:', error);
+    console.error('Erro ao exportar CSV:', error);
     res.status(500).json({ error: 'Erro ao exportar CSV', details: error.message });
   }
 });

@@ -10,12 +10,12 @@ const router = express.Router();
 // Obter todos os gestores (público para registro - SEM autenticação)
 router.get('/managers', async (req, res) => {
   try {
-    console.log('📋 [GET] /users/managers - Rota pública chamada');
+    console.log('[GET] /users/managers - Rota pública chamada');
     const managers = await userQueries.getManagers();
-    console.log(`✅ Retornando ${managers.length} gestores`);
+    console.log(`Retornando ${managers.length} gestores`);
     res.json(managers);
   } catch (error: any) {
-    console.error('❌ Erro ao buscar gestores:', error);
+    console.error('Erro ao buscar gestores:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -80,7 +80,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log('🗑️ [DELETE] Eliminando utilizador:', id);
+    console.log('[DELETE] Eliminando utilizador:', id);
 
     // Validar ID
     if (!id || !id.trim()) {
@@ -100,14 +100,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await userQueries.delete(id);
     
-    console.log('✅ Utilizador eliminado com sucesso:', id);
+    console.log('Utilizador eliminado com sucesso:', id);
     
     res.json({ 
       success: true, 
       message: 'Utilizador eliminado com sucesso'
     });
   } catch (error: any) {
-    console.error('❌ Erro ao eliminar utilizador:', error);
+    console.error('Erro ao eliminar utilizador:', error);
     res.status(500).json({ 
       error: 'Erro ao eliminar utilizador', 
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -121,7 +121,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log('🔄 [PUT] Atualizando utilizador:', { id, updates });
+    console.log('[PUT] Atualizando utilizador:', { id, updates });
 
     // Validar ID
     if (!id || !id.trim()) {
@@ -152,7 +152,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     });
 
-    console.log('📝 Campos filtrados para update:', filteredUpdates);
+    console.log('Campos filtrados para update:', filteredUpdates);
 
     // Verificar se o utilizador existe
     const existingUser = await userQueries.getById(id);
@@ -169,7 +169,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       data: updatedUser 
     });
   } catch (error: any) {
-    console.error('❌ Erro ao atualizar utilizador:', error);
+    console.error('Erro ao atualizar utilizador:', error);
     res.status(500).json({ 
       error: 'Erro ao atualizar utilizador', 
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -183,7 +183,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log('🔧 [PATCH] Atualizando utilizador:', { id, updates });
+    console.log('[PATCH] Atualizando utilizador:', { id, updates });
 
     // Validar ID
     if (!id || !id.trim()) {
@@ -220,7 +220,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('📝 Campos filtrados para update:', filteredUpdates);
+    console.log('Campos filtrados para update:', filteredUpdates);
 
     await userQueries.update(id, filteredUpdates);
     const updatedUser = await userQueries.getById(id);
@@ -231,7 +231,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
       data: updatedUser 
     });
   } catch (error: any) {
-    console.error('❌ Erro ao atualizar utilizador:', error);
+    console.error('Erro ao atualizar utilizador:', error);
     res.status(500).json({ 
       error: 'Erro ao atualizar utilizador', 
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
