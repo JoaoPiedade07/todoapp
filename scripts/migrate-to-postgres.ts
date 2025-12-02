@@ -73,8 +73,8 @@ async function main() {
   const outputPath = path.join(process.cwd(), 'migration-data.sql');
   fs.writeFileSync(outputPath, sql);
   
-  console.log(`✅ Migration script created: ${outputPath}`);
-  console.log('📋 Next steps:');
+  console.log(`Migration script created: ${outputPath}`);
+  console.log('Next steps:');
   console.log('1. Create your PostgreSQL database');
   console.log('2. Run the schema creation (from database.postgres.ts.example)');
   console.log('3. Run this migration script: psql -d your_database -f migration-data.sql');

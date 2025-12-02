@@ -7,13 +7,13 @@ const runStep = (label: string, callback: () => void) => {
   try {
     callback();
   } catch (error) {
-    console.error(`❌ Erro durante "${label}":`, error);
+    console.error(`Erro durante "${label}":`, error);
   }
   divider();
 };
 
 async function main() {
-  console.log('🧪 Teste do algoritmo de predição');
+  console.log('Teste do algoritmo de predição');
   divider();
 
   initDatabase();
@@ -49,11 +49,11 @@ async function main() {
     console.log(JSON.stringify(multiPrediction, null, 2));
   });
 
-  console.log('✅ Teste concluído');
+  console.log('Teste concluído');
 }
 
 main().catch((error) => {
-  console.error('❌ Erro ao executar testes:', error);
+  console.error('Erro ao executar testes:', error);
   process.exit(1);
 });
 
