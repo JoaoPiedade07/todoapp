@@ -70,7 +70,7 @@ export default function CompletedTasksPage() {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('🔍 Buscando tarefas concluídas para:', programmerId);
+      console.log('Buscando tarefas concluídas para:', programmerId);
       
       const response = await fetch(`${API_BASE_URL}/tasks/completed/${programmerId}`, {
         headers: {
@@ -78,7 +78,7 @@ export default function CompletedTasksPage() {
         },
       });
 
-      console.log('📡 Response status:', response.status);
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
