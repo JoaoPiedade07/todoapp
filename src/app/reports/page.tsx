@@ -237,7 +237,7 @@ export default function ReportsPage() {
         <nav className="flex space-x-2 sm:space-x-8 overflow-x-auto">
           {[
             { id: 'overview', label: 'Visão Geral', mobileLabel: 'Geral' },
-            { id: 'productivity', label: '⚡ Produtividade', mobileLabel: '⚡ Produt.' },
+            { id: 'productivity', label: 'Produtividade', mobileLabel: 'Produt.' },
             { id: 'delays', label: 'Atrasos', mobileLabel: 'Atrasos' },
             { id: 'trends', label: 'Tendências', mobileLabel: 'Tend.' }
           ].map(tab => (
@@ -336,7 +336,7 @@ export default function ReportsPage() {
               {/* Tarefas Concluídas do Gestor */}
               <Card>
                 <CardHeader className="px-4 sm:px-6 py-4">
-                  <h2 className="text-lg font-semibold">✅ Tarefas Concluídas do Time</h2>
+                  <h2 className="text-lg font-semibold">Tarefas Concluídas do Time</h2>
                 </CardHeader>
                 <CardContent className="px-4 sm:px-6">
                   {completedTasks.length === 0 ? (
@@ -459,7 +459,7 @@ export default function ReportsPage() {
           {activeTab === 'trends' && (
             <Card>
               <CardHeader className="px-4 sm:px-6 py-4">
-                <h2 className="text-lg font-semibold">📈 Tendências (Últimos 30 dias)</h2>
+                <h2 className="text-lg font-semibold">Tendências (Últimos 30 dias)</h2>
               </CardHeader>
               <CardContent className="px-4 sm:px-6">
                 {trends.length === 0 ? (
