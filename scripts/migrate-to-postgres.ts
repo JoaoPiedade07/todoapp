@@ -68,7 +68,7 @@ async function main() {
   const data = exportSQLiteData();
   
   console.log('📝 Generating PostgreSQL migration script...');
-  const sql = generatePostgreSQLInsertSQL(data);
+  const sql = generatePostgreSQLInsertSQL(await data);
   
   const outputPath = path.join(process.cwd(), 'migration-data.sql');
   fs.writeFileSync(outputPath, sql);
