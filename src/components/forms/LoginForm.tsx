@@ -92,7 +92,7 @@ export const LoginForm: React.FC = () => {
               type="email"
               placeholder="Digite seu email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
             />
             
@@ -101,7 +101,7 @@ export const LoginForm: React.FC = () => {
               type="password"
               placeholder="Digite sua password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
             />
             
