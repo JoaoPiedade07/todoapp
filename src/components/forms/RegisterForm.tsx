@@ -19,8 +19,6 @@ export const RegisterForm: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
-  import { getApiBaseUrl } from '@/lib/api';
   
   const API_BASE_URL = getApiBaseUrl();
 
