@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Department } from '@/constants/enums';
+import { getApiBaseUrl } from '@/lib/api';
 
 export const RegisterForm: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -19,10 +20,9 @@ export const RegisterForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // Detectar automaticamente a URL do servidor baseada no browser
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  import { getApiBaseUrl } from '@/lib/api';
+  
+  const API_BASE_URL = getApiBaseUrl();
 
   // Carregar gestores quando o tipo for programador
   useEffect(() => {

@@ -23,6 +23,7 @@ initDatabase().catch((error) => {
 
 server.use(cors({
   origin: (origin, callback) => {
+    // Lista de origens permitidas
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
@@ -30,18 +31,28 @@ server.use(cors({
       'http://192.168.1.202:3000'
     ];
     
+    // Permitir requisições sem origem (ex: Postman, mobile apps)
     if (!origin) {
       return callback(null, true);
     }
     
+    // Verificar se a origem está na lista
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
+    // Permitir qualquer domínio do Vercel
+    if (/^https:\/\/.*\.vercel\.app$/.test(origin) || 
+        /^https:\/\/.*\.vercel\.com$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Permitir qualquer IP na rede local 192.168.x.x na porta 3000
     if (/^http:\/\/192\.168\.\d+\.\d+:3000$/.test(origin)) {
       return callback(null, true);
     }
     
+    // Permitir qualquer IP na rede local 10.x.x.x na porta 3000
     if (/^http:\/\/10\.\d+\.\d+\.\d+:3000$/.test(origin)) {
       return callback(null, true);
     }
@@ -87,7 +98,7 @@ userRoute.stack.forEach((layer: any) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`URL Local: http://localhost:${PORT}`);
-  console.log(`URL Rede: http://10.0.97.104:${PORT}`);
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
+  console.log(`📡 Pronto para receber requisições!`);
 });

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { getApiBaseUrl } from '@/lib/api';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,9 +14,7 @@ export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +27,12 @@ export const LoginForm: React.FC = () => {
     }
 
     try {
+      if (!API_BASE_URL) {
+        throw new Error('API URL não configurada. Verifique NEXT_PUBLIC_API_URL no Vercel.');
+      }
+      
+      console.log('🔗 Tentando conectar em:', `${API_BASE_URL}/auth/login`);
+      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -38,6 +43,8 @@ export const LoginForm: React.FC = () => {
           password
         }),
       });
+      
+      console.log('📡 Resposta recebida:', response.status, response.statusText);
 
       if(!response.ok) {
         const errorData = await response.json();
