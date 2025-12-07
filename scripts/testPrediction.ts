@@ -24,8 +24,8 @@ async function main() {
   });
 
   runStep('Teste 2: Variação por story points', () => {
-    [1, 2, 3, 5, 8, 13].forEach((sp) => {
-      const p = predictionQueries.predictTaskTime(sp);
+    [1, 2, 3, 5, 8, 13].forEach(async (sp) => {
+      const p = await predictionQueries.predictTaskTime(sp);
       console.log(`${sp} SP -> ${p.estimated_hours}h (confiança: ${p.confidence_level})`);
     });
   });
