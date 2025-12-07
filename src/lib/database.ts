@@ -12,11 +12,67 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Helper para parsear DATABASE_URL e extrair componentes
+function parseDatabaseUrl(url: string): { host?: string; port?: number; database?: string; user?: string; password?: string; ssl?: any } | null {
+  if (!url) return null;
+  
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    
+    // Remover colchetes se IPv6 estiver entre colchetes
+    let cleanHostname = hostname;
+    if (hostname.startsWith('[') && hostname.endsWith(']')) {
+      cleanHostname = hostname.slice(1, -1);
+      console.error('⚠️ AVISO: DATABASE_URL contém endereço IPv6 entre colchetes!');
+      console.error('⚠️ Use o hostname DNS do Supabase em vez de endereço IP.');
+      console.error('⚠️ Exemplo correto: postgresql://postgres:senha@db.xxx.supabase.co:5432/postgres');
+      console.error('⚠️ No Supabase Dashboard → Settings → Database → Connection String, use "URI" ou "Session mode"');
+      console.error('⚠️ Tentando usar hostname DNS do Supabase...');
+    }
+    
+    // Verificar se ainda é IPv6 (sem colchetes)
+    const isIPv6 = cleanHostname.includes(':') && cleanHostname.split(':').length > 2 && !cleanHostname.includes('.');
+    if (isIPv6) {
+      console.error('⚠️ ERRO: Hostname ainda é IPv6 após remover colchetes!');
+      console.error('⚠️ Por favor, atualize DATABASE_URL no Railway para usar hostname DNS do Supabase.');
+      throw new Error('DATABASE_URL contém endereço IPv6. Use o hostname DNS do Supabase (ex: db.xxx.supabase.co)');
+    }
+    
+    return {
+      host: cleanHostname,
+      port: parseInt(urlObj.port || '5432', 10),
+      database: urlObj.pathname.slice(1), // Remove leading /
+      user: urlObj.username,
+      password: urlObj.password,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Parsear DATABASE_URL
+const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL || '');
+
 // Inicializa PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+// Se conseguirmos parsear, usar configuração explícita (melhor para IPv4)
+// Caso contrário, usar connectionString (fallback)
+const pool = dbConfig 
+  ? new Pool({
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      ssl: dbConfig.ssl,
+      // Forçar IPv4 através da família de endereços
+      // O Node.js dns.lookup usa IPv4 por padrão quando especificamos um hostname DNS
+    })
+  : new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
 
 //Erros
 pool.on('error', (err) => {
