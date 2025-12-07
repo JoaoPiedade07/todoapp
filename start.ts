@@ -31,37 +31,49 @@ server.use(cors({
       'http://192.168.1.202:3000'
     ];
     
-    // Permitir requisições sem origem (ex: Postman, mobile apps)
+    // Permitir requisições sem origem (ex: Postman, mobile apps, server-side)
     if (!origin) {
+      console.log('✅ CORS: Permitindo requisição sem origem');
       return callback(null, true);
     }
+    
+    console.log('🔍 CORS: Verificando origem:', origin);
     
     // Verificar se a origem está na lista
     if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS: Origem permitida (lista)');
       return callback(null, true);
     }
     
-    // Permitir qualquer domínio do Vercel
-    if (/^https:\/\/.*\.vercel\.app$/.test(origin) || 
-        /^https:\/\/.*\.vercel\.com$/.test(origin)) {
+    // Permitir qualquer domínio do Vercel (incluindo subdomínios e projetos)
+    // Exemplos: https://todoapp-ybkz-49uo8wqcg-joaopiedade07s-projects.vercel.app
+    //          https://*.vercel.app, https://*.vercel.com
+    if (origin.includes('.vercel.app') || origin.includes('.vercel.com')) {
+      console.log('✅ CORS: Origem permitida (Vercel)');
       return callback(null, true);
     }
     
     // Permitir qualquer IP na rede local 192.168.x.x na porta 3000
     if (/^http:\/\/192\.168\.\d+\.\d+:3000$/.test(origin)) {
+      console.log('✅ CORS: Origem permitida (rede local 192.168)');
       return callback(null, true);
     }
     
     // Permitir qualquer IP na rede local 10.x.x.x na porta 3000
     if (/^http:\/\/10\.\d+\.\d+\.\d+:3000$/.test(origin)) {
+      console.log('✅ CORS: Origem permitida (rede local 10.x)');
       return callback(null, true);
     }
     
+    console.log('❌ CORS: Origem bloqueada:', origin);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 server.use((req, res, next) => {
