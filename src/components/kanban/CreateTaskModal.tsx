@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { validateTaskData, validateStoryPoints, validateTaskTitle, validateDescription } from '@/lib/validators';
+import { getApiBaseUrl } from '@/lib/api';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [prediction, setPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     const loadProgrammers = async () => {

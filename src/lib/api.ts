@@ -1,12 +1,24 @@
 // Utility para obter a URL base da API
 export function getApiBaseUrl(): string {
+  // Helper para garantir que a URL tenha protocolo
+  const ensureProtocol = (url: string): string => {
+    if (!url) return url;
+    // Se já tem protocolo, retorna como está
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Se não tem protocolo, adiciona https:// (assumindo produção)
+    return `https://${url}`;
+  };
+
   // Em produção, usar variável de ambiente (configurada no Vercel)
   if (typeof window !== 'undefined') {
     // Cliente (browser)
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
     if (envUrl) {
-      console.log('🌐 Usando API URL:', envUrl);
-      return envUrl;
+      const fullUrl = ensureProtocol(envUrl);
+      console.log('🌐 Usando API URL:', fullUrl);
+      return fullUrl;
     }
     
     // Fallback: detectar automaticamente para desenvolvimento
@@ -27,6 +39,7 @@ export function getApiBaseUrl(): string {
   }
   
   // Server-side
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return ensureProtocol(serverUrl);
 }
 
