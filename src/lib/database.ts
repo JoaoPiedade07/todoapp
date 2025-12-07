@@ -55,6 +55,24 @@ function parseDatabaseUrl(url: string): { host?: string; port?: number; database
 // Parsear DATABASE_URL
 const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL || '');
 
+// Log de debug (sem mostrar senha completa)
+if (process.env.DATABASE_URL) {
+  const urlForLog = process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@');
+  console.log('🔍 DATABASE_URL configurada:', urlForLog);
+  if (dbConfig) {
+    console.log('✅ Parse da URL bem-sucedido:');
+    console.log('   Host:', dbConfig.host);
+    console.log('   Port:', dbConfig.port);
+    console.log('   Database:', dbConfig.database);
+    console.log('   User:', dbConfig.user);
+    console.log('   SSL:', dbConfig.ssl ? 'habilitado' : 'desabilitado');
+  } else {
+    console.log('⚠️ Não foi possível fazer parse da URL, usando connectionString diretamente');
+  }
+} else {
+  console.error('❌ DATABASE_URL não está configurada!');
+}
+
 // Inicializa PostgreSQL
 // Se conseguirmos parsear, usar configuração explícita (melhor para IPv4)
 // Caso contrário, usar connectionString (fallback)
