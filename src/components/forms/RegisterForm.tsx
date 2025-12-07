@@ -208,7 +208,7 @@ export const RegisterForm: React.FC = () => {
               type="text"
               placeholder="Digite seu username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
               required
             />
 
@@ -217,7 +217,7 @@ export const RegisterForm: React.FC = () => {
               type="email"
               placeholder="Digite seu endereço de email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
             />
             
@@ -226,7 +226,7 @@ export const RegisterForm: React.FC = () => {
               type="password"
               placeholder="Digite sua password (mín. 6 caracteres)"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
             />
 
@@ -235,7 +235,7 @@ export const RegisterForm: React.FC = () => {
               type="password"
               placeholder="Repita sua password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
               required
             />  
             

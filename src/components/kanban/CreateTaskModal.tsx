@@ -253,7 +253,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Input
                 placeholder="Digite o título da tarefa"
                 value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('title', e.target.value)}
                 className={errors.title ? 'border-red-500' : ''}
               />
               {errors.title && (
@@ -302,7 +302,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   min="1"
                   placeholder="1"
                   value={formData.order}
-                  onChange={(e) => handleInputChange('order', parseInt(e.target.value) || 1)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('order', parseInt(e.target.value) || 1)}
                 />
               </div>
             </div>
