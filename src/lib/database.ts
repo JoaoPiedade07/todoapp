@@ -39,13 +39,18 @@ function parseDatabaseUrl(url: string): { host?: string; port?: number; database
       throw new Error('DATABASE_URL contém endereço IPv6. Use o hostname DNS do Supabase (ex: db.xxx.supabase.co)');
     }
     
+    // O pooler do Supabase sempre requer SSL
+    const requiresSSL = cleanHostname.includes('pooler.supabase.com') || 
+                        cleanHostname.includes('.supabase.co') ||
+                        process.env.NODE_ENV === 'production';
+    
     return {
       host: cleanHostname,
       port: parseInt(urlObj.port || '5432', 10),
       database: urlObj.pathname.slice(1), // Remove leading /
       user: urlObj.username,
-      password: urlObj.password,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      password: urlObj.password, // URL já decodifica %40 para @ automaticamente
+      ssl: requiresSSL ? { rejectUnauthorized: false } : false,
     };
   } catch (e) {
     return null;
@@ -65,6 +70,8 @@ if (process.env.DATABASE_URL) {
     console.log('   Port:', dbConfig.port);
     console.log('   Database:', dbConfig.database);
     console.log('   User:', dbConfig.user);
+    console.log('   Password length:', dbConfig.password ? dbConfig.password.length : 0);
+    console.log('   Password starts with:', dbConfig.password ? dbConfig.password.substring(0, 3) + '...' : 'N/A');
     console.log('   SSL:', dbConfig.ssl ? 'habilitado' : 'desabilitado');
   } else {
     console.log('⚠️ Não foi possível fazer parse da URL, usando connectionString diretamente');
@@ -89,7 +96,11 @@ const pool = dbConfig
     })
   : new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: (process.env.DATABASE_URL?.includes('pooler.supabase.com') || 
+            process.env.DATABASE_URL?.includes('.supabase.co') ||
+            process.env.NODE_ENV === 'production') 
+            ? { rejectUnauthorized: false } 
+            : false,
     });
 
 //Erros
