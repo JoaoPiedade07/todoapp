@@ -7,16 +7,29 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
+    console.log('📝 Requisição de registro recebida');
+    console.log('📦 Body:', JSON.stringify(req.body, null, 2));
+    
     const { username, name, email, password, type, department, manager_id, experience_level } = req.body;
 
     if (!username || !name || !email || !password || !type || !department) {
+      console.error('❌ Campos obrigatórios faltando:', {
+        username: !!username,
+        name: !!name,
+        email: !!email,
+        password: !!password,
+        type: !!type,
+        department: !!department
+      });
       return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
     }
 
     if(type === 'programador' && !manager_id) {
+      console.error('❌ Programador sem gestor responsável');
       return res.status(400).json({ error: 'Programadores devem ter um gestor responsavel' });
     }
 
+    console.log('✅ Dados validados, chamando AuthService.register');
     const result = await AuthService.register({ 
       username, 
       name, 
@@ -28,12 +41,15 @@ router.post('/register', async (req, res) => {
       experience_level
     });
     
+    console.log('✅ Usuário criado com sucesso:', result.user.id);
     res.status(201).json({
       message: 'Usuário criado com sucesso',
       user: result.user,
       token: result.token
     });
   } catch (error: any) {
+    console.error('❌ Erro ao registrar usuário:', error.message);
+    console.error('Stack:', error.stack);
     res.status(400).json({ error: error.message });
   }
 });

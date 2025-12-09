@@ -189,6 +189,36 @@ router.get('/', authenticateToken, async (req: any, res) => {
   }
 });
 
+// IMPORTANTE: Rotas específicas devem vir ANTES de rotas com parâmetros dinâmicos (/:id)
+// GET /predict - Obter predição de tempo para uma tarefa (deve vir antes de /:id)
+router.get('/predict', authenticateToken, async (req: any, res) => {
+  try {
+    const { story_points, user_id, task_type_id } = req.query;
+    
+    if (!story_points) {
+      return res.status(400).json({ error: 'story_points é obrigatório' });
+    }
+
+    const storyPoints = parseInt(story_points as string);
+    if (isNaN(storyPoints) || storyPoints <= 0) {
+      return res.status(400).json({ error: 'story_points deve ser um número positivo' });
+    }
+
+    const userId = user_id as string | undefined;
+    const taskTypeId = task_type_id as string | undefined;
+
+    const prediction = await predictionQueries.predictTaskTime(storyPoints, userId, taskTypeId);
+    
+    res.json({
+      success: true,
+      prediction
+    });
+  } catch (error: any) {
+    console.error('Erro ao calcular predição:', error);
+    res.status(500).json({ error: 'Erro ao calcular predição', details: error.message });
+  }
+});
+
 // GET /completed/:programmerId - Obter tarefas concluídas de um programador (apenas gestores)
 router.get('/completed/:programmerId', authenticateToken, async (req: any, res) => {
   try {
@@ -269,37 +299,6 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
   } catch (error) {
     console.error('Erro ao buscar task:', error);
     res.status(500).json({ error: 'Erro ao buscar task' });
-  }
-});
-
-// DELETE /:id - Eliminar task (duplicate route handler - keeping the one above)
-
-// GET /predict - Obter predição de tempo para uma tarefa
-router.get('/predict', authenticateToken, async (req: any, res) => {
-  try {
-    const { story_points, user_id, task_type_id } = req.query;
-    
-    if (!story_points) {
-      return res.status(400).json({ error: 'story_points é obrigatório' });
-    }
-
-    const storyPoints = parseInt(story_points as string);
-    if (isNaN(storyPoints) || storyPoints <= 0) {
-      return res.status(400).json({ error: 'story_points deve ser um número positivo' });
-    }
-
-    const userId = user_id as string | undefined;
-    const taskTypeId = task_type_id as string | undefined;
-
-    const prediction = await predictionQueries.predictTaskTime(storyPoints, userId, taskTypeId);
-    
-    res.json({
-      success: true,
-      prediction
-    });
-  } catch (error: any) {
-    console.error('Erro ao calcular predição:', error);
-    res.status(500).json({ error: 'Erro ao calcular predição', details: error.message });
   }
 });
 
