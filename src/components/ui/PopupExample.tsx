@@ -16,7 +16,7 @@ export const PopupExample: React.FC = () => {
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupType, setPopupType] = useState<PopupType>('default');
   const [popupMessage, setPopupMessage] = useState('');
-  const { showToast, ToastContainer } = useToast();
+  const { showToast } = useToast();
 
   const showPopup = (type: PopupType, message: string) => {
     setPopupType(type);
@@ -123,9 +123,6 @@ export const PopupExample: React.FC = () => {
         confirmText="Confirmar"
         cancelText="Cancelar"
       />
-
-      {/* Toast Container */}
-      <ToastContainer />
     </div>
   );
 };

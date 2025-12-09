@@ -21,14 +21,11 @@ export const PopupExamples: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
   
-  const { showToast, ToastContainer } = useToast();
+  const { showToast } = useToast();
 
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Exemplos de Pop-ups</h1>
-
-      {/* Toast Container */}
-      <ToastContainer position="top-right" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {/* Success Popup */}

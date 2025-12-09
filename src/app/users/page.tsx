@@ -356,11 +356,8 @@ export default function UsersPage() {
     );
   }
 
-  const { ToastContainer } = useToast();
-
   return (
     <MainLayout user={user}>
-      <ToastContainer />
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestão de Utilizadores</h1>
