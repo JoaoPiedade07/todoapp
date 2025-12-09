@@ -13,6 +13,9 @@ import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUti
 import { getApiBaseUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
+// Force dynamic rendering since this page uses client-side features (localStorage, auth)
+export const dynamic = 'force-dynamic';
+
 export default function UsersPage() {
   const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);

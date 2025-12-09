@@ -13,6 +13,9 @@ import { TaskStatus, UserType } from '@/constants/enums';
 import { getApiBaseUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
+// Force dynamic rendering since this page uses client-side features (localStorage, auth)
+export const dynamic = 'force-dynamic';
+
 export default function KanbanPage() {
   const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);

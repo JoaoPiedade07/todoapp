@@ -10,6 +10,9 @@ import { isManager } from '@/lib/userUtils';
 import { getApiBaseUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
+// Force dynamic rendering since this page uses client-side features (localStorage, auth)
+export const dynamic = 'force-dynamic';
+
 export default function ReportsPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
