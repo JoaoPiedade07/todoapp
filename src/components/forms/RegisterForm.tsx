@@ -29,12 +29,25 @@ export const RegisterForm: React.FC = () => {
 
   // Carregar gestores quando o tipo for programador
   useEffect(() => {
-    if(userType === 'programador' && API_BASE_URL && API_BASE_URL.trim() !== '') {
-      console.log('🔗 Carregando gestores de:', `${API_BASE_URL}/auth/managers`);
-      fetch(`${API_BASE_URL}/auth/managers`)
+    if(userType === 'programador') {
+      if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+        console.warn('⚠️ API_BASE_URL vazia - não é possível carregar gestores');
+        setAvailableManagers([]);
+        return;
+      }
+      
+      const managersUrl = `${API_BASE_URL}/auth/managers`;
+      console.log('🔗 Carregando gestores de:', managersUrl);
+      
+      fetch(managersUrl)
       .then(async res => {
+        console.log('📡 Resposta gestores:', res.status, res.statusText);
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
+          if (res.status === 404) {
+            console.error('❌ Rota /auth/managers não encontrada. Verifique se o backend está rodando e acessível.');
+            throw new Error('Backend não encontrado. Verifique NEXT_PUBLIC_API_URL no Vercel.');
+          }
+          const errorData = await res.json().catch(() => ({ error: `Erro ${res.status}: ${res.statusText}` }));
           console.error('Erro na resposta:', errorData);
           throw new Error(errorData.error || 'Erro ao carregar gestores');
         }
@@ -44,11 +57,11 @@ export const RegisterForm: React.FC = () => {
       .then(data => {
         // Garantir que data é um array
         const managers = Array.isArray(data) ? data : [];
-        console.log('✅ Gestores carregados:', managers);
+        console.log('✅ Gestores carregados:', managers.length, 'gestores');
         setAvailableManagers(managers);
       })
       .catch(err => {
-        console.error('❌ Erro ao carregar gestores:', err);
+        console.error('❌ Erro ao carregar gestores:', err.message || err);
         setAvailableManagers([]);
       });
     } else {
@@ -102,8 +115,14 @@ export const RegisterForm: React.FC = () => {
       
       const registerUrl = `${API_BASE_URL}/auth/register`;
       console.log('🔗 Tentando registrar em:', registerUrl);
+      console.log('📦 Dados enviados:', {
+        username,
+        email,
+        type: userType === 'programador' ? 'programador' : 'gestor',
+        hasManagerId: !!managerId
+      });
       
-      const response = await fetch(`${API_BASE_URL}/auth/register`,  {
+      const response = await fetch(registerUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,19 +138,42 @@ export const RegisterForm: React.FC = () => {
         }),
       });
       
-      console.log('📡 Resposta recebida:', response.status, response.statusText);
+      console.log('📡 Resposta recebida:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        ok: response.ok
+      });
 
       if(!response.ok) {
         let errorMessage = 'Erro ao criar conta';
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch {
+        } catch (parseError) {
           // Se não conseguir parsear JSON, usar status text
-          errorMessage = response.status === 404 
-            ? 'Rota não encontrada. Verifique se NEXT_PUBLIC_API_URL está configurada corretamente no Vercel.'
-            : `Erro ${response.status}: ${response.statusText}`;
+          if (response.status === 404) {
+            errorMessage = `❌ Backend não encontrado (404)\n\n` +
+              `A URL ${registerUrl} não está acessível.\n\n` +
+              `Possíveis causas:\n` +
+              `1. NEXT_PUBLIC_API_URL não está configurada no Vercel\n` +
+              `2. A URL do backend está incorreta\n` +
+              `3. O backend no Railway não está rodando\n\n` +
+              `Verifique:\n` +
+              `- Console do navegador para ver a URL usada\n` +
+              `- Logs do Railway para ver se o backend está rodando\n` +
+              `- Variáveis de ambiente no Vercel`;
+          } else {
+            errorMessage = `Erro ${response.status}: ${response.statusText}`;
+          }
+          console.error('❌ Erro ao parsear resposta:', parseError);
         }
+        console.error('❌ Erro completo:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          errorMessage
+        });
         throw new Error(errorMessage);
       }
 

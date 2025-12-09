@@ -437,20 +437,42 @@ export const taskQueries = {
         }
 
         const resolvedStatus = task.status || 'todo';
-        let resolvedOrder = typeof task.order === 'number' ? task.order : 0;
+        let resolvedOrder = 0;
 
         const shouldSetAssignedAt = task.assignedTo && resolvedStatus === 'inprogress';
 
-        if (task.assignedTo) {
+        // Sempre calcular o próximo order disponível para evitar conflitos com a constraint única
+        if (finalAssignedTo) {
             const row = await queryOne(`
                 SELECT COALESCE(MAX("order"), -1)::int as "maxOrder"
                 FROM tasks
                 WHERE assigned_to = $1 AND status = $2
-            `, [task.assignedTo, resolvedStatus]);
-            const nextOrder = (row?.maxOrder ?? -1) + 1;
-            if (typeof task.order !== 'number') {
-                resolvedOrder = nextOrder;
+            `, [finalAssignedTo, resolvedStatus]);
+            const maxOrder = row?.maxOrder ?? -1;
+            resolvedOrder = maxOrder + 1;
+            
+            // Se um order foi fornecido explicitamente, verificar se já existe
+            // Se existir, usar o próximo disponível em vez do fornecido
+            if (typeof task.order === 'number' && task.order >= 0) {
+                const existingOrder = await queryOne(`
+                    SELECT id FROM tasks
+                    WHERE assigned_to = $1 AND status = $2 AND "order" = $3
+                `, [finalAssignedTo, resolvedStatus, task.order]);
+                
+                if (existingOrder) {
+                    // Order já existe, usar o próximo disponível
+                    console.log(`⚠️ Order ${task.order} já existe para assigned_to=${finalAssignedTo}, status=${resolvedStatus}. Usando próximo disponível: ${resolvedOrder}`);
+                } else if (task.order <= maxOrder) {
+                    // Order fornecido é menor ou igual ao máximo, usar o próximo disponível
+                    console.log(`⚠️ Order ${task.order} pode causar conflito. Usando próximo disponível: ${resolvedOrder}`);
+                } else {
+                    // Order fornecido é maior que o máximo, pode usar
+                    resolvedOrder = task.order;
+                }
             }
+        } else {
+            // Se não há assigned_to, usar order 0 ou o fornecido
+            resolvedOrder = typeof task.order === 'number' ? task.order : 0;
         }
 
         await execute(`
