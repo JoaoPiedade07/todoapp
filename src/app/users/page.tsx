@@ -11,8 +11,10 @@ import { User } from '@/types';
 import { UserType, Department, NivelExperiencia } from '@/constants/enums';
 import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUtils';
 import { getApiBaseUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 
 export default function UsersPage() {
+  const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,15 +211,30 @@ export default function UsersPage() {
         
         fetchUsers();
         handleCloseModal();
-        alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
+        showToast({
+          message: editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
       } else {
         const errorText = await response.text();
         console.log('Erro da API:', errorText);
         setErrors({ submit: errorText || 'Erro ao processar pedido' });
+        showToast({
+          message: 'Erro ao ' + (editingUser ? 'atualizar' : 'criar') + ' utilizador: ' + errorText,
+          type: 'error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Erro de conexão completo:', error);
-      setErrors({ submit: 'Erro de conexão: ' + (error as Error).message });
+      const errorMessage = 'Erro de conexão: ' + (error as Error).message;
+      setErrors({ submit: errorMessage });
+      showToast({
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      });
     }
   };
 
@@ -243,18 +260,30 @@ export default function UsersPage() {
         // Atualizar a lista localmente primeiro para feedback imediato
         setUsers(prev => prev.filter(user => user.id !== userId));
         setShowDeleteConfirm(null);
-        alert('Utilizador eliminado com sucesso!');
+        showToast({
+          message: 'Utilizador eliminado com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
         
         // Recarregar da API para garantir sincronização
         setTimeout(() => fetchUsers(), 100);
       } else {
         const errorText = await response.text();
         console.log('Erro ao eliminar utilizador:', errorText);
-        alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
+        showToast({
+          message: `Erro ao eliminar utilizador: ${response.status} ${errorText}`,
+          type: 'error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Erro de conexão:', error);
-      alert('Erro de conexão ao eliminar utilizador');
+      showToast({
+        message: 'Erro de conexão ao eliminar utilizador',
+        type: 'error',
+        duration: 5000
+      });
     }
   };
 
@@ -327,8 +356,11 @@ export default function UsersPage() {
     );
   }
 
+  const { ToastContainer } = useToast();
+
   return (
     <MainLayout user={user}>
+      <ToastContainer />
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestão de Utilizadores</h1>

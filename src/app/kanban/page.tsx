@@ -11,8 +11,10 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { TaskStatus, UserType } from '@/constants/enums';
 import { getApiBaseUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 
 export default function KanbanPage() {
+  const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -98,14 +100,22 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        alert('Tarefa atualizada com sucesso!');
+        showToast({
+          message: 'Tarefa atualizada com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao editar tarefa:', error);
-      alert('Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'));
+      showToast({
+        message: 'Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'),
+        type: 'error',
+        duration: 5000
+      });
       throw error;
     }
   };
@@ -123,13 +133,22 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        alert('Tarefa eliminada com sucesso!');
+        showToast({
+          message: 'Tarefa eliminada com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao eliminar tarefa:', error);
+      showToast({
+        message: 'Erro ao eliminar tarefa: ' + (error.message || 'Erro desconhecido'),
+        type: 'error',
+        duration: 5000
+      });
       throw error;
     }
   };
@@ -217,11 +236,19 @@ export default function KanbanPage() {
       } else {
         const errorText = await response.text();
         console.error('Erro ao mover tarefa no servidor:', errorText);
-        alert('Erro ao mover tarefa: ' + errorText);
+        showToast({
+          message: 'Erro ao mover tarefa: ' + errorText,
+          type: 'error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Erro de conexão ao mover tarefa:', error);
-      alert('Erro de conexão ao mover tarefa');
+      showToast({
+        message: 'Erro de conexão ao mover tarefa',
+        type: 'error',
+        duration: 5000
+      });
     }
   };
 
@@ -251,15 +278,27 @@ export default function KanbanPage() {
         
         setShowCreateModal(false);
         await fetchTasks();
-        
+        showToast({
+          message: 'Tarefa criada com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
       } else {
         const errorText = await response.text();
         console.error('KanbanPage - Erro do servidor:', errorText);
-        alert('Erro ao criar tarefa: ' + errorText);
+        showToast({
+          message: 'Erro ao criar tarefa: ' + errorText,
+          type: 'error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('KanbanPage - Erro de conexão:', error);
-      alert('Erro de conexão ao criar tarefa');
+      showToast({
+        message: 'Erro de conexão ao criar tarefa',
+        type: 'error',
+        duration: 5000
+      });
     }
   };
 
@@ -291,8 +330,11 @@ export default function KanbanPage() {
     );
   }
 
+  const { ToastContainer } = useToast();
+
   return (
     <MainLayout user={user}>
+      <ToastContainer />
       <div className="mb-6">
         <div className="flex justify-between items-center">
           <div>
