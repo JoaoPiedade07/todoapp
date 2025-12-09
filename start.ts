@@ -76,12 +76,18 @@ server.use(cors({
   optionsSuccessStatus: 204
 }));
 
-server.use((req, res, next) => {
-  console.log('Request:', req.method, req.url);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  next();
-});
+// Logging middleware (desabilitar em produção para segurança)
+if (process.env.NODE_ENV !== 'production') {
+  server.use((req, res, next) => {
+    console.log('Request:', req.method, req.url);
+    // Não logar headers e body em produção (pode conter dados sensíveis)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Headers:', req.headers);
+      console.log('Body:', req.body);
+    }
+    next();
+  });
+}
 
 server.use(express.json());
 
@@ -91,6 +97,15 @@ server.use('/tasks', taskRoute);
 server.use('/task-type', taskTypeRoute);
 server.use('/programmer', programmerRoutes);
 server.use('/analytics', analyticsRoute);
+
+// Health check endpoint (útil para Railway/Vercel verificar se o servidor está rodando)
+server.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 server.get('/protected', authenticateToken, (req: any, res) => {
   res.json({ 

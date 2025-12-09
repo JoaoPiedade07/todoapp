@@ -2,7 +2,20 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserModel, User, CreateUserData } from '../lib/user';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-super-secreto';
+// Validar JWT_SECRET em produção
+const JWT_SECRET_ENV = process.env.JWT_SECRET;
+if (!JWT_SECRET_ENV) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('\n❌ ERRO CRÍTICO: JWT_SECRET não está configurado!');
+    console.error('Configure JWT_SECRET no Railway: Variables → Add Variable');
+    console.error('Gere uma chave segura com: openssl rand -base64 32\n');
+    process.exit(1);
+  } else {
+    console.warn('⚠️ AVISO: JWT_SECRET não configurado, usando valor padrão (INSEGURO para produção)');
+  }
+}
+
+const JWT_SECRET = JWT_SECRET_ENV || 'seu-segredo-super-secreto-dev-only';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 interface JWTPayload {
