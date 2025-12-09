@@ -10,8 +10,8 @@
 import { useState } from 'react';
 import { Button } from './button';
 import { Modal } from './modal';
-import { SuccessPopup, ErrorPopup, WarningPopup, InfoPopup, ConfirmPopup } from './popup';
-import { Toast, useToast } from './toast';
+import { Popup } from './popup';
+import { useToast } from './Toast';
 
 export const PopupExamples: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
@@ -78,21 +78,21 @@ export const PopupExamples: React.FC = () => {
 
         {/* Toast Examples */}
         <Button
-          onClick={() => showToast('Operação realizada com sucesso!', 'success')}
+          onClick={() => showToast({ message: 'Operação realizada com sucesso!', type: 'success' })}
           className="bg-green-600 hover:bg-green-700"
         >
           Toast Success
         </Button>
 
         <Button
-          onClick={() => showToast('Erro ao processar solicitação', 'error')}
+          onClick={() => showToast({ message: 'Erro ao processar solicitação', type: 'error' })}
           className="bg-red-600 hover:bg-red-700"
         >
           Toast Error
         </Button>
 
         <Button
-          onClick={() => showToast('Atenção: Verifique os dados', 'warning')}
+          onClick={() => showToast({ message: 'Atenção: Verifique os dados', type: 'warning' })}
           className="bg-yellow-600 hover:bg-yellow-700"
         >
           Toast Warning
@@ -100,51 +100,58 @@ export const PopupExamples: React.FC = () => {
       </div>
 
       {/* Success Popup */}
-      <SuccessPopup
+      <Popup
         isOpen={showSuccess}
         onClose={() => setShowSuccess(false)}
+        type="success"
         title="Sucesso!"
         message="A operação foi realizada com sucesso."
       />
 
       {/* Error Popup */}
-      <ErrorPopup
+      <Popup
         isOpen={showError}
         onClose={() => setShowError(false)}
+        type="error"
         title="Erro"
         message="Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente."
       />
 
       {/* Warning Popup */}
-      <WarningPopup
+      <Popup
         isOpen={showWarning}
         onClose={() => setShowWarning(false)}
+        type="warning"
+        title="Atenção"
+        message="Tem certeza que deseja continuar? Esta ação não pode ser desfeita."
         onConfirm={() => {
           console.log('Ação confirmada!');
           setShowWarning(false);
         }}
-        title="Atenção"
-        message="Tem certeza que deseja continuar? Esta ação não pode ser desfeita."
+        showCancel={true}
       />
 
       {/* Info Popup */}
-      <InfoPopup
+      <Popup
         isOpen={showInfo}
         onClose={() => setShowInfo(false)}
+        type="info"
         title="Informação"
         message="Esta é uma mensagem informativa para o usuário."
       />
 
       {/* Confirm Popup */}
-      <ConfirmPopup
+      <Popup
         isOpen={showConfirm}
         onClose={() => setShowConfirm(false)}
+        type="default"
+        title="Confirmar Ação"
+        message="Deseja realmente executar esta ação?"
         onConfirm={() => {
           console.log('Confirmado!');
           setShowConfirm(false);
         }}
-        title="Confirmar Ação"
-        message="Deseja realmente executar esta ação?"
+        showCancel={true}
       />
 
       {/* Custom Modal */}
