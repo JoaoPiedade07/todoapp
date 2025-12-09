@@ -24,24 +24,26 @@ export const RegisterForm: React.FC = () => {
 
   // Carregar gestores quando o tipo for programador
   useEffect(() => {
-    if(userType === 'programador') {
+    if(userType === 'programador' && API_BASE_URL) {
+      console.log('🔗 Carregando gestores de:', `${API_BASE_URL}/auth/managers`);
       fetch(`${API_BASE_URL}/auth/managers`)
       .then(async res => {
-        const data = await res.json();
         if (!res.ok) {
-          console.error('Erro na resposta:', data);
-          throw new Error(data.error || 'Erro ao carregar gestores');
+          const errorData = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
+          console.error('Erro na resposta:', errorData);
+          throw new Error(errorData.error || 'Erro ao carregar gestores');
         }
+        const data = await res.json();
         return data;
       })
       .then(data => {
         // Garantir que data é um array
         const managers = Array.isArray(data) ? data : [];
-        console.log('Gestores carregados:', managers);
+        console.log('✅ Gestores carregados:', managers);
         setAvailableManagers(managers);
       })
       .catch(err => {
-        console.error('Erro ao carregar gestores: ', err);
+        console.error('❌ Erro ao carregar gestores:', err);
         setAvailableManagers([]);
       });
     } else {
@@ -78,6 +80,12 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
 
     try {
+      if (!API_BASE_URL) {
+        throw new Error('API URL não configurada. Verifique NEXT_PUBLIC_API_URL no Vercel.');
+      }
+      
+      console.log('🔗 Tentando registrar em:', `${API_BASE_URL}/auth/register`);
+      
       const response = await fetch(`${API_BASE_URL}/auth/register`,  {
         method: 'POST',
         headers: {
@@ -93,10 +101,21 @@ export const RegisterForm: React.FC = () => {
           manager_id: userType === 'programador' ? managerId: undefined
         }),
       });
+      
+      console.log('📡 Resposta recebida:', response.status, response.statusText);
 
       if(!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error);
+        let errorMessage = 'Erro ao criar conta';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Se não conseguir parsear JSON, usar status text
+          errorMessage = response.status === 404 
+            ? 'Rota não encontrada. Verifique se NEXT_PUBLIC_API_URL está configurada corretamente no Vercel.'
+            : `Erro ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
