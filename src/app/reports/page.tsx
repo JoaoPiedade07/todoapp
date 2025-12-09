@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { UserType } from '@/constants/enums';
 import { isManager } from '@/lib/userUtils';
 import { getApiBaseUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ReportsPage() {
   const [user, setUser] = useState<any>(null);
@@ -20,6 +21,7 @@ export default function ReportsPage() {
   const [inProgressTasks, setInProgressTasks] = useState<any[]>([]);
   const [completedTasks, setCompletedTasks] = useState<any[]>([]);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const API_BASE_URL = getApiBaseUrl();
 
@@ -185,12 +187,25 @@ export default function ReportsPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        showToast({
+          message: 'CSV exportado com sucesso!',
+          type: 'success',
+          duration: 3000
+        });
       } else {
-        alert('Erro ao exportar CSV');
+        showToast({
+          message: 'Erro ao exportar CSV',
+          type: 'error',
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Erro ao exportar:', error);
-      alert('Erro ao exportar CSV');
+      showToast({
+        message: 'Erro ao exportar CSV',
+        type: 'error',
+        duration: 5000
+      });
     }
   };
 

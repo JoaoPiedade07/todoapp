@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { UserType } from '@/constants/enums';
 import { getApiBaseUrl } from '@/lib/api';
+import { Popup } from '@/components/ui/popup';
 
 interface EditTaskModalProps {
   task: Task | null;
@@ -88,18 +89,23 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDelete = async () => {
     if (!task) return;
+    setShowDeleteConfirm(true);
+  };
 
-    if (window.confirm('Tem certeza que deseja eliminar esta tarefa?')) {
-      setLoading(true);
-      try {
-        await onDelete(task.id);
-      } catch (error) {
-        console.error('Erro ao eliminar tarefa:', error);
-      } finally {
-        setLoading(false);
-      }
+  const confirmDelete = async () => {
+    if (!task) return;
+    setShowDeleteConfirm(false);
+    setLoading(true);
+    try {
+      await onDelete(task.id);
+    } catch (error) {
+      console.error('Erro ao eliminar tarefa:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,6 +277,20 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Popup de confirmação de exclusão */}
+      <Popup
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja eliminar esta tarefa? Esta ação não pode ser desfeita."
+        type="warning"
+        showCancel={true}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

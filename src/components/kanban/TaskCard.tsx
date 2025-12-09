@@ -3,6 +3,7 @@
 import { Task } from '@/types';
 import { useState, useMemo } from 'react';
 import { UserType, TaskStatus } from '@/constants/enums';
+import { Popup } from '@/components/ui/popup';
 
 interface TaskCardProps {
   task: Task;
@@ -110,10 +111,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDeleteTask && window.confirm('Tem certeza que deseja eliminar esta tarefa?')) {
+    if (onDeleteTask) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (onDeleteTask) {
       onDeleteTask(task.id);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -219,6 +229,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Popup de confirmação de exclusão */}
+      <Popup
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja eliminar esta tarefa? Esta ação não pode ser desfeita."
+        type="warning"
+        showCancel={true}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

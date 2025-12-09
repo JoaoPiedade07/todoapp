@@ -4,6 +4,7 @@ import { Task } from '@/types';
 import { TaskCard } from './TaskCard';
 import { TaskStatus, UserType } from '@/constants/enums';
 import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 
 interface ColumnProps {
   title: string;
@@ -29,6 +30,7 @@ export const Column: React.FC<ColumnProps> = ({
   currentUser
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const { showToast } = useToast();
 
   const getColumnColor = () => {
     switch (status) {
@@ -89,7 +91,11 @@ export const Column: React.FC<ColumnProps> = ({
 
     if (currentStatus === TaskStatus.DONE) {
       console.log('Não pode mover tarefas concluídas');
-      alert('Tarefas concluídas não podem ser movidas!');
+      showToast({
+        message: 'Tarefas concluídas não podem ser movidas!',
+        type: 'warning',
+        duration: 3000
+      });
       return;
     }
     
@@ -127,9 +133,17 @@ export const Column: React.FC<ColumnProps> = ({
       });
       
       if (status === TaskStatus.DONE) {
-        alert('Só pode concluir tarefas que estão em progresso!');
+        showToast({
+          message: 'Só pode concluir tarefas que estão em progresso!',
+          type: 'warning',
+          duration: 3000
+        });
       } else {
-        alert('Movimento não permitido!');
+        showToast({
+          message: 'Movimento não permitido!',
+          type: 'warning',
+          duration: 3000
+        });
       }
     }
   };
