@@ -15,8 +15,8 @@ export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     // Cliente (browser)
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (envUrl) {
-      const fullUrl = ensureProtocol(envUrl);
+    if (envUrl && envUrl.trim() !== '') {
+      const fullUrl = ensureProtocol(envUrl.trim());
       console.log('🌐 Usando API URL:', fullUrl);
       return fullUrl;
     }
@@ -29,8 +29,9 @@ export function getApiBaseUrl(): string {
     if (protocol === 'https:' || hostname.includes('vercel.app') || hostname.includes('vercel.com')) {
       console.error('❌ NEXT_PUBLIC_API_URL não configurada!');
       console.error('Configure no Vercel: Settings → Environment Variables');
-      console.error('Valor esperado: https://todoapp-production-c3f9.up.railway.app');
-      // Retornar URL vazia para forçar erro visível
+      console.error('Valor esperado: https://seu-backend.railway.app');
+      console.error('⚠️ Sem esta variável, as requisições falharão!');
+      // Retornar null em vez de string vazia para facilitar validação
       return '';
     }
     

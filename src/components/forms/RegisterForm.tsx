@@ -21,10 +21,15 @@ export const RegisterForm: React.FC = () => {
   const router = useRouter();
   
   const API_BASE_URL = getApiBaseUrl();
+  
+  // Log para debug
+  useEffect(() => {
+    console.log('🔍 RegisterForm - API_BASE_URL:', API_BASE_URL || '(vazia - configure NEXT_PUBLIC_API_URL no Vercel)');
+  }, [API_BASE_URL]);
 
   // Carregar gestores quando o tipo for programador
   useEffect(() => {
-    if(userType === 'programador' && API_BASE_URL) {
+    if(userType === 'programador' && API_BASE_URL && API_BASE_URL.trim() !== '') {
       console.log('🔗 Carregando gestores de:', `${API_BASE_URL}/auth/managers`);
       fetch(`${API_BASE_URL}/auth/managers`)
       .then(async res => {
@@ -80,11 +85,23 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      if (!API_BASE_URL) {
-        throw new Error('API URL não configurada. Verifique NEXT_PUBLIC_API_URL no Vercel.');
+      if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+        const errorMsg = '❌ API URL não configurada!\n\n' +
+          'Configure a variável NEXT_PUBLIC_API_URL no Vercel:\n' +
+          '1. Vá em Settings → Environment Variables\n' +
+          '2. Adicione: NEXT_PUBLIC_API_URL = https://seu-backend.railway.app\n' +
+          '3. Faça um novo deploy';
+        console.error(errorMsg);
+        throw new Error('API URL não configurada. Configure NEXT_PUBLIC_API_URL no Vercel e faça um novo deploy.');
       }
       
-      console.log('🔗 Tentando registrar em:', `${API_BASE_URL}/auth/register`);
+      // Garantir que a URL é absoluta (começa com http:// ou https://)
+      if (!API_BASE_URL.startsWith('http://') && !API_BASE_URL.startsWith('https://')) {
+        throw new Error(`URL da API inválida: ${API_BASE_URL}. Deve começar com http:// ou https://`);
+      }
+      
+      const registerUrl = `${API_BASE_URL}/auth/register`;
+      console.log('🔗 Tentando registrar em:', registerUrl);
       
       const response = await fetch(`${API_BASE_URL}/auth/register`,  {
         method: 'POST',
@@ -146,6 +163,19 @@ export const RegisterForm: React.FC = () => {
         </CardHeader>
         
         <CardContent>
+          {(!API_BASE_URL || API_BASE_URL.trim() === '') && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm mb-4">
+              <p className="font-semibold mb-2">⚠️ Configuração Necessária</p>
+              <p className="mb-2">A variável <code className="bg-yellow-100 px-1 rounded">NEXT_PUBLIC_API_URL</code> não está configurada no Vercel.</p>
+              <p className="text-xs mb-2">Para corrigir:</p>
+              <ol className="text-xs list-decimal list-inside space-y-1 mb-2">
+                <li>Acesse o Dashboard do Vercel</li>
+                <li>Vá em <strong>Settings → Environment Variables</strong></li>
+                <li>Adicione: <code className="bg-yellow-100 px-1 rounded">NEXT_PUBLIC_API_URL</code> = <code className="bg-yellow-100 px-1 rounded">https://seu-backend.railway.app</code></li>
+                <li>Faça um novo deploy</li>
+              </ol>
+            </div>
+          )}
           <form onSubmit={handleRegister} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
