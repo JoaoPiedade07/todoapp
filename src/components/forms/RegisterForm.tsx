@@ -343,7 +343,12 @@ export const RegisterForm: React.FC = () => {
               Já tem uma conta?{' '}
               <Link
                 href="/login"
+                prefetch={false}
                 className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer transition-colors duration-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push('/login');
+                }}
               >
                 Faça login aqui
               </Link>

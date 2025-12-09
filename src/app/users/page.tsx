@@ -480,7 +480,7 @@ export default function UsersPage() {
                     <Input
                       placeholder="username"
                       value={formData.username}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, username: e.target.value })}
                       className={errors.username ? 'border-red-500' : ''}
                     />
                     {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
@@ -495,7 +495,7 @@ export default function UsersPage() {
                     type="email"
                     placeholder="email@empresa.com"
                     value={formData.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
                     className={errors.email ? 'border-red-500' : ''}
                   />
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -583,7 +583,7 @@ export default function UsersPage() {
                         type="password"
                         placeholder="Password"
                         value={formData.password}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
                         className={errors.password ? 'border-red-500' : ''}
                       />
                       {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
@@ -597,7 +597,7 @@ export default function UsersPage() {
                         type="password"
                         placeholder="Confirmar password"
                         value={formData.confirmPassword}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, confirmPassword: e.target.value })}
                         className={errors.confirmPassword ? 'border-red-500' : ''}
                       />
                       {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
