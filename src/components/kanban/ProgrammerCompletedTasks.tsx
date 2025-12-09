@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { TaskStatus } from '@/constants/enums';
+import { getApiBaseUrl } from '@/lib/api';
 
 interface ProgrammerCompletedTasksProps {
   programmerId: string;
@@ -15,9 +16,7 @@ export const ProgrammerCompletedTasks: React.FC<ProgrammerCompletedTasksProps> =
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     fetchCompletedTasks();

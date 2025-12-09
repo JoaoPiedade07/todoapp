@@ -9,6 +9,7 @@ import { CreateTaskModal } from '@/components/kanban/CreateTaskModal';
 import { EditTaskModal } from '@/components/kanban/EditTaskModal';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TaskStatus, UserType } from '@/constants/enums';
+import { getApiBaseUrl } from '@/lib/api';
 
 export default function KanbanPage() {
   const [user, setUser] = useState<any>(null);
@@ -22,9 +23,7 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');

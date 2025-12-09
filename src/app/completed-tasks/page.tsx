@@ -9,6 +9,7 @@ import { User } from '@/types';
 import { UserType } from '@/constants/enums';
 import { isManager, normalizeUserFromAPI } from '@/lib/userUtils';
 import { Task } from '@/types';
+import { getApiBaseUrl } from '@/lib/api';
 
 export default function CompletedTasksPage() {
   const [user, setUser] = useState<any>(null);
@@ -19,9 +20,7 @@ export default function CompletedTasksPage() {
   const [loadingTasks, setLoadingTasks] = useState<Set<string>>(new Set());
   const router = useRouter();
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');

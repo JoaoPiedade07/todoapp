@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { UserType } from '@/constants/enums';
+import { getApiBaseUrl } from '@/lib/api';
 
 interface EditTaskModalProps {
   task: Task | null;
@@ -56,9 +57,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const fetchTaskTypes = async () => {
     try {
       const token = localStorage.getItem('token');
-      const API_BASE_URL = typeof window !== 'undefined' 
-        ? `http://${window.location.hostname}:3001`
-        : 'http://localhost:3001';
+      const API_BASE_URL = getApiBaseUrl();
       
       const response = await fetch(`${API_BASE_URL}/task-types`, {
         headers: {

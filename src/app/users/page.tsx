@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { User } from '@/types';
 import { UserType, Department, NivelExperiencia } from '@/constants/enums';
 import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUtils';
+import { getApiBaseUrl } from '@/lib/api';
 
 export default function UsersPage() {
   const [user, setUser] = useState<any>(null);
@@ -20,9 +21,7 @@ export default function UsersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const router = useRouter();
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   // Form data para criar/editar utilizador
   const [formData, setFormData] = useState({

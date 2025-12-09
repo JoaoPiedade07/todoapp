@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserType } from '@/constants/enums';
 import { isManager } from '@/lib/userUtils';
+import { getApiBaseUrl } from '@/lib/api';
 
 export default function ReportsPage() {
   const [user, setUser] = useState<any>(null);
@@ -20,9 +21,7 @@ export default function ReportsPage() {
   const [completedTasks, setCompletedTasks] = useState<any[]>([]);
   const router = useRouter();
 
-  const API_BASE_URL = typeof window !== 'undefined' 
-    ? `http://${window.location.hostname}:3001`
-    : 'http://localhost:3001';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
