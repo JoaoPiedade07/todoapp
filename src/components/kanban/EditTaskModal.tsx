@@ -81,7 +81,14 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
 
     setLoading(true);
     try {
-      await onSave(task.id, formData);
+      // Garantir que assigned_to seja null se estiver vazio, não string vazia
+      const updatesToSend = {
+        ...formData,
+        assigned_to: formData.assigned_to === '' ? null : formData.assigned_to,
+        task_type_id: formData.task_type_id === '' ? null : formData.task_type_id
+      };
+      console.log('📝 Enviando atualizações da tarefa:', updatesToSend);
+      await onSave(task.id, updatesToSend);
     } catch (error) {
       console.error('Erro ao salvar tarefa:', error);
     } finally {

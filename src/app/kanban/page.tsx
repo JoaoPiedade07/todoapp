@@ -69,7 +69,24 @@ export default function KanbanPage() {
 
       if (response.ok) {
         const tasksData = await response.json();
-        setTasks(tasksData);
+        // Garantir que assigned_to seja preservado explicitamente (incluindo null)
+        const normalizedTasks = tasksData.map((task: any) => ({
+          ...task,
+          // Preservar assigned_to explicitamente - pode ser string (ID) ou null
+          assigned_to: task.assigned_to !== undefined ? task.assigned_to : null,
+          // Garantir que status seja mapeado corretamente
+          status: task.status === 'inprogress' ? TaskStatus.DOING : 
+                 task.status === 'todo' ? TaskStatus.TODO :
+                 task.status === 'done' ? TaskStatus.DONE : task.status
+        }));
+        console.log('📋 Tarefas carregadas:', normalizedTasks.length);
+        console.log('📋 Exemplo de tarefa:', normalizedTasks[0] ? {
+          id: normalizedTasks[0].id,
+          title: normalizedTasks[0].title,
+          assigned_to: normalizedTasks[0].assigned_to,
+          assigned_user_name: normalizedTasks[0].assigned_user_name
+        } : 'Nenhuma tarefa');
+        setTasks(normalizedTasks);
       } else {
         console.error('Erro ao buscar tarefas');
         loadMockTasks();
