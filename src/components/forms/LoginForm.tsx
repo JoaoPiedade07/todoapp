@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -74,9 +75,6 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  const handleRegisterRedirect = () => {
-    router.push('/register');
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -127,13 +125,12 @@ export const LoginForm: React.FC = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Ainda não tem conta?{' '}
-              <button
-                type="button"
-                onClick={handleRegisterRedirect}
+              <Link
+                href="/register"
                 className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer"
               >
                 Registe-se aqui
-              </button>
+              </Link>
             </p>
           </div>
 
