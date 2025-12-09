@@ -330,11 +330,8 @@ export default function KanbanPage() {
     );
   }
 
-  const { ToastContainer } = useToast();
-
   return (
     <MainLayout user={user}>
-      <ToastContainer />
       <div className="mb-6">
         <div className="flex justify-between items-center">
           <div>
