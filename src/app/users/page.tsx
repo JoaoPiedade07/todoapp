@@ -11,13 +11,11 @@ import { User } from '@/types';
 import { UserType, Department, NivelExperiencia } from '@/constants/enums';
 import { isManager, getUserTypeLabel, normalizeUserFromAPI } from '@/lib/userUtils';
 import { getApiBaseUrl } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
 
 // Force dynamic rendering since this page uses client-side features (localStorage, auth)
 export const dynamic = 'force-dynamic';
 
 export default function UsersPage() {
-  const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,30 +212,18 @@ export default function UsersPage() {
         
         fetchUsers();
         handleCloseModal();
-        showToast({
-          message: editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!',
-          type: 'success',
-          duration: 3000
-        });
+        alert(editingUser ? 'Utilizador atualizado com sucesso!' : 'Utilizador criado com sucesso!');
       } else {
         const errorText = await response.text();
         console.log('Erro da API:', errorText);
         setErrors({ submit: errorText || 'Erro ao processar pedido' });
-        showToast({
-          message: 'Erro ao ' + (editingUser ? 'atualizar' : 'criar') + ' utilizador: ' + errorText,
-          type: 'error',
-          duration: 5000
-        });
+        alert('Erro ao ' + (editingUser ? 'atualizar' : 'criar') + ' utilizador: ' + errorText);
       }
     } catch (error) {
       console.error('Erro de conexão completo:', error);
       const errorMessage = 'Erro de conexão: ' + (error as Error).message;
       setErrors({ submit: errorMessage });
-      showToast({
-        message: errorMessage,
-        type: 'error',
-        duration: 5000
-      });
+      alert(errorMessage);
     }
   };
 
@@ -263,30 +249,18 @@ export default function UsersPage() {
         // Atualizar a lista localmente primeiro para feedback imediato
         setUsers(prev => prev.filter(user => user.id !== userId));
         setShowDeleteConfirm(null);
-        showToast({
-          message: 'Utilizador eliminado com sucesso!',
-          type: 'success',
-          duration: 3000
-        });
+        alert('Utilizador eliminado com sucesso!');
         
         // Recarregar da API para garantir sincronização
         setTimeout(() => fetchUsers(), 100);
       } else {
         const errorText = await response.text();
         console.log('Erro ao eliminar utilizador:', errorText);
-        showToast({
-          message: `Erro ao eliminar utilizador: ${response.status} ${errorText}`,
-          type: 'error',
-          duration: 5000
-        });
+        alert(`Erro ao eliminar utilizador: ${response.status} ${errorText}`);
       }
     } catch (error) {
       console.error('Erro de conexão:', error);
-      showToast({
-        message: 'Erro de conexão ao eliminar utilizador',
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro de conexão ao eliminar utilizador');
     }
   };
 

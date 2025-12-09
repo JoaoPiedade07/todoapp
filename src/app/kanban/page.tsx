@@ -11,13 +11,11 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { TaskStatus, UserType } from '@/constants/enums';
 import { getApiBaseUrl } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
 
 // Force dynamic rendering since this page uses client-side features (localStorage, auth)
 export const dynamic = 'force-dynamic';
 
 export default function KanbanPage() {
-  const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -103,22 +101,14 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        showToast({
-          message: 'Tarefa atualizada com sucesso!',
-          type: 'success',
-          duration: 3000
-        });
+        alert('Tarefa atualizada com sucesso!');
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao editar tarefa:', error);
-      showToast({
-        message: 'Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'),
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'));
       throw error;
     }
   };
@@ -136,22 +126,14 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        showToast({
-          message: 'Tarefa eliminada com sucesso!',
-          type: 'success',
-          duration: 3000
-        });
+        alert('Tarefa eliminada com sucesso!');
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao eliminar tarefa:', error);
-      showToast({
-        message: 'Erro ao eliminar tarefa: ' + (error.message || 'Erro desconhecido'),
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro ao eliminar tarefa: ' + (error.message || 'Erro desconhecido'));
       throw error;
     }
   };
@@ -239,19 +221,11 @@ export default function KanbanPage() {
       } else {
         const errorText = await response.text();
         console.error('Erro ao mover tarefa no servidor:', errorText);
-        showToast({
-          message: 'Erro ao mover tarefa: ' + errorText,
-          type: 'error',
-          duration: 5000
-        });
+        alert('Erro ao mover tarefa: ' + errorText);
       }
     } catch (error) {
       console.error('Erro de conexão ao mover tarefa:', error);
-      showToast({
-        message: 'Erro de conexão ao mover tarefa',
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro de conexão ao mover tarefa');
     }
   };
 
@@ -281,27 +255,15 @@ export default function KanbanPage() {
         
         setShowCreateModal(false);
         await fetchTasks();
-        showToast({
-          message: 'Tarefa criada com sucesso!',
-          type: 'success',
-          duration: 3000
-        });
+        alert('Tarefa criada com sucesso!');
       } else {
         const errorText = await response.text();
         console.error('KanbanPage - Erro do servidor:', errorText);
-        showToast({
-          message: 'Erro ao criar tarefa: ' + errorText,
-          type: 'error',
-          duration: 5000
-        });
+        alert('Erro ao criar tarefa: ' + errorText);
       }
     } catch (error) {
       console.error('KanbanPage - Erro de conexão:', error);
-      showToast({
-        message: 'Erro de conexão ao criar tarefa',
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro de conexão ao criar tarefa');
     }
   };
 

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { validateTaskData, validateStoryPoints, validateTaskTitle, validateDescription } from '@/lib/validators';
 import { getApiBaseUrl } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -76,7 +75,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [prediction, setPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
-  const { showToast } = useToast();
 
   const API_BASE_URL = getApiBaseUrl();
 
@@ -208,11 +206,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       handleClose();
     } catch (error) {
       console.error('Erro na requisição:', error);
-      showToast({
-        message: 'Erro de conexão ao criar tarefa',
-        type: 'error',
-        duration: 5000
-      });
+      alert('Erro de conexão ao criar tarefa');
     } finally {
       setIsLoading(false);
     }
