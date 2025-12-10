@@ -27,6 +27,8 @@ export const RegisterForm: React.FC = () => {
   // Log para debug
   useEffect(() => {
     console.log('🔍 RegisterForm - API_BASE_URL:', API_BASE_URL || '(vazia - configure NEXT_PUBLIC_API_URL no Vercel)');
+    console.log('🔍 RegisterForm - NEXT_PUBLIC_API_URL (raw):', process.env.NEXT_PUBLIC_API_URL || '(não definida)');
+    console.log('🔍 RegisterForm - Window location:', typeof window !== 'undefined' ? window.location.href : 'server-side');
   }, [API_BASE_URL]);
 
   // Health check do backend
