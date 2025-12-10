@@ -35,6 +35,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showDeleteSuccessPopup, setShowDeleteSuccessPopup] = useState(false);
+  const [showDeleteErrorPopup, setShowDeleteErrorPopup] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
 
   // Carregar dados quando o modal abrir ou a task mudar
   useEffect(() => {
@@ -95,8 +101,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
       };
       console.log('📝 Enviando atualizações da tarefa:', updatesToSend);
       await onSave(task.id, updatesToSend);
-    } catch (error) {
+      // Mostrar popup de sucesso
+      setShowSuccessPopup(true);
+    } catch (error: any) {
       console.error('Erro ao salvar tarefa:', error);
+      setErrorMessage(error.message || 'Erro desconhecido ao atualizar tarefa');
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -115,8 +125,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
     setLoading(true);
     try {
       await onDelete(task.id);
-    } catch (error) {
+      // Mostrar popup de sucesso
+      setShowDeleteSuccessPopup(true);
+    } catch (error: any) {
       console.error('Erro ao eliminar tarefa:', error);
+      setDeleteErrorMessage(error.message || 'Erro desconhecido ao eliminar tarefa');
+      setShowDeleteErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -303,6 +317,54 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
         cancelText="Cancelar"
         onConfirm={confirmSave}
         onCancel={() => setShowSaveConfirm(false)}
+      />
+
+      {/* Popup de sucesso após atualizar */}
+      <Popup
+        isOpen={showSuccessPopup}
+        onClose={() => {
+          setShowSuccessPopup(false);
+          onClose();
+        }}
+        title="Tarefa Atualizada!"
+        message="A tarefa foi atualizada com sucesso."
+        type="success"
+        duration={2000}
+        showCloseButton={false}
+      />
+
+      {/* Popup de erro ao atualizar */}
+      <Popup
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Erro ao Atualizar"
+        message={errorMessage}
+        type="error"
+        showCloseButton={true}
+      />
+
+      {/* Popup de sucesso após eliminar */}
+      <Popup
+        isOpen={showDeleteSuccessPopup}
+        onClose={() => {
+          setShowDeleteSuccessPopup(false);
+          onClose();
+        }}
+        title="Tarefa Eliminada!"
+        message="A tarefa foi eliminada com sucesso."
+        type="success"
+        duration={2000}
+        showCloseButton={false}
+      />
+
+      {/* Popup de erro ao eliminar */}
+      <Popup
+        isOpen={showDeleteErrorPopup}
+        onClose={() => setShowDeleteErrorPopup(false)}
+        title="Erro ao Eliminar"
+        message={deleteErrorMessage}
+        type="error"
+        showCloseButton={true}
       />
 
       {/* Popup de confirmação de exclusão */}

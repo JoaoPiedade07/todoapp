@@ -118,14 +118,14 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        alert('Tarefa atualizada com sucesso!');
+        // O popup de sucesso será mostrado no EditTaskModal
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao editar tarefa:', error);
-      alert('Erro ao editar tarefa: ' + (error.message || 'Erro desconhecido'));
+      // O popup de erro será mostrado no EditTaskModal
       throw error;
     }
   };
@@ -143,14 +143,14 @@ export default function KanbanPage() {
       if (response.ok) {
         await fetchTasks();
         closeEditModal();
-        alert('Tarefa eliminada com sucesso!');
+        // O popup de sucesso será mostrado no EditTaskModal (confirmDelete)
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
       }
     } catch (error: any) {
       console.error('Erro ao eliminar tarefa:', error);
-      alert('Erro ao eliminar tarefa: ' + (error.message || 'Erro desconhecido'));
+      // O popup de erro será mostrado no EditTaskModal (confirmDelete)
       throw error;
     }
   };

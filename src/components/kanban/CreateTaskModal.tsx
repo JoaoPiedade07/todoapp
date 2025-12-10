@@ -77,6 +77,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [prediction, setPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const API_BASE_URL = getApiBaseUrl();
 
@@ -210,7 +212,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       // Fechar o modal após o popup fechar
     } catch (error: any) {
       console.error('Erro na requisição:', error);
-      alert('Erro ao criar tarefa: ' + (error.message || 'Erro desconhecido'));
+      setErrorMessage(error.message || 'Erro desconhecido ao criar tarefa');
+      setShowErrorPopup(true);
     } finally {
       setIsLoading(false);
     }
@@ -458,6 +461,16 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         type="success"
         duration={2000}
         showCloseButton={false}
+      />
+
+      {/* Popup de erro ao criar tarefa */}
+      <Popup
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="Erro ao Criar Tarefa"
+        message={errorMessage}
+        type="error"
+        showCloseButton={true}
       />
     </div>
   );
