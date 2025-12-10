@@ -34,6 +34,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   });
   const [loading, setLoading] = useState(false);
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   // Carregar dados quando o modal abrir ou a task mudar
   useEffect(() => {
@@ -78,7 +79,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task) return;
+    setShowSaveConfirm(true);
+  };
 
+  const confirmSave = async () => {
+    if (!task) return;
+    setShowSaveConfirm(false);
     setLoading(true);
     try {
       // Garantir que assigned_to seja null se estiver vazio, não string vazia
@@ -284,6 +290,20 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Popup de confirmação de atualização */}
+      <Popup
+        isOpen={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        title="Confirmar Atualização"
+        message="Tem certeza que deseja atualizar esta tarefa?"
+        type="info"
+        showCancel={true}
+        confirmText="Atualizar"
+        cancelText="Cancelar"
+        onConfirm={confirmSave}
+        onCancel={() => setShowSaveConfirm(false)}
+      />
 
       {/* Popup de confirmação de exclusão */}
       <Popup

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { validateTaskData, validateStoryPoints, validateTaskTitle, validateDescription } from '@/lib/validators';
 import { getApiBaseUrl } from '@/lib/api';
+import { Popup } from '@/components/ui/popup';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [prediction, setPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const API_BASE_URL = getApiBaseUrl();
 
@@ -202,11 +204,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
       console.log('🔄 Frontend - Enviando dados:', taskData);
         
-      onCreateTask(taskData);
-      handleClose();
-    } catch (error) {
+      await onCreateTask(taskData);
+      // Mostrar popup de sucesso após criar com sucesso
+      setShowSuccessPopup(true);
+      // Fechar o modal após o popup fechar
+    } catch (error: any) {
       console.error('Erro na requisição:', error);
-      alert('Erro de conexão ao criar tarefa');
+      alert('Erro ao criar tarefa: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setIsLoading(false);
     }
@@ -441,6 +445,20 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </form>
         </CardContent>
       </Card>
+
+      {/* Popup de sucesso após criar tarefa */}
+      <Popup
+        isOpen={showSuccessPopup}
+        onClose={() => {
+          setShowSuccessPopup(false);
+          handleClose();
+        }}
+        title="Tarefa Criada!"
+        message="A tarefa foi criada com sucesso."
+        type="success"
+        duration={2000}
+        showCloseButton={false}
+      />
     </div>
   );
 };

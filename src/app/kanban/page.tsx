@@ -272,15 +272,15 @@ export default function KanbanPage() {
         
         setShowCreateModal(false);
         await fetchTasks();
-        alert('Tarefa criada com sucesso!');
+        // Não mostrar alert aqui, o popup será mostrado no CreateTaskModal
       } else {
         const errorText = await response.text();
         console.error('KanbanPage - Erro do servidor:', errorText);
-        alert('Erro ao criar tarefa: ' + errorText);
+        throw new Error(errorText);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('KanbanPage - Erro de conexão:', error);
-      alert('Erro de conexão ao criar tarefa');
+      throw error;
     }
   };
 
