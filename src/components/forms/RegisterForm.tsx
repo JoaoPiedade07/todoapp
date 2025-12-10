@@ -19,6 +19,7 @@ export const RegisterForm: React.FC = () => {
   const [availableManagers, setAvailableManagers] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline' | 'unknown'>('unknown');
   const router = useRouter();
   
   const API_BASE_URL = getApiBaseUrl();
@@ -26,6 +27,45 @@ export const RegisterForm: React.FC = () => {
   // Log para debug
   useEffect(() => {
     console.log('🔍 RegisterForm - API_BASE_URL:', API_BASE_URL || '(vazia - configure NEXT_PUBLIC_API_URL no Vercel)');
+  }, [API_BASE_URL]);
+
+  // Health check do backend
+  useEffect(() => {
+    const checkBackendHealth = async () => {
+      if (!API_BASE_URL || API_BASE_URL.trim() === '') {
+        setBackendStatus('unknown');
+        return;
+      }
+
+      setBackendStatus('checking');
+      try {
+        const healthUrl = `${API_BASE_URL}/health`;
+        console.log('🏥 Verificando saúde do backend:', healthUrl);
+        
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Timeout de 5 segundos
+          signal: AbortSignal.timeout(5000),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Backend está online:', data);
+          setBackendStatus('online');
+        } else {
+          console.warn('⚠️ Backend respondeu com erro:', response.status);
+          setBackendStatus('offline');
+        }
+      } catch (err: any) {
+        console.error('❌ Backend não acessível:', err.message);
+        setBackendStatus('offline');
+      }
+    };
+
+    checkBackendHealth();
   }, [API_BASE_URL]);
 
   // Carregar gestores quando o tipo for programador
@@ -114,6 +154,19 @@ export const RegisterForm: React.FC = () => {
         throw new Error(`URL da API inválida: ${API_BASE_URL}. Deve começar com http:// ou https://`);
       }
       
+      // Verificar se o backend está acessível antes de tentar registrar
+      if (backendStatus === 'offline') {
+        throw new Error(
+          '❌ Backend não está acessível!\n\n' +
+          `A URL ${API_BASE_URL} não está respondendo.\n\n` +
+          'Verifique:\n' +
+          '1. Se o backend está rodando no Railway\n' +
+          '2. Se a URL está correta no Vercel (NEXT_PUBLIC_API_URL)\n' +
+          '3. Se há problemas de rede/CORS\n\n' +
+          `URL configurada: ${API_BASE_URL || '(não configurada)'}`
+        );
+      }
+
       const registerUrl = `${API_BASE_URL}/auth/register`;
       console.log('🔗 Tentando registrar em:', registerUrl);
       console.log('📦 Dados enviados:', {
@@ -158,12 +211,16 @@ export const RegisterForm: React.FC = () => {
               `A URL ${registerUrl} não está acessível.\n\n` +
               `Possíveis causas:\n` +
               `1. NEXT_PUBLIC_API_URL não está configurada no Vercel\n` +
-              `2. A URL do backend está incorreta\n` +
-              `3. O backend no Railway não está rodando\n\n` +
-              `Verifique:\n` +
-              `- Console do navegador para ver a URL usada\n` +
-              `- Logs do Railway para ver se o backend está rodando\n` +
-              `- Variáveis de ambiente no Vercel`;
+              `2. A URL do backend está incorreta (deve ser: https://seu-projeto.railway.app)\n` +
+              `3. O backend no Railway não está rodando\n` +
+              `4. A rota /auth/register não existe no backend\n\n` +
+              `Solução:\n` +
+              `1. Acesse o Dashboard do Vercel\n` +
+              `2. Vá em Settings → Environment Variables\n` +
+              `3. Adicione: NEXT_PUBLIC_API_URL = https://seu-backend.railway.app\n` +
+              `4. Certifique-se de que não há barra (/) no final da URL\n` +
+              `5. Faça um novo deploy\n\n` +
+              `URL atual: ${API_BASE_URL || '(não configurada)'}`;
           } else {
             errorMessage = `Erro ${response.status}: ${response.statusText}`;
           }
@@ -203,6 +260,34 @@ export const RegisterForm: React.FC = () => {
         </CardHeader>
         
         <CardContent>
+          {/* Status do Backend */}
+          {API_BASE_URL && API_BASE_URL.trim() !== '' && (
+            <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+              backendStatus === 'online' 
+                ? 'bg-green-50 border border-green-200 text-green-800' 
+                : backendStatus === 'offline'
+                ? 'bg-red-50 border border-red-200 text-red-800'
+                : backendStatus === 'checking'
+                ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                : 'bg-gray-50 border border-gray-200 text-gray-800'
+            }`}>
+              <p className="font-semibold mb-1">
+                {backendStatus === 'online' && '✅ Backend Online'}
+                {backendStatus === 'offline' && '❌ Backend Offline'}
+                {backendStatus === 'checking' && '🔄 Verificando Backend...'}
+                {backendStatus === 'unknown' && '⚠️ Status Desconhecido'}
+              </p>
+              <p className="text-xs">
+                URL: <code className="bg-white px-1 rounded">{API_BASE_URL}</code>
+              </p>
+              {backendStatus === 'offline' && (
+                <p className="text-xs mt-2">
+                  O backend não está acessível. Verifique se está rodando no Railway e se a URL está correta.
+                </p>
+              )}
+            </div>
+          )}
+
           {(!API_BASE_URL || API_BASE_URL.trim() === '') && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm mb-4">
               <p className="font-semibold mb-2">⚠️ Configuração Necessária</p>
@@ -212,6 +297,7 @@ export const RegisterForm: React.FC = () => {
                 <li>Acesse o Dashboard do Vercel</li>
                 <li>Vá em <strong>Settings → Environment Variables</strong></li>
                 <li>Adicione: <code className="bg-yellow-100 px-1 rounded">NEXT_PUBLIC_API_URL</code> = <code className="bg-yellow-100 px-1 rounded">https://seu-backend.railway.app</code></li>
+                <li><strong>IMPORTANTE:</strong> Não coloque barra (/) no final da URL</li>
                 <li>Faça um novo deploy</li>
               </ol>
             </div>
