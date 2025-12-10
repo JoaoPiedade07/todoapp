@@ -152,12 +152,25 @@ console.log('Carregando rotas...');
 
 // Log auth routes
 console.log('Rotas em authRoute:');
-authRoutes.stack.forEach((layer: any) => {
-  if (layer.route) {
-    const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
-    console.log(`  ${methods} /auth${layer.route.path}`);
-  }
-});
+try {
+  authRoutes.stack.forEach((layer: any) => {
+    if (layer.route) {
+      const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
+      console.log(`  ${methods} /auth${layer.route.path}`);
+    } else if (layer.name === 'router') {
+      // Handle nested routers
+      console.log(`  Router: /auth${layer.regexp}`);
+    }
+  });
+  console.log('✅ Rotas de autenticação carregadas:');
+  console.log('  - POST /auth/register');
+  console.log('  - POST /auth/login');
+  console.log('  - GET /auth/managers');
+  console.log('  - GET /auth/me');
+  console.log('  - POST /auth/change-password');
+} catch (error) {
+  console.error('Erro ao logar rotas de auth:', error);
+}
 
 // Log user routes
 console.log('Rotas em userRoute:');
