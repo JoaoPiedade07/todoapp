@@ -117,8 +117,8 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
-        closeEditModal();
-        // O popup de sucesso será mostrado no EditTaskModal
+        // NÃO fechar o modal aqui - deixar o EditTaskModal mostrar o popup primeiro
+        // O popup de sucesso será mostrado no EditTaskModal e depois fecha o modal
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
@@ -142,8 +142,8 @@ export default function KanbanPage() {
   
       if (response.ok) {
         await fetchTasks();
-        closeEditModal();
-        // O popup de sucesso será mostrado no EditTaskModal (confirmDelete)
+        // NÃO fechar o modal aqui - deixar o EditTaskModal mostrar o popup primeiro
+        // O popup de sucesso será mostrado no EditTaskModal e depois fecha o modal
       } else {
         const errorText = await response.text();
         throw new Error(errorText);
@@ -270,9 +270,9 @@ export default function KanbanPage() {
         const newTask = await response.json();
         console.log('KanbanPage - Task criada com sucesso:', newTask);
         
-        setShowCreateModal(false);
+        // NÃO fechar o modal aqui - deixar o CreateTaskModal mostrar o popup primeiro
         await fetchTasks();
-        // Não mostrar alert aqui, o popup será mostrado no CreateTaskModal
+        // O popup de sucesso será mostrado no CreateTaskModal e depois fecha o modal
       } else {
         const errorText = await response.text();
         console.error('KanbanPage - Erro do servidor:', errorText);

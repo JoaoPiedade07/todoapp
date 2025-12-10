@@ -144,7 +144,77 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
     }));
   };
 
-  if (!isOpen || !task) return null;
+  if (!isOpen || !task) {
+    // Se o modal está fechado mas há popups para mostrar, renderizar apenas os popups
+    if (showSuccessPopup || showErrorPopup || showDeleteSuccessPopup || showDeleteErrorPopup) {
+      return (
+        <>
+          {/* Popup de sucesso após atualizar */}
+          {showSuccessPopup && (
+            <Popup
+              isOpen={showSuccessPopup}
+              onClose={() => {
+                setShowSuccessPopup(false);
+                onClose();
+              }}
+              title="Tarefa Atualizada!"
+              message="A tarefa foi atualizada com sucesso."
+              type="success"
+              duration={2000}
+              showCloseButton={false}
+            />
+          )}
+
+          {/* Popup de erro ao atualizar */}
+          {showErrorPopup && (
+            <Popup
+              isOpen={showErrorPopup}
+              onClose={() => {
+                setShowErrorPopup(false);
+                onClose();
+              }}
+              title="Erro ao Atualizar"
+              message={errorMessage}
+              type="error"
+              showCloseButton={true}
+            />
+          )}
+
+          {/* Popup de sucesso após eliminar */}
+          {showDeleteSuccessPopup && (
+            <Popup
+              isOpen={showDeleteSuccessPopup}
+              onClose={() => {
+                setShowDeleteSuccessPopup(false);
+                onClose();
+              }}
+              title="Tarefa Eliminada!"
+              message="A tarefa foi eliminada com sucesso."
+              type="success"
+              duration={2000}
+              showCloseButton={false}
+            />
+          )}
+
+          {/* Popup de erro ao eliminar */}
+          {showDeleteErrorPopup && (
+            <Popup
+              isOpen={showDeleteErrorPopup}
+              onClose={() => {
+                setShowDeleteErrorPopup(false);
+                onClose();
+              }}
+              title="Erro ao Eliminar"
+              message={deleteErrorMessage}
+              type="error"
+              showCloseButton={true}
+            />
+          )}
+        </>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

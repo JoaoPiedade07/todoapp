@@ -235,7 +235,47 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  // Renderizar popups mesmo se o modal estiver fechando (para mostrar mensagens de sucesso/erro)
+  if (!isOpen) {
+    // Se o modal está fechado mas há popups para mostrar, renderizar apenas os popups
+    if (showSuccessPopup || showErrorPopup) {
+      return (
+        <>
+          {/* Popup de sucesso após criar tarefa */}
+          {showSuccessPopup && (
+            <Popup
+              isOpen={showSuccessPopup}
+              onClose={() => {
+                setShowSuccessPopup(false);
+                handleClose();
+              }}
+              title="Tarefa Criada!"
+              message="A tarefa foi criada com sucesso."
+              type="success"
+              duration={2000}
+              showCloseButton={false}
+            />
+          )}
+
+          {/* Popup de erro ao criar tarefa */}
+          {showErrorPopup && (
+            <Popup
+              isOpen={showErrorPopup}
+              onClose={() => {
+                setShowErrorPopup(false);
+                handleClose();
+              }}
+              title="Erro ao Criar Tarefa"
+              message={errorMessage}
+              type="error"
+              showCloseButton={true}
+            />
+          )}
+        </>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
