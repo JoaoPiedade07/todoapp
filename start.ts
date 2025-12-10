@@ -48,8 +48,8 @@ server.use(cors({
     // Permitir qualquer domínio do Vercel (incluindo subdomínios e projetos)
     // Exemplos: https://todoapp-ybkz-49uo8wqcg-joaopiedade07s-projects.vercel.app
     //          https://*.vercel.app, https://*.vercel.com
-    if (origin.includes('.vercel.app') || origin.includes('.vercel.com')) {
-      console.log('✅ CORS: Origem permitida (Vercel)');
+    if (origin && (origin.includes('.vercel.app') || origin.includes('.vercel.com') || origin.includes('vercel.app') || origin.includes('vercel.com'))) {
+      console.log('✅ CORS: Origem permitida (Vercel):', origin);
       return callback(null, true);
     }
     
@@ -76,18 +76,18 @@ server.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Logging middleware (desabilitar em produção para segurança)
-if (process.env.NODE_ENV !== 'production') {
-  server.use((req, res, next) => {
-    console.log('Request:', req.method, req.url);
-    // Não logar headers e body em produção (pode conter dados sensíveis)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Headers:', req.headers);
-      console.log('Body:', req.body);
-    }
-    next();
-  });
-}
+// Logging middleware - sempre ativo para debug
+server.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`  Origin: ${req.headers.origin || 'none'}`);
+  // Não logar body completo em produção (pode conter dados sensíveis)
+  if (process.env.NODE_ENV === 'development' && req.body) {
+    const bodyCopy = { ...req.body };
+    if (bodyCopy.password) bodyCopy.password = '***';
+    console.log(`  Body:`, JSON.stringify(bodyCopy, null, 2));
+  }
+  next();
+});
 
 server.use(express.json());
 
@@ -103,7 +103,24 @@ server.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT
+  });
+});
+
+// Test endpoint para verificar se as rotas estão acessíveis
+server.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Backend está funcionando!',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin || 'none',
+    routes: {
+      register: 'POST /auth/register',
+      login: 'POST /auth/login',
+      managers: 'GET /auth/managers',
+      health: 'GET /health'
+    }
   });
 });
 
@@ -114,13 +131,40 @@ server.get('/protected', authenticateToken, (req: any, res) => {
   });
 });
 
+// Catch-all para rotas não encontradas (útil para debug)
+server.use((req, res) => {
+  console.error(`❌ Rota não encontrada: ${req.method} ${req.url}`);
+  console.error(`  Origin: ${req.headers.origin || 'none'}`);
+  console.error(`  Headers:`, JSON.stringify(req.headers, null, 2));
+  res.status(404).json({ 
+    error: 'Rota não encontrada',
+    method: req.method,
+    path: req.url,
+    availableRoutes: {
+      auth: ['POST /auth/register', 'POST /auth/login', 'GET /auth/managers', 'GET /auth/me'],
+      users: ['GET /users', 'GET /users/managers', 'GET /users/:id'],
+      health: ['GET /health']
+    }
+  });
+});
+
 console.log('Carregando rotas...');
-console.log('userRoute:', Object.keys(userRoute));
+
+// Log auth routes
+console.log('Rotas em authRoute:');
+authRoutes.stack.forEach((layer: any) => {
+  if (layer.route) {
+    const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
+    console.log(`  ${methods} /auth${layer.route.path}`);
+  }
+});
+
+// Log user routes
 console.log('Rotas em userRoute:');
 userRoute.stack.forEach((layer: any) => {
   if (layer.route) {
     const methods = Object.keys(layer.route.methods).map(method => method.toUpperCase()).join(', ');
-    console.log(`  ${methods} ${layer.route.path}`);
+    console.log(`  ${methods} /users${layer.route.path}`);
   }
 });
 

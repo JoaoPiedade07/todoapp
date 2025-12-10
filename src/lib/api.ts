@@ -16,8 +16,14 @@ export function getApiBaseUrl(): string {
     // Cliente (browser)
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
     if (envUrl && envUrl.trim() !== '') {
-      const fullUrl = ensureProtocol(envUrl.trim());
+      let cleanedUrl = envUrl.trim();
+      // Remover barra no final se existir
+      if (cleanedUrl.endsWith('/')) {
+        cleanedUrl = cleanedUrl.slice(0, -1);
+      }
+      const fullUrl = ensureProtocol(cleanedUrl);
       console.log('🌐 Usando API URL:', fullUrl);
+      console.log('🔍 URL original:', envUrl);
       return fullUrl;
     }
     
@@ -41,6 +47,11 @@ export function getApiBaseUrl(): string {
   
   // Server-side
   const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  return ensureProtocol(serverUrl);
+  let cleanedUrl = serverUrl.trim();
+  // Remover barra no final se existir
+  if (cleanedUrl.endsWith('/')) {
+    cleanedUrl = cleanedUrl.slice(0, -1);
+  }
+  return ensureProtocol(cleanedUrl);
 }
 
