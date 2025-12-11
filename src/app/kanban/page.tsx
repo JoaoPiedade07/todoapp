@@ -82,14 +82,22 @@ export default function KanbanPage() {
                  task.status === 'done' ? TaskStatus.DONE : task.status
         }));
         console.log('📋 Tarefas carregadas:', normalizedTasks.length);
-        console.log('📋 Exemplo de tarefa:', normalizedTasks[0] ? {
-          id: normalizedTasks[0].id,
-          title: normalizedTasks[0].title,
-          assigned_to: normalizedTasks[0].assigned_to,
-          assigned_user_name: normalizedTasks[0].assigned_user_name,
-          task_type_id: normalizedTasks[0].task_type_id,
-          task_type_name: normalizedTasks[0].task_type_name
-        } : 'Nenhuma tarefa');
+        if (normalizedTasks.length > 0) {
+          // Log de todas as tarefas para debug
+          normalizedTasks.forEach((task: any, index: number) => {
+            console.log(`📋 Tarefa ${index + 1}:`, {
+              id: task.id,
+              title: task.title,
+              assigned_to: task.assigned_to,
+              assigned_user_name: task.assigned_user_name,
+              task_type_id: task.task_type_id,
+              task_type_name: task.task_type_name,
+              status: task.status
+            });
+          });
+        } else {
+          console.log('📋 Nenhuma tarefa encontrada');
+        }
         setTasks(normalizedTasks);
       } else {
         console.error('Erro ao buscar tarefas');
@@ -233,12 +241,11 @@ export default function KanbanPage() {
       });
 
       if (response.ok) {
-        console.log('Tarefa movida com sucesso no servidor');
-        setTasks(prevTasks =>
-          prevTasks.map(task =>
-            task.id === taskId ? { ...task, status: newStatus } : task
-          )
-        );
+        const updatedTaskData = await response.json();
+        console.log('✅ Tarefa movida com sucesso. Dados retornados:', updatedTaskData);
+        
+        // Recarregar todas as tarefas para garantir que temos dados atualizados com JOINs
+        await fetchTasks();
       } else {
         const errorText = await response.text();
         console.error('Erro ao mover tarefa no servidor:', errorText);
@@ -370,6 +377,7 @@ export default function KanbanPage() {
           onDeleteTask={user.type === UserType.MANAGER ? handleDeleteTask : undefined}
           userType={user.type}
           currentUser={user}
+          availableUsers={availableUsers}
         />
       )}
 

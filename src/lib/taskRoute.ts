@@ -276,7 +276,15 @@ router.patch('/:id', authenticateToken, async (req: any, res) => {
     await taskQueries.update(id, updateData);
     const updatedTask = await taskQueries.getById(id);
     
-    console.log('Task atualizada com sucesso:', updatedTask);
+    console.log('✅ Task atualizada com sucesso. Dados retornados:', {
+      id: updatedTask?.id,
+      title: updatedTask?.title,
+      assigned_to: updatedTask?.assigned_to,
+      assigned_user_name: updatedTask?.assigned_user_name,
+      task_type_id: updatedTask?.task_type_id,
+      task_type_name: updatedTask?.task_type_name,
+      status: updatedTask?.status
+    });
     
     res.json({ success: true, message: 'Task atualizada', data: updatedTask });
   } catch (error: any) {

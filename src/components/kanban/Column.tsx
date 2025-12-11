@@ -15,6 +15,7 @@ interface ColumnProps {
   onDeleteTask?: (taskId: string) => void; 
   userType: UserType;
   currentUser: any;
+  availableUsers?: any[];  // Lista de programadores
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -26,7 +27,8 @@ export const Column: React.FC<ColumnProps> = ({
   onEditTask,
   onDeleteTask,
   userType,
-  currentUser
+  currentUser,
+  availableUsers = []
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -181,6 +183,7 @@ export const Column: React.FC<ColumnProps> = ({
               onDeleteTask={onDeleteTask}
               userType={userType}
               currentUser={currentUser}
+              programmers={availableUsers}
             />
           ))
         )}

@@ -746,19 +746,38 @@ export const taskQueries = {
 
         // Normalizar valores null e strings vazias para foreign keys
         const normalizedTask: any = { ...task };
-        if (normalizedTask.assignedTo === '' || normalizedTask.assignedTo === undefined) {
-            normalizedTask.assignedTo = null;
+        
+        // IMPORTANTE: Se assignedTo for explicitamente null ou string vazia, deve ser null
+        // Se não for fornecido (undefined), manter o valor atual
+        if ('assignedTo' in normalizedTask) {
+            if (normalizedTask.assignedTo === '' || normalizedTask.assignedTo === undefined) {
+                normalizedTask.assignedTo = null;
+            }
         }
-        if (normalizedTask.taskTypeId === '' || normalizedTask.taskTypeId === undefined) {
-            normalizedTask.taskTypeId = null;
+        
+        if ('taskTypeId' in normalizedTask) {
+            if (normalizedTask.taskTypeId === '' || normalizedTask.taskTypeId === undefined) {
+                normalizedTask.taskTypeId = null;
+            }
         }
+        
         if (normalizedTask.description === '') {
             normalizedTask.description = null;
         }
 
         // Determinar valores finais (usar novos valores se fornecidos, senão manter atuais)
-        const finalAssignedTo = normalizedTask.assignedTo !== undefined ? normalizedTask.assignedTo : currentTask.assigned_to;
+        // Se assignedTo não foi fornecido no update, manter o valor atual (não limpar!)
+        const finalAssignedTo = 'assignedTo' in normalizedTask 
+            ? normalizedTask.assignedTo 
+            : currentTask.assigned_to;
         const finalStatus = normalizedTask.status !== undefined ? normalizedTask.status : currentTask.status;
+        
+        console.log(`🔍 UPDATE task ${id}:`, {
+            'assignedTo no update': normalizedTask.assignedTo,
+            'assignedTo atual na BD': currentTask.assigned_to,
+            'finalAssignedTo': finalAssignedTo,
+            'assignedToChanged': 'assignedTo' in normalizedTask && normalizedTask.assignedTo !== currentTask.assigned_to
+        });
 
         // Se assigned_to ou status mudaram, recalcular order para evitar conflitos com constraint única
         const assignedToChanged = normalizedTask.assignedTo !== undefined && normalizedTask.assignedTo !== currentTask.assigned_to;
@@ -796,11 +815,15 @@ export const taskQueries = {
                 updateFields.push(`story_points = $${paramIndex++}`);
                 updateValues.push(value);
             } else if (key === 'assignedTo') {
+                // Sempre atualizar assigned_to se foi fornecido (pode ser null para limpar)
                 updateFields.push(`assigned_to = $${paramIndex++}`);
-                updateValues.push(value);
+                updateValues.push(value); // Pode ser null
+                console.log(`📝 Atualizando assigned_to para: ${value}`);
             } else if (key === 'taskTypeId') {
+                // Sempre atualizar task_type_id se foi fornecido (pode ser null para limpar)
                 updateFields.push(`task_type_id = $${paramIndex++}`);
-                updateValues.push(value);
+                updateValues.push(value); // Pode ser null
+                console.log(`📝 Atualizando task_type_id para: ${value}`);
             } else if (key === 'order') {
                 updateFields.push(`"order" = $${paramIndex++}`);
                 updateValues.push(value);

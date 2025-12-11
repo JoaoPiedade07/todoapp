@@ -9,10 +9,11 @@ interface KanbanBoardProps {
   tasks: Task[];
   onTaskMove: (taskId: string, newStatus: TaskStatus) => void;
   onViewDetails: (task: Task) => void;
-  onEditTask?: (task: Task) => void; 
+  onEditTask?: (task: Task) => void;
   onDeleteTask?: (taskId: string) => void;
   userType: UserType;
   currentUser: any;
+  availableUsers?: any[];  // Lista de programadores para exibir nomes
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -22,7 +23,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onEditTask,
   onDeleteTask,
   userType,
-  currentUser 
+  currentUser,
+  availableUsers = []
 }) => {
   const [todoTasks, setTodoTasks] = useState<Task[]>([]);
   const [doingTasks, setDoingTasks] = useState<Task[]>([]);
@@ -66,6 +68,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onDeleteTask={onDeleteTask}
           userType={userType}
           currentUser={currentUser}
+          availableUsers={availableUsers}
         />
       ))}
     </div>

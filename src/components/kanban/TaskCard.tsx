@@ -36,9 +36,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const [showActions, setShowActions] = useState(false);
 
   const assignedUserName = useMemo(() => {
-    if (!task.assigned_to) return null;
-    const assignedProgrammer = programmers.find(p => p.id === task.assigned_to);
-    return assignedProgrammer?.name || task.assigned_user_name || null;
+    // Prioridade 1: assigned_user_name da query (JOIN) - mais confiável
+    if (task.assigned_user_name) {
+      return task.assigned_user_name;
+    }
+    // Prioridade 2: Buscar na lista de programadores
+    if (task.assigned_to && programmers && programmers.length > 0) {
+      const assignedProgrammer = programmers.find(p => p.id === task.assigned_to);
+      if (assignedProgrammer?.name) {
+        return assignedProgrammer.name;
+      }
+    }
+    // Se não encontrar, retornar null (será mostrado "Não atribuído")
+    return null;
   }, [task.assigned_to, task.assigned_user_name, programmers]);
 
   const getStatusColor = (status: TaskStatus) => {
