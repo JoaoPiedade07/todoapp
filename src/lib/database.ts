@@ -398,7 +398,13 @@ export const taskTypeQueries = {
 export const taskQueries = {
     getAll: async () => {
         return await query(`
-            SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
+            SELECT 
+                t.id, t.title, t.description, t.status, t."order", 
+                t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+                t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+                t.estimated_hours, t.actual_hours, t.confidence_level,
+                u.name as assigned_user_name,
+                tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -422,7 +428,13 @@ export const taskQueries = {
 
     getById: async (id: string) => {
         return await queryOne(`
-            SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
+            SELECT 
+                t.id, t.title, t.description, t.status, t."order", 
+                t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+                t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+                t.estimated_hours, t.actual_hours, t.confidence_level,
+                u.name as assigned_user_name,
+                tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -432,7 +444,13 @@ export const taskQueries = {
 
     getByStatus: async (status: 'todo' | 'inprogress' | 'done') => {
         return await query(`
-            SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
+            SELECT 
+                t.id, t.title, t.description, t.status, t."order", 
+                t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+                t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+                t.estimated_hours, t.actual_hours, t.confidence_level,
+                u.name as assigned_user_name,
+                tt.name as task_type_name
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -570,7 +588,13 @@ export const taskQueries = {
 
     getCompletedTasksByProgrammer: async (programmerId: string) => {
         return await query(`
-          SELECT t.*, u.name as assigned_user_name, tt.name as task_type_name
+          SELECT 
+              t.id, t.title, t.description, t.status, t."order", 
+              t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+              t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+              t.estimated_hours, t.actual_hours, t.confidence_level,
+              u.name as assigned_user_name,
+              tt.name as task_type_name
           FROM tasks t
           LEFT JOIN users u ON t.assigned_to = u.id
           LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -582,7 +606,13 @@ export const taskQueries = {
     // Lista de tarefas concluídas do gestor (todos os programadores que ele gerencia)
     getCompletedTasksByManager: async (managerId: string) => {
         return await query(`
-          SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+          SELECT 
+              t.id, t.title, t.description, t.status, t."order", 
+              t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+              t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+              t.estimated_hours, t.actual_hours, t.confidence_level,
+              u.name as assigned_user_name, u.id as assigned_user_id,
+              tt.name as task_type_name
           FROM tasks t
           LEFT JOIN users u ON t.assigned_to = u.id
           LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -597,7 +627,13 @@ export const taskQueries = {
         if (managerId) {
             // Tarefas em curso dos programadores do gestor, ordenadas
             return await query(`
-              SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+              SELECT 
+                  t.id, t.title, t.description, t.status, t."order", 
+                  t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+                  t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+                  t.estimated_hours, t.actual_hours, t.confidence_level,
+                  u.name as assigned_user_name, u.id as assigned_user_id,
+                  tt.name as task_type_name
               FROM tasks t
               LEFT JOIN users u ON t.assigned_to = u.id
               LEFT JOIN task_types tt ON t.task_type_id = tt.id
@@ -608,7 +644,13 @@ export const taskQueries = {
         } else {
             // Todas as tarefas em curso ordenadas
             return await query(`
-              SELECT t.*, u.name as assigned_user_name, u.id as assigned_user_id, tt.name as task_type_name
+              SELECT 
+                  t.id, t.title, t.description, t.status, t."order", 
+                  t.story_points, t.assigned_to, t.task_type_id, t.created_by,
+                  t.assigned_at, t.completed_at, t.created_at, t.updated_at,
+                  t.estimated_hours, t.actual_hours, t.confidence_level,
+                  u.name as assigned_user_name, u.id as assigned_user_id,
+                  tt.name as task_type_name
               FROM tasks t
               LEFT JOIN users u ON t.assigned_to = u.id
               LEFT JOIN task_types tt ON t.task_type_id = tt.id

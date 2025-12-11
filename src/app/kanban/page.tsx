@@ -69,11 +69,13 @@ export default function KanbanPage() {
 
       if (response.ok) {
         const tasksData = await response.json();
-        // Garantir que assigned_to seja preservado explicitamente (incluindo null)
+        // Garantir que assigned_to e task_type_id sejam preservados explicitamente (incluindo null)
         const normalizedTasks = tasksData.map((task: any) => ({
           ...task,
           // Preservar assigned_to explicitamente - pode ser string (ID) ou null
           assigned_to: task.assigned_to !== undefined ? task.assigned_to : null,
+          // Preservar task_type_id explicitamente - pode ser string (ID) ou null
+          task_type_id: task.task_type_id !== undefined ? task.task_type_id : null,
           // Garantir que status seja mapeado corretamente
           status: task.status === 'inprogress' ? TaskStatus.DOING : 
                  task.status === 'todo' ? TaskStatus.TODO :
@@ -84,7 +86,9 @@ export default function KanbanPage() {
           id: normalizedTasks[0].id,
           title: normalizedTasks[0].title,
           assigned_to: normalizedTasks[0].assigned_to,
-          assigned_user_name: normalizedTasks[0].assigned_user_name
+          assigned_user_name: normalizedTasks[0].assigned_user_name,
+          task_type_id: normalizedTasks[0].task_type_id,
+          task_type_name: normalizedTasks[0].task_type_name
         } : 'Nenhuma tarefa');
         setTasks(normalizedTasks);
       } else {
