@@ -16,11 +16,7 @@ import analyticsRoute from './src/lib/analyticsRoute';
 const server = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
-initDatabase().catch((error) => {
-  console.error('Erro ao inicializar base de dados:', error);
-  process.exit(1);
-});
-
+// Configurar middleware e rotas ANTES de inicializar servidor
 server.use(cors({
   origin: (origin, callback) => {
     // Lista de origens permitidas
@@ -148,7 +144,7 @@ server.use((req, res) => {
   });
 });
 
-console.log('Carregando rotas...');
+console.log('✅ Middleware e rotas configuradas');
 
 // Log auth routes
 console.log('Rotas em authRoute:');
@@ -181,8 +177,59 @@ userRoute.stack.forEach((layer: any) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
-  console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
-  console.log(`📡 Pronto para receber requisições!`);
-});
+// Função para inicializar servidor de forma assíncrona
+async function startServer() {
+  try {
+    // Verificar se DATABASE_URL está configurada
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ ERRO: DATABASE_URL não está configurada!');
+      console.error('Configure a variável de ambiente DATABASE_URL no Railway');
+      process.exit(1);
+    }
+
+    console.log('🔄 Inicializando base de dados...');
+    console.log(`📊 DATABASE_URL configurada: ${process.env.DATABASE_URL ? 'Sim' : 'Não'}`);
+    
+    // Adicionar timeout para inicialização (30 segundos)
+    const initTimeout = setTimeout(() => {
+      console.error('❌ Timeout ao inicializar base de dados (30s)');
+      process.exit(1);
+    }, 30000);
+
+    await initDatabase();
+    clearTimeout(initTimeout);
+    
+    console.log('✅ Base de dados inicializada com sucesso');
+    
+    // Iniciar servidor apenas após a base de dados estar pronta
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Servidor rodando na porta ${PORT}`);
+      console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
+      console.log(`📡 Pronto para receber requisições!`);
+      console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
+    });
+
+    // Tratamento de erros não capturados
+    server.on('error', (error: any) => {
+      console.error('❌ Erro no servidor:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Porta ${PORT} já está em uso`);
+      }
+      process.exit(1);
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao inicializar base de dados:', error);
+    console.error('Tipo:', error.constructor.name);
+    console.error('Mensagem:', error.message);
+    console.error('Stack:', error.stack);
+    if (error.code) {
+      console.error('Código de erro:', error.code);
+    }
+    process.exit(1);
+  }
+}
+
+// Iniciar o servidor (depois de configurar tudo)
+console.log('🚀 Iniciando servidor...');
+startServer();
