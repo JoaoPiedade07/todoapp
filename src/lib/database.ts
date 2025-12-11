@@ -668,7 +668,15 @@ export const taskQueries = {
             SUM(CASE WHEN status = 'inprogress' THEN 1 ELSE 0 END)::int as doing_tasks,
             SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END)::int as todo_tasks,
             ROUND(AVG(story_points)::numeric, 2) as avg_story_points,
-            ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_completion_hours
+            ROUND(AVG(
+                CASE 
+                    WHEN actual_hours IS NOT NULL AND actual_hours > 0 
+                    THEN actual_hours
+                    WHEN completed_at IS NOT NULL AND assigned_at IS NOT NULL
+                    THEN EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600
+                    ELSE NULL
+                END
+            )::numeric, 2) as avg_completion_hours
           FROM tasks 
           WHERE assigned_to = $1
         `, [programmerId]);
@@ -718,10 +726,18 @@ export const taskQueries = {
             paramIndex++;
         }
         else if(status === 'done') {
-            queryText += `, completed_at = NOW()`;
+            // Quando marca como done, calcular e guardar actual_hours
+            // Usar assigned_at da tarefa atual para calcular o tempo decorrido
+            queryText += `, completed_at = NOW(), actual_hours = CASE 
+                WHEN assigned_at IS NOT NULL 
+                THEN EXTRACT(EPOCH FROM (NOW() - assigned_at)) / 3600 
+                ELSE NULL 
+            END`;
+            console.log(`⏱️ Calculando actual_hours para task ${id} ao marcar como done`);
+            console.log(`   assigned_at: ${currentTask.assigned_at}, calculará tempo desde atribuição`);
         }
         else if(status === 'todo') {
-            queryText += `, assigned_at = NULL, completed_at = NULL`;
+            queryText += `, assigned_at = NULL, completed_at = NULL, actual_hours = NULL`;
         }
     
         queryText += ` WHERE id = $${paramIndex}`;
@@ -844,9 +860,18 @@ export const taskQueries = {
         if (normalizedTask.status === 'inprogress' && finalAssignedTo && !currentTask?.assigned_at) {
             additionalUpdates += `, assigned_at = NOW()`;
         } else if (normalizedTask.status === 'done' && !currentTask?.completed_at) {
-            additionalUpdates += `, completed_at = NOW()`;
+            // Quando marca como done, calcular e guardar actual_hours automaticamente
+            // Usa assigned_at da tarefa para calcular tempo decorrido em horas
+            additionalUpdates += `, completed_at = NOW(), actual_hours = CASE 
+                WHEN assigned_at IS NOT NULL 
+                THEN EXTRACT(EPOCH FROM (NOW() - assigned_at)) / 3600 
+                ELSE NULL 
+            END`;
+            console.log(`⏱️ Calculando actual_hours para task ${id} ao atualizar status para done`);
+            console.log(`   assigned_at: ${currentTask?.assigned_at}, calculará tempo desde atribuição`);
         } else if (normalizedTask.status === 'todo') {
-            additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
+            // Ao voltar para todo, limpar completed_at e actual_hours
+            additionalUpdates += `, assigned_at = NULL, completed_at = NULL, actual_hours = NULL`;
         }
 
         if (normalizedTask.assignedTo !== undefined && finalAssignedTo && finalStatus === 'inprogress' && !currentTask?.assigned_at) {
@@ -924,10 +949,16 @@ export const timeCalculationQueries = {
             SELECT
                 assigned_at,
                 completed_at,
+                actual_hours,
                 CASE
                     WHEN assigned_at IS NULL THEN 'Nao atribuido'
                     WHEN completed_at IS NOT NULL THEN 
-                        'Concluido em ' || ROUND(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 60)::int || ' minutos'
+                        CASE
+                            WHEN actual_hours IS NOT NULL AND actual_hours > 0 THEN
+                                'Concluido em ' || ROUND(actual_hours * 60)::int || ' minutos'
+                            ELSE
+                                'Concluido em ' || ROUND(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 60)::int || ' minutos'
+                        END
                     ELSE
                         'Em andamento há ' || ROUND(EXTRACT(EPOCH FROM (NOW() - assigned_at)) / 60)::int || ' minutos'
                 END as time_info
@@ -986,14 +1017,24 @@ export const timeCalculationQueries = {
 
     // Calcular tempo médio de conclusão
     getAverageCompletionTime: async (managerId?: string, days: number = 30) => {
+        const hoursCalculation = `
+            CASE 
+                WHEN actual_hours IS NOT NULL AND actual_hours > 0 
+                THEN actual_hours
+                WHEN completed_at IS NOT NULL AND assigned_at IS NOT NULL
+                THEN EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600
+                ELSE NULL
+            END
+        `;
+        
         if (managerId) {
             return await queryOne(`
                 SELECT 
                     COUNT(*)::int as total_tasks,
-                    ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
-                    ROUND(MIN(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as min_hours,
-                    ROUND(MAX(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as max_hours,
-                    ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as stddev_hours
+                    ROUND(AVG(${hoursCalculation})::numeric, 2) as avg_hours,
+                    ROUND(MIN(${hoursCalculation})::numeric, 2) as min_hours,
+                    ROUND(MAX(${hoursCalculation})::numeric, 2) as max_hours,
+                    ROUND(STDDEV(${hoursCalculation})::numeric, 2) as stddev_hours
                 FROM tasks t
                 JOIN users u ON t.assigned_to = u.id
                 WHERE t.status = 'done'
@@ -1001,20 +1042,28 @@ export const timeCalculationQueries = {
                 AND t.assigned_at IS NOT NULL
                 AND u.manager_id = $1
                 AND t.completed_at >= NOW() - INTERVAL '${days} days'
+                AND (
+                    t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                    OR (t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL)
+                )
             `, [managerId]);
         } else {
             return await queryOne(`
                 SELECT 
                     COUNT(*)::int as total_tasks,
-                    ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
-                    ROUND(MIN(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as min_hours,
-                    ROUND(MAX(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as max_hours,
-                    ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as stddev_hours
+                    ROUND(AVG(${hoursCalculation})::numeric, 2) as avg_hours,
+                    ROUND(MIN(${hoursCalculation})::numeric, 2) as min_hours,
+                    ROUND(MAX(${hoursCalculation})::numeric, 2) as max_hours,
+                    ROUND(STDDEV(${hoursCalculation})::numeric, 2) as stddev_hours
                 FROM tasks
                 WHERE status = 'done'
                 AND completed_at IS NOT NULL
                 AND assigned_at IS NOT NULL
                 AND completed_at >= NOW() - INTERVAL '${days} days'
+                AND (
+                    actual_hours IS NOT NULL AND actual_hours > 0
+                    OR (completed_at IS NOT NULL AND assigned_at IS NOT NULL)
+                )
             `);
         }
     },
@@ -1072,7 +1121,13 @@ export const predictionQueries = {
                 COUNT(t.id)::int as completed_tasks,
                 SUM(t.story_points)::int as total_story_points,
                 ROUND((SUM(t.story_points)::numeric / $1), 2) as velocity_per_week,
-                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours_per_task,
+                ROUND(AVG(
+                    CASE 
+                        WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                        THEN t.actual_hours
+                        ELSE EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600
+                    END
+                )::numeric, 2) as avg_hours_per_task,
                 ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points
             FROM tasks t
             ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
@@ -1099,15 +1154,30 @@ export const predictionQueries = {
                 ${userId ? 'u.id as user_id, u.name as user_name,' : ''}
                 COUNT(t.id)::int as sample_size,
                 ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points,
-                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours,
-                ROUND((AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600) / AVG(t.story_points))::numeric, 2) as hours_per_point
+                ROUND(AVG(
+                    CASE 
+                        WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                        THEN t.actual_hours
+                        ELSE EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600
+                    END
+                )::numeric, 2) as avg_hours,
+                ROUND((AVG(
+                    CASE 
+                        WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                        THEN t.actual_hours
+                        ELSE EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600
+                    END
+                ) / AVG(t.story_points))::numeric, 2) as hours_per_point
             FROM tasks t
             ${userId ? 'JOIN users u ON t.assigned_to = u.id' : ''}
             WHERE t.completed_at IS NOT NULL 
             AND t.assigned_at IS NOT NULL
             AND t.story_points IS NOT NULL
             AND t.story_points > 0
-            AND (t.completed_at - t.assigned_at) > INTERVAL '0'
+            AND (
+                t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                OR (t.completed_at - t.assigned_at) > INTERVAL '0'
+            )
         `;
         
         if (userId) {
@@ -1120,9 +1190,16 @@ export const predictionQueries = {
 
     predictTaskTime: async (storyPoints: number, userId?: string, taskTypeId?: string) => {
         // Primeiro, buscar a média e outros dados básicos
+        // Priorizar actual_hours quando disponível, senão calcular a partir das datas
         let baseQuery = `
             SELECT 
-                ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as avg_hours,
+                ROUND(AVG(
+                    CASE 
+                        WHEN actual_hours IS NOT NULL AND actual_hours > 0 
+                        THEN actual_hours
+                        ELSE EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600
+                    END
+                )::numeric, 2) as avg_hours,
                 ROUND(AVG(story_points)::numeric, 2) as avg_points,
                 COUNT(*)::int as sample_size
             FROM tasks 
@@ -1130,6 +1207,10 @@ export const predictionQueries = {
             AND assigned_at IS NOT NULL
             AND story_points IS NOT NULL
             AND story_points > 0
+            AND (
+                actual_hours IS NOT NULL AND actual_hours > 0
+                OR (completed_at IS NOT NULL AND assigned_at IS NOT NULL)
+            )
         `;
         
         const params: any[] = [];
@@ -1160,14 +1241,25 @@ export const predictionQueries = {
         }
 
         // Calcular desvio padrão (PostgreSQL tem STDDEV)
+        // Priorizar actual_hours quando disponível
         let stdDevQuery = `
             SELECT 
-                ROUND(STDDEV(EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600)::numeric, 2) as std_dev_hours
+                ROUND(STDDEV(
+                    CASE 
+                        WHEN actual_hours IS NOT NULL AND actual_hours > 0 
+                        THEN actual_hours
+                        ELSE EXTRACT(EPOCH FROM (completed_at - assigned_at)) / 3600
+                    END
+                )::numeric, 2) as std_dev_hours
             FROM tasks 
             WHERE completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
             AND story_points IS NOT NULL
             AND story_points > 0
+            AND (
+                actual_hours IS NOT NULL AND actual_hours > 0
+                OR (completed_at IS NOT NULL AND assigned_at IS NOT NULL)
+            )
         `;
         
         const stdDevParams: any[] = [];
@@ -1330,9 +1422,13 @@ export const analyticsQueries = {
                 COUNT(DISTINCT CASE WHEN t.status = 'todo' THEN t.id END)::int as todo_tasks,
                 COUNT(DISTINCT u.id)::int as total_programmers,
                 ROUND(SUM(CASE WHEN t.status = 'done' THEN t.story_points ELSE 0 END)::numeric, 2) as completed_story_points,
-                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                ROUND(AVG(CASE 
+                    WHEN t.status = 'done' AND t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                    THEN t.actual_hours
+                    WHEN t.status = 'done' AND t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
                     THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
-                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                    ELSE NULL 
+                END)::numeric, 2) as avg_completion_hours,
                 ROUND(AVG(t.story_points)::numeric, 2) as avg_story_points,
                 COUNT(DISTINCT CASE WHEN t.status = 'inprogress' 
                     AND t.estimated_hours IS NOT NULL 
@@ -1355,9 +1451,13 @@ export const analyticsQueries = {
                 COUNT(DISTINCT CASE WHEN t.status = 'done' THEN t.id END)::int as completed_tasks,
                 COUNT(DISTINCT CASE WHEN t.status = 'inprogress' THEN t.id END)::int as in_progress_tasks,
                 SUM(CASE WHEN t.status = 'done' THEN t.story_points ELSE 0 END)::numeric as completed_story_points,
-                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                ROUND(AVG(CASE 
+                    WHEN t.status = 'done' AND t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                    THEN t.actual_hours
+                    WHEN t.status = 'done' AND t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
                     THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
-                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                    ELSE NULL 
+                END)::numeric, 2) as avg_completion_hours,
                 ROUND(AVG(CASE WHEN t.status = 'done' THEN t.story_points ELSE NULL END)::numeric, 2) as avg_story_points_per_task
             FROM users u
             LEFT JOIN tasks t ON t.assigned_to = u.id
@@ -1377,9 +1477,13 @@ export const analyticsQueries = {
                 tt.name as task_type_name,
                 COUNT(DISTINCT t.id)::int as total_tasks,
                 COUNT(DISTINCT CASE WHEN t.status = 'done' THEN t.id END)::int as completed_tasks,
-                ROUND(AVG(CASE WHEN t.status = 'done' AND t.completed_at IS NOT NULL 
+                ROUND(AVG(CASE 
+                    WHEN t.status = 'done' AND t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                    THEN t.actual_hours
+                    WHEN t.status = 'done' AND t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
                     THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 
-                    ELSE NULL END)::numeric, 2) as avg_completion_hours,
+                    ELSE NULL 
+                END)::numeric, 2) as avg_completion_hours,
                 ROUND(AVG(CASE WHEN t.status = 'done' THEN t.story_points ELSE NULL END)::numeric, 2) as avg_story_points
             FROM task_types tt
             LEFT JOIN tasks t ON t.task_type_id = tt.id
@@ -1399,12 +1503,24 @@ export const analyticsQueries = {
                 DATE(t.completed_at) as date,
                 COUNT(*)::int as completed_count,
                 SUM(t.story_points)::numeric as total_story_points,
-                ROUND(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600)::numeric, 2) as avg_hours
+                ROUND(AVG(
+                    CASE 
+                        WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                        THEN t.actual_hours
+                        WHEN t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600
+                        ELSE NULL
+                    END
+                )::numeric, 2) as avg_hours
             FROM tasks t
             JOIN users u ON t.assigned_to = u.id
             WHERE t.status = 'done'
             AND u.manager_id = $1
             AND t.completed_at >= NOW() - INTERVAL '${days} days'
+            AND (
+                t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                OR (t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL)
+            )
             GROUP BY DATE(t.completed_at)
             ORDER BY date DESC
         `, [managerId]);
@@ -1415,17 +1531,43 @@ export const analyticsQueries = {
         return await queryOne(`
             SELECT 
                 COUNT(*)::int as total_tasks,
-                ROUND(AVG(ABS(t.actual_hours - t.estimated_hours))::numeric, 2) as avg_absolute_error,
-                ROUND(AVG(CASE WHEN t.actual_hours > 0 
-                    THEN ABS(t.actual_hours - t.estimated_hours) / t.actual_hours * 100 
-                    ELSE NULL END)::numeric, 2) as avg_percentage_error,
-                COUNT(CASE WHEN t.actual_hours <= t.estimated_hours THEN 1 END)::int as on_time_tasks,
-                COUNT(CASE WHEN t.actual_hours > t.estimated_hours THEN 1 END)::int as delayed_tasks
+                ROUND(AVG(ABS(
+                    CASE 
+                        WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                        THEN t.actual_hours
+                        WHEN t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600
+                        ELSE NULL
+                    END - t.estimated_hours
+                ))::numeric, 2) as avg_absolute_error,
+                ROUND(AVG(CASE 
+                    WHEN t.actual_hours IS NOT NULL AND t.actual_hours > 0 
+                    THEN ABS(t.actual_hours - t.estimated_hours) / t.actual_hours * 100
+                    WHEN t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL
+                    THEN ABS(EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 - t.estimated_hours) / 
+                         (EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600) * 100
+                    ELSE NULL 
+                END)::numeric, 2) as avg_percentage_error,
+                COUNT(CASE 
+                    WHEN (t.actual_hours IS NOT NULL AND t.actual_hours > 0 AND t.actual_hours <= t.estimated_hours)
+                    OR (t.actual_hours IS NULL AND t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL 
+                        AND EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 <= t.estimated_hours)
+                    THEN 1 
+                END)::int as on_time_tasks,
+                COUNT(CASE 
+                    WHEN (t.actual_hours IS NOT NULL AND t.actual_hours > 0 AND t.actual_hours > t.estimated_hours)
+                    OR (t.actual_hours IS NULL AND t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL 
+                        AND EXTRACT(EPOCH FROM (t.completed_at - t.assigned_at)) / 3600 > t.estimated_hours)
+                    THEN 1 
+                END)::int as delayed_tasks
             FROM tasks t
             JOIN users u ON t.assigned_to = u.id
             WHERE t.status = 'done'
             AND t.estimated_hours IS NOT NULL
-            AND t.actual_hours IS NOT NULL
+            AND (
+                t.actual_hours IS NOT NULL AND t.actual_hours > 0
+                OR (t.completed_at IS NOT NULL AND t.assigned_at IS NOT NULL)
+            )
             AND u.manager_id = $1
             AND t.completed_at >= NOW() - INTERVAL '${days} days'
         `, [managerId]);

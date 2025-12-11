@@ -406,7 +406,13 @@ export default function ReportsPage() {
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.completed_tasks || 0}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.in_progress_tasks || 0}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.completed_story_points || 0}</td>
-                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{p.avg_completion_hours ? p.avg_completion_hours.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">
+                              {p.avg_completion_hours !== null && p.avg_completion_hours !== undefined
+                                ? (typeof p.avg_completion_hours === 'number' 
+                                    ? p.avg_completion_hours.toFixed(2)
+                                    : Number(p.avg_completion_hours).toFixed(2))
+                                : '-'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -444,9 +450,19 @@ export default function ReportsPage() {
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.assigned_user_name || 'Não atribuído'}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium">{task.title}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.estimated_hours || '-'}</td>
-                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{task.hours_elapsed ? task.hours_elapsed.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">
+                              {task.hours_elapsed !== null && task.hours_elapsed !== undefined
+                                ? (typeof task.hours_elapsed === 'number' 
+                                    ? task.hours_elapsed.toFixed(2)
+                                    : Number(task.hours_elapsed).toFixed(2))
+                                : '-'}
+                            </td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-red-600">
-                              {task.delay_hours ? `+${task.delay_hours.toFixed(2)}` : '-'}
+                              {task.delay_hours !== null && task.delay_hours !== undefined
+                                ? (typeof task.delay_hours === 'number' 
+                                    ? `+${task.delay_hours.toFixed(2)}`
+                                    : `+${Number(task.delay_hours).toFixed(2)}`)
+                                : '-'}
                             </td>
                           </tr>
                         ))}
@@ -484,7 +500,13 @@ export default function ReportsPage() {
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{new Date(trend.date).toLocaleDateString('pt-PT')}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.completed_count || 0}</td>
                             <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.total_story_points || 0}</td>
-                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">{trend.avg_hours ? trend.avg_hours.toFixed(2) : '-'}</td>
+                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-sm">
+                              {trend.avg_hours !== null && trend.avg_hours !== undefined
+                                ? (typeof trend.avg_hours === 'number' 
+                                    ? trend.avg_hours.toFixed(2)
+                                    : Number(trend.avg_hours).toFixed(2))
+                                : '-'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
