@@ -122,7 +122,33 @@ export async function queryOne(text: string, params?: any[]): Promise<any> {
 
 // Helper function for execute (no return, for INSERT/UPDATE/DELETE)
 export async function execute(text: string, params?: any[]): Promise<QueryResult> {
-  return await pool.query(text, params);
+  try {
+    const result = await pool.query(text, params);
+    
+    // Log para debug (mostrar operação e linhas afetadas)
+    if (process.env.NODE_ENV === 'development') {
+      const operation = text.trim().substring(0, 20).toUpperCase();
+      const queryPreview = text.trim().substring(0, 100);
+      console.log(`[DB] ${operation}... - Linhas afetadas: ${result.rowCount || 0}`);
+      
+      // Se nenhuma linha foi afetada em UPDATE/DELETE, pode indicar problema
+      if ((text.trim().toUpperCase().startsWith('UPDATE') || 
+           text.trim().toUpperCase().startsWith('DELETE')) && 
+          result.rowCount === 0) {
+        console.warn(`[DB] ⚠️ ATENÇÃO: Nenhuma linha foi afetada pela query:`, queryPreview);
+      }
+    }
+    
+    return result;
+  } catch (error: any) {
+    // Log detalhado de erros
+    console.error('[DB] ❌ ERRO ao executar query:');
+    console.error('[DB] Query:', text.substring(0, 200));
+    console.error('[DB] Params:', params);
+    console.error('[DB] Erro:', error.message);
+    console.error('[DB] Código:', error.code);
+    throw error; // Re-throw para que o caller possa tratar
+  }
 }
 
 // Função para logging
@@ -281,7 +307,7 @@ export const userQueries = {
         manager_id?: string;
         experience_level?: string;
     }) => {
-        await execute(`
+        const result = await execute(`
             INSERT INTO users (id, username, name, email, password_hash, type, department, manager_id, experience_level)
             VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
@@ -295,6 +321,12 @@ export const userQueries = {
             user.manager_id || null,
             user.experience_level || 'junior'
         ]);
+        
+        if (result.rowCount !== 1) {
+            console.error(`⚠️ ATENÇÃO: INSERT retornou rowCount=${result.rowCount} (esperado: 1) para user ${user.id}`);
+        } else {
+            console.log(`✅ Utilizador criado: ${user.username} (ID: ${user.id})`);
+        }
     },
     
     update: async (id: string, user: Partial<{
@@ -308,10 +340,16 @@ export const userQueries = {
     }>) => {
         const fields = Object.keys(user).map((key, index) => `${key} = $${index + 1}`).join(', ');
         const values = Object.values(user);
-        await execute(
+        const result = await execute(
             `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1}`,
             [...values, id]
         );
+        
+        if (result.rowCount === 0) {
+            console.warn(`⚠️ ATENÇÃO: UPDATE não afetou nenhuma linha para user ${id} - pode não existir`);
+        } else {
+            console.log(`✅ Utilizador atualizado: ${id} (${result.rowCount} linha(s) afetada(s))`);
+        }
     },
     
     delete: async (id: string) => {
@@ -330,10 +368,16 @@ export const taskTypeQueries = {
     },
 
     create: async (taskType: { id: string, name: string, description: string}) => {
-        await execute(`
+        const result = await execute(`
             INSERT INTO task_types (id, name, description)
             VALUES ($1, $2, $3)
         `, [taskType.id, taskType.name, taskType.description]);
+        
+        if (result.rowCount !== 1) {
+            console.error(`⚠️ ATENÇÃO: INSERT retornou rowCount=${result.rowCount} (esperado: 1) para task_type ${taskType.id}`);
+        } else {
+            console.log(`✅ Tipo de tarefa criado: ${taskType.name} (ID: ${taskType.id})`);
+        }
     },
     
     update: async (id: string, taskType: Partial<{ name: string, description: string}>) => {
@@ -475,7 +519,7 @@ export const taskQueries = {
             resolvedOrder = typeof task.order === 'number' ? task.order : 0;
         }
 
-        await execute(`
+        const insertResult = await execute(`
             INSERT INTO tasks (id, title, description, status, "order", story_points, assigned_to, task_type_id, created_by, assigned_at, estimated_hours, confidence_level)
             VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         `, [
@@ -493,8 +537,13 @@ export const taskQueries = {
             confidenceLevel
         ]);
 
-        console.log('Task criada. Criador:', task.createdBy, 'Responsável:', finalAssignedTo);
-        console.log('Task criada com sucesso no banco de dados');
+        // Verificar se a inserção foi bem-sucedida
+        if (insertResult.rowCount !== 1) {
+            console.error(`⚠️ ATENÇÃO: INSERT retornou rowCount=${insertResult.rowCount} (esperado: 1) para task ${task.id}`);
+        }
+
+        console.log('✅ Task criada. ID:', task.id, 'Criador:', task.createdBy, 'Responsável:', finalAssignedTo);
+        console.log(`✅ Task persistida na base de dados (rowCount: ${insertResult.rowCount})`);
     },
 
     validateExecutionOrder: async (taskId: string, newStatus: 'todo' | 'inprogress' | 'done'): Promise<boolean> => {
@@ -667,10 +716,16 @@ export const taskQueries = {
         }).join(', ');
 
         const values = Object.values(normalizedTask);
-        await execute(
+        const result = await execute(
             `UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`,
             [...values, id]
         );
+        
+        if (result.rowCount === 0) {
+            console.warn(`⚠️ ATENÇÃO: UPDATE não afetou nenhuma linha para task ${id} - pode não existir`);
+        } else {
+            console.log(`✅ Task atualizada: ${id} (${result.rowCount} linha(s) afetada(s))`);
+        }
     },
 
     delete: async (id: string) => {
@@ -835,17 +890,26 @@ const calculateComplexityFactor = (storyPoints: number): number => {
 };
 
 const calculateConfidenceLevel = (sampleSize: number, stdDev: number, avgHours: number): number => {
+    // Validação de entrada
+    if (!stdDev || !avgHours || avgHours <= 0 || stdDev < 0 || sampleSize < 1) {
+        return 0.3; // Confiança mínima para dados inválidos
+    }
+    
     let confidence = 0.5;
     
+    // Baseado no tamanho da amostra
     if (sampleSize >= 20) confidence += 0.3;
     else if (sampleSize >= 10) confidence += 0.2;
     else if (sampleSize >= 5) confidence += 0.1;
+    else confidence -= 0.1; // Amostras muito pequenas reduzem confiança
     
+    // Baseado na variabilidade (coeficiente de variação)
     const coefficientOfVariation = stdDev / avgHours;
-    if (coefficientOfVariation < 0.3) confidence += 0.2;
-    else if (coefficientOfVariation < 0.6) confidence += 0.1;
-    else confidence -= 0.1;
+    if (coefficientOfVariation < 0.3) confidence += 0.2; // Baixa variabilidade = alta confiança
+    else if (coefficientOfVariation < 0.6) confidence += 0.1; // Variabilidade moderada
+    else confidence -= 0.1; // Alta variabilidade = baixa confiança
     
+    // Garantir que confiança está entre 0.1 e 0.95
     return Math.min(Math.max(confidence, 0.1), 0.95);
 };
 
@@ -980,14 +1044,33 @@ export const predictionQueries = {
             stdDevParams.push(taskTypeId);
         }
 
-        const stdDevResult = await queryOne(stdDevQuery, stdDevParams) as {
+        let stdDevResult = await queryOne(stdDevQuery, stdDevParams) as {
             std_dev_hours: number;
         } | undefined;
 
+        // Validar dados históricos
+        const stdDevHours = stdDevResult?.std_dev_hours;
+        if (stdDevHours === null || stdDevHours === undefined || isNaN(stdDevHours)) {
+            // Se não há desvio padrão, usar 30% da média como estimativa conservadora
+            const estimatedStdDev = basicData.avg_hours * 0.3;
+            stdDevResult = { std_dev_hours: estimatedStdDev };
+        }
+
         const historicalData = {
             ...basicData,
-            std_dev_hours: stdDevResult?.std_dev_hours || 0
+            std_dev_hours: (stdDevResult?.std_dev_hours) || (basicData.avg_hours * 0.3) // Fallback: 30% da média
         };
+
+        // Validar que temos dados válidos
+        if (!historicalData.avg_hours || historicalData.avg_hours <= 0 || 
+            !historicalData.avg_points || historicalData.avg_points <= 0) {
+            const defaultHoursPerPoint = 4;
+            return {
+                estimated_hours: storyPoints * defaultHoursPerPoint,
+                confidence_level: 0.3,
+                message: 'Estimativa baseada em padrão da indústria (dados históricos inválidos)'
+            };
+        }
 
         const hourPerPoint = historicalData.avg_hours / historicalData.avg_points;
         let estimatedHours = storyPoints * hourPerPoint;
@@ -1000,13 +1083,21 @@ export const predictionQueries = {
             historicalData.avg_hours
         );
         
-        const marginOfError = historicalData.std_dev_hours * (2 / Math.sqrt(historicalData.sample_size));
+        // CORRIGIDO: Usar erro padrão correto para intervalo de confiança de 95%
+        // Erro padrão = stdDev / sqrt(n)
+        // Para 95% de confiança, z-score ≈ 1.96 (usamos 2.0 como aproximação)
+        const standardError = historicalData.std_dev_hours / Math.sqrt(historicalData.sample_size);
+        const marginOfError = standardError * 2.0; // Intervalo de confiança de ~95%
+
+        // Garantir que min_hours nunca seja negativo
+        const minHours = Math.max(0, estimatedHours - marginOfError);
+        const maxHours = estimatedHours + marginOfError;
 
         return {
             estimated_hours: Math.round(estimatedHours * 100) / 100,
             confidence_level: Math.round(confidence * 100) / 100,
-            min_hours: Math.round((estimatedHours - marginOfError) * 100) / 100,
-            max_hours: Math.round((estimatedHours + marginOfError) * 100) / 100,
+            min_hours: Math.round(minHours * 100) / 100,
+            max_hours: Math.round(maxHours * 100) / 100,
             hours_per_point: Math.round(hourPerPoint * 100) / 100,
             sample_size: historicalData.sample_size,
             message: generatePredictionMessage(confidence, historicalData.sample_size)
