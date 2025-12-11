@@ -683,10 +683,34 @@ export const taskQueries = {
                 throw new Error('O programador já tem o máximo de 2 tarefas em progresso');
             }
         }
+
+        // Obter tarefa atual para verificar mudanças
+        const currentTask = await taskQueries.getById(id) as any;
+        if (!currentTask) {
+            throw new Error(`Task com id ${id} não encontrada`);
+        }
+
+        // Determinar assigned_to final
+        const finalAssignedTo = assignedTo || currentTask.assigned_to;
+        const assignedToChanged = assignedTo !== undefined && assignedTo !== currentTask.assigned_to;
+        const statusChanged = status !== currentTask.status;
+
+        // Se assigned_to ou status mudaram, recalcular order para evitar conflitos com constraint única
+        let newOrder = currentTask.order;
+        if ((assignedToChanged || statusChanged) && finalAssignedTo) {
+            const row = await queryOne(`
+                SELECT COALESCE(MAX("order"), -1)::int as "maxOrder"
+                FROM tasks
+                WHERE assigned_to = $1 AND status = $2 AND id != $3
+            `, [finalAssignedTo, status, id]);
+            const maxOrder = row?.maxOrder ?? -1;
+            newOrder = maxOrder + 1;
+            console.log(`🔄 Recalculando order para task ${id} no updateStatus: assigned_to=${finalAssignedTo}, status=${status}, novo order=${newOrder}`);
+        }
     
-        let queryText = `UPDATE tasks SET status = $1, updated_at = CURRENT_TIMESTAMP`;
-        const params: any[] = [status];
-        let paramIndex = 2;
+        let queryText = `UPDATE tasks SET status = $1, "order" = $2, updated_at = CURRENT_TIMESTAMP`;
+        const params: any[] = [status, newOrder];
+        let paramIndex = 3;
     
         if(status === 'inprogress' && assignedTo) {
             queryText += `, assigned_to = $${paramIndex}, assigned_at = NOW()`;
@@ -716,10 +740,9 @@ export const taskQueries = {
         taskTypeId: string;
     }>) => {
         const currentTask = await taskQueries.getById(id) as any;
-
-        let additionalUpdates = '';
-        const params: any[] = [];
-        let paramIndex = 1;
+        if (!currentTask) {
+            throw new Error(`Task com id ${id} não encontrada`);
+        }
 
         // Normalizar valores null e strings vazias para foreign keys
         const normalizedTask: any = { ...task };
@@ -733,34 +756,84 @@ export const taskQueries = {
             normalizedTask.description = null;
         }
 
-        const fields = Object.keys(normalizedTask).map(key => {
-            if (key === 'status' && normalizedTask.status) {
-                if(normalizedTask.status === 'inprogress' && normalizedTask.assignedTo && !currentTask?.assigned_at ) {
-                    additionalUpdates += `, assigned_at = NOW()`;
-                }
-                else if(normalizedTask.status === 'done' && !currentTask?.completed_at ) {
-                    additionalUpdates += `, completed_at = NOW()`;
-                }
-                else if(normalizedTask.status === 'todo' ) {
-                    additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
-                }
+        // Determinar valores finais (usar novos valores se fornecidos, senão manter atuais)
+        const finalAssignedTo = normalizedTask.assignedTo !== undefined ? normalizedTask.assignedTo : currentTask.assigned_to;
+        const finalStatus = normalizedTask.status !== undefined ? normalizedTask.status : currentTask.status;
+
+        // Se assigned_to ou status mudaram, recalcular order para evitar conflitos com constraint única
+        const assignedToChanged = normalizedTask.assignedTo !== undefined && normalizedTask.assignedTo !== currentTask.assigned_to;
+        const statusChanged = normalizedTask.status !== undefined && normalizedTask.status !== currentTask.status;
+        
+        let finalOrder = normalizedTask.order;
+        if ((assignedToChanged || statusChanged) && finalAssignedTo) {
+            // Recalcular order para o novo assigned_to/status
+            const row = await queryOne(`
+                SELECT COALESCE(MAX("order"), -1)::int as "maxOrder"
+                FROM tasks
+                WHERE assigned_to = $1 AND status = $2 AND id != $3
+            `, [finalAssignedTo, finalStatus, id]);
+            const maxOrder = row?.maxOrder ?? -1;
+            finalOrder = maxOrder + 1;
+            console.log(`🔄 Recalculando order para task ${id}: assigned_to=${finalAssignedTo}, status=${finalStatus}, novo order=${finalOrder}`);
+        } else if (normalizedTask.order === undefined) {
+            // Se order não foi fornecido e nada mudou, manter o atual
+            finalOrder = currentTask.order;
+        }
+
+        // Construir campos e valores para UPDATE
+        const updateFields: string[] = [];
+        const updateValues: any[] = [];
+        let paramIndex = 1;
+
+        // Processar cada campo do normalizedTask
+        for (const [key, value] of Object.entries(normalizedTask)) {
+            // Se assigned_to ou status mudaram, ignorar order fornecido (será recalculado)
+            if (key === 'order' && (assignedToChanged || statusChanged)) {
+                continue; // Skip, será adicionado depois
             }
 
-            if (key === 'assignedTo' && normalizedTask.assignedTo && normalizedTask.status === 'inprogress' && !currentTask?.assigned_at) {
-                additionalUpdates += `, assigned_at = NOW()`;
+            if (key === 'storyPoints') {
+                updateFields.push(`story_points = $${paramIndex++}`);
+                updateValues.push(value);
+            } else if (key === 'assignedTo') {
+                updateFields.push(`assigned_to = $${paramIndex++}`);
+                updateValues.push(value);
+            } else if (key === 'taskTypeId') {
+                updateFields.push(`task_type_id = $${paramIndex++}`);
+                updateValues.push(value);
+            } else if (key === 'order') {
+                updateFields.push(`"order" = $${paramIndex++}`);
+                updateValues.push(value);
+            } else {
+                updateFields.push(`${key} = $${paramIndex++}`);
+                updateValues.push(value);
             }
+        }
 
-            if (key === 'storyPoints') return `story_points = $${paramIndex++}`;
-            if (key === 'assignedTo') return `assigned_to = $${paramIndex++}`;
-            if (key === 'taskTypeId') return `task_type_id = $${paramIndex++}`;
-            if (key === 'order') return `"order" = $${paramIndex++}`;
-            return `${key} = $${paramIndex++}`;
-        }).join(', ');
+        // Se assigned_to ou status mudaram, adicionar order recalculado
+        if (assignedToChanged || statusChanged) {
+            updateFields.push(`"order" = $${paramIndex++}`);
+            updateValues.push(finalOrder);
+        }
 
-        const values = Object.values(normalizedTask);
+        // Adicionar campos adicionais baseados em status
+        let additionalUpdates = '';
+        if (normalizedTask.status === 'inprogress' && finalAssignedTo && !currentTask?.assigned_at) {
+            additionalUpdates += `, assigned_at = NOW()`;
+        } else if (normalizedTask.status === 'done' && !currentTask?.completed_at) {
+            additionalUpdates += `, completed_at = NOW()`;
+        } else if (normalizedTask.status === 'todo') {
+            additionalUpdates += `, assigned_at = NULL, completed_at = NULL`;
+        }
+
+        if (normalizedTask.assignedTo !== undefined && finalAssignedTo && finalStatus === 'inprogress' && !currentTask?.assigned_at) {
+            additionalUpdates += `, assigned_at = NOW()`;
+        }
+
+        const fieldsString = updateFields.join(', ');
         const result = await execute(
-            `UPDATE tasks SET ${fields}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`,
-            [...values, id]
+            `UPDATE tasks SET ${fieldsString}${additionalUpdates}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`,
+            [...updateValues, id]
         );
         
         if (result.rowCount === 0) {
