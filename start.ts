@@ -202,15 +202,15 @@ async function startServer() {
     console.log('✅ Base de dados inicializada com sucesso');
     
     // Iniciar servidor apenas após a base de dados estar pronta
-    server.listen(PORT, '0.0.0.0', () => {
+    const httpServer = server.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Servidor rodando na porta ${PORT}`);
       console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
       console.log(`📡 Pronto para receber requisições!`);
       console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
     });
 
-    // Tratamento de erros não capturados
-    server.on('error', (error: any) => {
+    // Tratamento de erros do servidor HTTP
+    httpServer.on('error', (error: any) => {
       console.error('❌ Erro no servidor:', error);
       if (error.code === 'EADDRINUSE') {
         console.error(`Porta ${PORT} já está em uso`);
