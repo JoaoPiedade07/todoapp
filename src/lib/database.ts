@@ -1203,7 +1203,8 @@ export const predictionQueries = {
                 ROUND(AVG(story_points)::numeric, 2) as avg_points,
                 COUNT(*)::int as sample_size
             FROM tasks 
-            WHERE completed_at IS NOT NULL 
+            WHERE status = 'done'
+            AND completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
             AND story_points IS NOT NULL
             AND story_points > 0
@@ -1252,7 +1253,8 @@ export const predictionQueries = {
                     END
                 )::numeric, 2) as std_dev_hours
             FROM tasks 
-            WHERE completed_at IS NOT NULL 
+            WHERE status = 'done'
+            AND completed_at IS NOT NULL 
             AND assigned_at IS NOT NULL
             AND story_points IS NOT NULL
             AND story_points > 0
